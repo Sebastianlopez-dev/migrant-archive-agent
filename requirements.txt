@@ -1,0 +1,6 @@
+# System dependency: FFmpeg (required by ingestion_audio.py)
+#   macOS:  brew install ffmpeg
+#   Ubuntu: sudo apt-get install ffmpeg
+youtube-transcript-api
+yt-dlp
+faster-whisper
