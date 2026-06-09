@@ -9,6 +9,7 @@ Built on the FILMIG / Plataforma Cero channel.
 
 | Tool | Why | Install |
 |------|-----|---------|
+| **[uv](https://docs.astral.sh/uv/)** | Fast Python package & environment manager | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | **Python 3.12+** | Runtime | `uv python install 3.12` |
 | **FFmpeg** | Audio extraction for Whisper ingestion | `brew install ffmpeg` (macOS) |
 
