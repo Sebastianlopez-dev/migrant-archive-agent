@@ -2,31 +2,19 @@
 
 **Decision**: use `uv` for Python environment + package management in this project.
 
-## Options evaluated
+## What we considered
 
-| Tool | Environment | Package install | Speed | Single tool? |
-|------|-------------|-----------------|-------|-------------|
-| `venv` + `pip` | ✅ | ✅ | Slow | ❌ Two tools |
-| `conda` | ✅ | ✅ (conda-forge) | Medium | ✅ |
-| `poetry` | ✅ | ✅ | Medium | ✅ |
-| **`uv`** | ✅ | ✅ | **10-100x faster** | ✅ |
+The default Python workflow uses **two tools**: `venv` to create environments and `pip` to install packages. It works, but `pip` is painfully slow on repeated installs and there's no lockfile to freeze exact versions.
 
-## Why not the others
+**Conda** handles both environment and packages in one tool, and it's great for stacks with heavy C/CUDA dependencies like PyTorch. But our stack is pure Python — `yt-dlp`, `faster-whisper`, `openai`, `fastapi` — so Conda would be carrying unnecessary weight.
 
-- **venv + pip**: works, but `pip` is slow on repeated installs. No lockfile.
-- **conda**: overkill. Our stack (yt-dlp, faster-whisper, openai, fastapi) is pure Python. Conda shines with C/CUDA-heavy stacks like PyTorch.
-- **poetry**: great for libraries with strict dependency resolution, but `uv` is faster and simpler for application projects.
+**Poetry** is the go-to for libraries that need strict dependency resolution and lockfiles. It's excellent, but for an application project like this one, `uv` does the same thing faster and with less ceremony.
 
-## What uv gives us
+## Why uv won
 
-| Feature | Benefit for this project |
-|---------|-------------------------|
-| `uv venv --python 3.12` | One command to create env with pinned Python |
-| `uv pip install -r requirements.txt` | 10x faster resolves, no waiting |
-| `uv python install 3.12` | Downloads any Python version without system package manager |
-| Single binary | No pip + venv + virtualenvwrapper confusion |
+`uv` is **a single binary** that replaces `venv`, `pip`, and `pip-tools` all at once. It resolves and installs packages 10-100x faster than `pip`. One command to install any Python version (`uv python install 3.12`), one command to create an environment (`uv venv --python 3.12`), and one command to install dependencies (`uv pip install -r requirements.txt`). No virtualenvwrapper, no pyenv, no confusion.
 
-## When to reconsider
+## When to revisit
 
 If this project ever needs `PyTorch + CUDA` or `cuDNN`, `conda` becomes the pragmatic choice. Until then, `uv` is the right tool.
 
