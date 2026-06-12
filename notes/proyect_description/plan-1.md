@@ -77,7 +77,39 @@
   - Misma interfaz `EmbeddingProvider` → cambiar de Gemini a BGE-M3 es una línea de config.
 - Ver investigación completa: `notes/session-2-embeddings-research.md`.
 
-### 7. Timeline (8 días, actualizado 12 Jun 2026)
+### 7. Estrategia de chunking (12 Jun 2026)
+- **Tamaño de chunk**: 1000 tokens (~750 palabras, ~4-5 min de habla en español).
+- **Overlap**: 200 tokens (20%) entre chunks consecutivos.
+- **Token counter**: Estimador simple (4 caracteres ≈ 1 token). Sin dependencia externa.
+- **¿Por qué 1000/200 y no 512/50?**
+  - El contenido es español conversacional (entrevistas, debates en FILMIG). El español tiene oraciones más largas que el inglés.
+  - 1000 tokens captura una respuesta completa (~4-5 min de conversación) sin partir ideas.
+  - 200 tokens de overlap (20%) aseguran que si una idea cruza la frontera entre chunks, aparece en ambos.
+  - Escala de 2 min a 2 horas de video sin cambios: un video de 1h genera ~12 chunks (vs ~25 con 512/50).
+  - Menos chunks = menos llamadas a la API de embedding, sin perder precisión de búsqueda.
+- **¿Por qué estimador simple y no tiktoken?**
+  - `tiktoken` cuenta tokens exactos (librería oficial de OpenAI). El estimador usa la regla `caracteres / 4`.
+  - La diferencia entre 980 y 1020 tokens reales es irrelevante para la calidad del chunk.
+  - tiktoken suma una dependencia innecesaria — solo se justifica si necesitás contar costos de API al centavo.
+  - Para chunking, alcanza y sobra con el estimador. Cero dependencias, mismo resultado práctico.
+- Ver explicación completa: `notes/session-2-chunking-and-testing.md`.
+
+### 8. Estrategia de testing (12 Jun 2026)
+- **Tres capas de test**, cada una caza bugs distintos:
+  1. **Unit tests** (mock): `FakeEmbeddingProvider` → prueba lógica de chunking y orquestación sin APIs externas. < 1 segundo.
+  2. **Integration tests** (real): BGE-M3 local + ChromaDB temporal → prueba que las piezas encajan con componentes REALES. ~10 segundos, sin internet.
+  3. **E2E tests** (pipeline): Gemini API + ChromaDB real → prueba el pipeline completo con un video. ~30 segundos, requiere API key.
+- **Estructura de tests/**:
+  ```
+  tests/
+  ├── test_processor.py         # Unit: chunking + FakeEmbeddingProvider
+  ├── test_vector_store.py      # Integration: BGE-M3 + ChromaDB real
+  ├── test_embedding.py         # Unit: contratos de EmbeddingProvider
+  └── test_pipeline_e2e.py      # E2E: pipeline completo con Gemini
+  ```
+- Ver explicación completa: `notes/session-2-chunking-and-testing.md`.
+
+### 9. Timeline (8 días, actualizado 12 Jun 2026)
 | Día | Qué | Estado |
 |---|---|---|
 | 1 | `core/ingestion.py` + estrategias de transcripción (caption + faster-whisper + colab) | ✅ Completado |
@@ -132,8 +164,10 @@ migrant-archive/
 │   └── app.js                  # fetch() → POST /api/ask + Web Speech API (voz)
 │
 └── tests/
-    ├── test_rag.py
-    └── test_api.py
+    ├── test_embedding.py       # Unit: contratos de EmbeddingProvider
+    ├── test_processor.py       # Unit: chunking + FakeEmbeddingProvider
+    ├── test_vector_store.py    # Integration: BGE-M3 + ChromaDB real
+    └── test_pipeline_e2e.py    # E2E: pipeline completo con Gemini
 ```
 
 ---
@@ -151,8 +185,12 @@ migrant-archive/
 | `core/embedding.py` | Contrato EmbeddingProvider (abstracto) | Cambia la interfaz de embeddings |
 | `core/embedding_gemini.py` | Gemini API implementation | Gemini API cambia |
 | `core/embedding_bge_m3.py` | BGE-M3 local implementation | Cambia el modelo local |
-| `core/processor.py` | Chunking + orquesta embeddings | Ajustás tamaño de chunks |
+| `core/processor.py` | Chunking (1000tk/200ov) + orquesta embeddings | Ajustás tamaño de chunks o estrategia |
 | `core/vector_store.py` | ChromaDB CRUD | Migrás a Pinecone |
+| `tests/test_embedding.py` | Contratos de EmbeddingProvider | Cambia la interfaz |
+| `tests/test_processor.py` | Chunking + FakeEmbeddingProvider | Cambia lógica de chunking |
+| `tests/test_vector_store.py` | Integration BGE-M3 + ChromaDB | Cambia implementación de provider |
+| `tests/test_pipeline_e2e.py` | E2E pipeline completo | Antes de deployar |
 | `core/rag.py` | Pipeline Q&A | Mejorás calidad de respuestas |
 | `core/prompts.py` | Templates de prompts | Iterás sobre el prompt engineering |
 | `agents/tools.py` | Tools del agente | Agregás o quitás herramientas |
