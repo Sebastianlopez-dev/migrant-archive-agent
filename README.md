@@ -65,7 +65,8 @@ This project has two paths. Pick the one that fits your needs.
 | **Internet required?** | Yes (for Gemini API) | Only for YouTube download |
 | **API keys?** | Gemini (free tier) | None for embeddings |
 
-> **Don't know which to choose?** Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total). You can add Conda later if you want local embeddings.
+> **Don't know which to choose?**
+> Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total). You can add Conda later if you want local embeddings.
 
 ---
 
