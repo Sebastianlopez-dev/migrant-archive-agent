@@ -3,179 +3,309 @@
 **Agent name: Cero**
 
 Multimodal RAG chatbot that answers questions about YouTube video content.
-Built on the FILMIG / Plataforma Cero channel.
+Built on the FILMIG / Plataforma Cero channel (Spanish).
 
-## System Requirements
-
-| Tool | Why | Install |
-|------|-----|---------|
-| **[uv](https://docs.astral.sh/uv/)** | Fast Python package & environment manager | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| **Python 3.12+** | Runtime | `uv python install 3.12` |
-| **FFmpeg** | Audio extraction for Whisper ingestion | `brew install ffmpeg` (macOS) |
-
-## Setup
-
-```bash
-uv venv --python 3.12
-source .venv/bin/activate
-uv pip install -r requirements.txt
-```
-
-Dependencies (see `requirements.txt`):
-- `youtube-transcript-api` — YouTube auto-captions (Strategy A)
-- `yt-dlp` — metadata + audio download
-- `faster-whisper` — local Whisper transcription (Strategy B)
+---
 
 ## Project Structure
 
 ```
-backend/core/
-├── ingestion.py              ← VideoData model + shared helpers
-├── ingestion_caption.py      ← Strategy A: YouTube auto-captions
-├── ingestion_audio.py        ← Strategy B: yt-dlp → faster-whisper (local CPU)
-├── ingestion_colab.py        ← Strategy B (GPU): same logic, Colab-optimised defaults
-├── embedding.py              ← EmbeddingProvider (abstract contract)
-├── embedding_gemini.py       ← Gemini API implementation (default, 3072-dim)
-├── embedding_bge_m3.py       ← BGE-M3 local implementation (1024-dim, conda env)
-├── processor.py              ← Chunking (1000tk/200ov) + embedding orchestration
-└── vector_store.py           ← ChromaDB persistence (add, search, delete)
-
-tests/
-├── test_embedding.py         ← Unit: contract + FakeEmbeddingProvider
-├── test_embedding_gemini.py  ← Unit: Gemini provider
-├── test_embedding_bge_m3.py  ← Unit: BGE-M3 provider (conda env)
-├── test_processor.py         ← Unit: chunking + orchestration
-├── test_vector_store.py      ← Integration: ChromaDB CRUD + Gemini relevance
-└── test_pipeline_e2e.py      ← E2E: full pipeline with real video
-
-data/
-├── audio/{video_id}.mp3      ← downloaded audio cache (auto-skip re-download)
-├── chroma/                   ← ChromaDB persistent storage (gitignored)
-├── raw/captions/{id}.json    ← caption strategy output
-└── raw/whisper/{id}.json     ← whisper strategy output
-
-models/
-└── whisper/                  ← faster-whisper model files (auto-downloaded, gitignored)
+migrant-archive/
+├── .env.example                ← Template for API keys (copy to .env)
+├── requirements.txt            ← Python dependencies (uv/pip path)
+│
+├── backend/
+│   └── core/
+│       ├── ingestion.py        ← VideoData dataclass + shared helpers
+│       ├── ingestion_caption.py    ← Strategy A: YouTube auto-captions
+│       ├── ingestion_audio.py      ← Strategy B: faster-whisper local CPU
+│       ├── ingestion_colab.py      ← Strategy B GPU: Colab wrapper
+│       ├── embedding.py            ← EmbeddingProvider (abstract contract)
+│       ├── embedding_gemini.py     ← Gemini API implementation
+│       ├── embedding_bge_m3.py     ← BGE-M3 local implementation
+│       ├── processor.py            ← Chunking (1000tk/200ov) + embedding
+│       └── vector_store.py         ← ChromaDB persistence
+│
+├── tests/
+│   ├── test_embedding.py       ← Contract tests (FakeEmbeddingProvider)
+│   ├── test_embedding_gemini.py ← Gemini provider tests
+│   ├── test_embedding_bge_m3.py ← BGE-M3 provider tests
+│   ├── test_processor.py       ← Chunking + orchestration tests
+│   ├── test_vector_store.py    ← ChromaDB CRUD + relevance tests
+│   └── test_pipeline_e2e.py    ← Full pipeline with real video
+│
+├── data/
+│   ├── audio/                  ← Downloaded audio cache (gitignored)
+│   ├── chroma/                 ← ChromaDB persistent storage (gitignored)
+│   └── raw/
+│       ├── captions/           ← Caption strategy JSON output
+│       └── whisper/            ← Whisper strategy JSON output
+│
+├── models/
+│   └── whisper/                ← faster-whisper model files (gitignored)
+│
+└── notes/                      ← Decision records + research
+    ├── session-1-ingestion.md
+    ├── session-2-embeddings-research.md
+    └── session-2-chunking-and-testing.md
 ```
-
-## Ingestion
-
-Two strategies, same `VideoData` JSON output. **Which one to use:**
-
-| Video length | Use | Command |
-|-------------|-----|---------|
-| ≤ 5 min | Local CPU | `ingestion_audio.py --model small` |
-| > 5 min | Colab GPU | `ingestion_colab.py --model large-v3` |
-
-### Language support
-
-faster-whisper supports 99 languages via the `--lang` flag. Default: `es`.
-
-| Code | Language | Relevance |
-|------|----------|-----------|
-| `es` | Spanish | Default — content is primarily Spanish |
-| `en` | English | Fallback for English videos |
-| `ca` | Catalan | Useful for Catalan/Spanish code-switching |
-
-For auto-detection (no `--lang` flag), pass `--lang ""` (faster-whisper auto-detects).
-
-```bash
-python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
-```
-
-Available flags:
-```
---url URL         YouTube video URL (required)
---lang LANG       Language code: es, en, ... (default: es)
---model MODEL     faster-whisper size: tiny, base, small, medium, large-v3 (default: small)
---device DEVICE   auto (detect), cpu (Intel/Apple Silicon), cuda (NVIDIA GPU) — default: auto
---output-dir DIR  Where to save the JSON (default: data/raw/whisper)
---audio-dir DIR   Where to save the mp3 (default: data/audio)
-```
-
-Audio is cached at `data/audio/{video_id}.mp3` — re-running skips download automatically.
-
-### Strategy B (GPU) — videos > 5 min / batch processing
-
-```bash
-python backend/core/ingestion_colab.py --url "VIDEO_URL" --lang es
-```
-
-Same logic, defaults to `large-v3 --device cuda`. Saves to `migrant-archive/output/` and `migrant-archive/audio/` in Google Drive. 10x faster than local CPU.
 
 ---
 
-## Phase 2 — Embedding + Vector Store
+## 0. Choose Your Environment
 
-Generates embeddings from transcribed videos and stores them in ChromaDB for semantic search.
+This project has two paths. Pick the one that fits your needs.
 
-### Dependencies
+| | UV (lightweight) | Conda (ML-ready) |
+|---|---|---|
+| **Best for** | Gemini API embeddings | BGE-M3 local embeddings |
+| **What you get** | Transcription + Gemini cloud embeddings | Transcription + Gemini + BGE-M3 local |
+| **Install size** | ~500 MB | ~4 GB (includes PyTorch) |
+| **GPU needed?** | No | No (CPU inference) |
+| **Internet required?** | Yes (for Gemini API) | Only for YouTube download |
+| **API keys?** | Gemini (free tier) | None for embeddings |
 
-**Option A — uv/pip (Gemini only, no BGE-M3):**
+> **Don't know which to choose?** Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total). You can add Conda later if you want local embeddings.
+
+---
+
+### Option A: UV + Gemini (recommended start)
+
+**What you need:** Python 3.12+, FFmpeg, a Gemini API key.
+
+#### 1. Install UV
 
 ```bash
-source .venv/bin/activate
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+#### 2. Create the environment
+
+```bash
+# macOS / Linux / Windows
+uv venv --python 3.12
+source .venv/bin/activate      # macOS / Linux
+# .venv\Scripts\activate       # Windows (PowerShell)
+```
+
+#### 3. Install everything
+
+```bash
 uv pip install -r requirements.txt
 ```
 
-**Option B — conda (Gemini + BGE-M3 local):**
-
-```bash
-conda create -n migrant-archive python=3.12 -y
-conda activate migrant-archive
-conda install pytorch transformers -c defaults -y
-pip install sentence-transformers chromadb google-genai pytest python-dotenv yt-dlp youtube-transcript-api faster-whisper
-```
-
-> BGE-M3 requires PyTorch ≥ 2.4 with correct NumPy linkage. Conda handles this automatically. uv/pip does not — use conda for the full local embedding stack.
-
-### Environment
-
-Copy `.env.example` to `.env` and add your Gemini API key:
+#### 4. Add your Gemini API key
 
 ```bash
 cp .env.example .env
-# Edit .env → set GEMINI_API_KEY=your-key
+# Edit .env → set GEMINI_API_KEY=your-key-here
 ```
 
-Get your key at: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+Get your free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). The free tier is more than enough for this project.
 
-### Architecture
-
-```
-core/embedding.py            ← EmbeddingProvider (abstract contract)
-core/embedding_gemini.py     ← Gemini API (cloud, default, 3072-dim)
-core/embedding_bge_m3.py     ← BGE-M3 local (CPU, requires conda env)
-core/processor.py            ← Chunking (1000tk/200 overlap) + embedding
-core/vector_store.py         ← ChromaDB persistence
-```
-
-The embedding layer uses **Strategy + Dependency Inversion**: `processor.py` receives an `EmbeddingProvider` via constructor and doesn't know which implementation is active. Switching from Gemini to BGE-M3 is one config change.
-
-### Embedding provider
-
-| Provider | Quality | Cost | Requires |
-|----------|---------|------|----------|
-| **Gemini** (default) | #1 MTEB Multilingual | Free tier (~$0 for project) | `GEMINI_API_KEY` |
-| BGE-M3 (local) | Excellent Spanish | $0 | conda env (torch ≥ 2.4) |
-
-### Process a single video (Python API)
+#### 5. Install FFmpeg (system dependency)
 
 ```bash
-source .venv/bin/activate
+# macOS
+brew install ffmpeg
+
+# Ubuntu / Debian
+sudo apt-get install ffmpeg
+
+# Windows
+winget install ffmpeg
 ```
 
+---
+
+### Option B: Conda + BGE-M3 (full local stack)
+
+**What you need:** Conda, Python 3.12+, FFmpeg. No API keys required for embeddings.
+
+#### 1. Install Conda
+
+```bash
+# macOS / Linux — Miniconda (recommended)
+curl -LsSf https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh
+bash miniconda.sh
+
+# Windows — Miniconda
+# Download from: https://docs.anaconda.com/miniconda/
+```
+
+#### 2. Create the environment
+
+```bash
+# macOS / Linux / Windows
+conda create -n migrant-archive python=3.12 -y
+conda activate migrant-archive
+```
+
+#### 3. Install PyTorch (via Conda — handles native compilation)
+
+```bash
+conda install pytorch transformers -c defaults -y
+```
+
+#### 4. Install the rest (via pip inside Conda)
+
+```bash
+pip install sentence-transformers chromadb google-genai pytest python-dotenv yt-dlp youtube-transcript-api faster-whisper
+```
+
+#### 5. (Optional) Add Gemini API key
+
+If you want to use Gemini as a cloud alternative: create `.env` with `GEMINI_API_KEY=your-key`. BGE-M3 works without it.
+
+#### 6. Install FFmpeg
+
+Same as Option A above.
+
+---
+
+## Phase 1 — Video Ingestion (Transcription)
+
+Once your environment is ready, the first step is extracting text from YouTube videos. You have three strategies — pick based on your needs.
+
+### Strategy comparison
+
+| | A: Captions | B: Whisper local | B GPU: Colab |
+|---|---|---|---|
+| **Quality** | ⭐⭐ (no punctuation) | ⭐⭐⭐⭐ (full sentences) | ⭐⭐⭐⭐⭐ (large-v3) |
+| **Speed** | Instant | ~2 min (4-min video) | ~15 sec (4-min video) |
+| **Cost** | $0 | $0 | $0 (Colab free tier) |
+| **Best for** | Quick tests, fallback | ≤ 5 min videos | > 5 min videos, batches |
+| **Hardware** | None | Intel i9 / 32GB RAM | Google Colab GPU |
+
+---
+
+### Strategy A: YouTube Auto-Captions
+
+Best for quick tests. Instant, free, but captions lack punctuation and may have garbled segments.
+
+```bash
+# macOS / Linux
+source .venv/bin/activate                       # or: conda activate migrant-archive
+python backend/core/ingestion_caption.py --url "VIDEO_URL" --lang es
+
+# Windows (PowerShell) — same commands, adjust venv path
+.venv\Scripts\activate
+python backend/core/ingestion_caption.py --url "VIDEO_URL" --lang es
+```
+
+Output: `data/raw/captions/{video_id}.json`
+
+> ⚠️ Captions on Spanish/Catalan code-switching can be broken. For production use, prefer Strategy B.
+
+---
+
+### Strategy B: faster-whisper (Local CPU)
+
+Best quality at zero cost. Runs entirely on your machine — no API, no uploads. Recommended default for ≤ 5 minute videos.
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
+
+# Windows (PowerShell)
+.venv\Scripts\activate
+python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
+```
+
+**Available flags:**
+
+| Flag | Default | Options |
+|------|---------|---------|
+| `--url` | (required) | YouTube video URL |
+| `--lang` | `es` | `es`, `en`, `ca`, or `""` for auto-detect |
+| `--model` | `small` | `tiny`, `base`, `small`, `medium`, `large-v3` |
+| `--device` | `auto` | `auto`, `cpu`, `cuda` |
+| `--output-dir` | `data/raw/whisper` | Any directory |
+| `--audio-dir` | `data/audio` | Any directory |
+
+**Language support:**
+
+| Code | Language | Use case |
+|------|----------|----------|
+| `es` | Spanish | Default — FILMIG content |
+| `en` | English | English videos |
+| `ca` | Catalan | Catalan/Spanish code-switching |
+| `""` | Auto-detect | Unknown language |
+
+Audio is cached at `data/audio/{video_id}.mp3` — re-running the same video skips the download.
+
+Output: `data/raw/whisper/{video_id}.json`
+
+---
+
+### Strategy B GPU: Google Colab (videos > 5 min)
+
+Same logic as Strategy B, but runs on Colab's free GPU. ~10x faster for long videos.
+
+```bash
+# Upload ingestion_colab.py to Colab, then run:
+python backend/core/ingestion_colab.py --url "VIDEO_URL" --lang es
+```
+
+Defaults: `large-v3` model, `--device cuda`. Saves to Google Drive (`migrant-archive/output/`).
+
+---
+
+## Phase 2 — Embeddings + Vector Store
+
+Once you have transcriptions (Phase 1), this phase converts text into searchable vector embeddings and stores them in ChromaDB.
+
+### Chunking strategy
+
+Before embedding, text is split into overlapping chunks. These values were chosen specifically for Spanish conversational content (interviews, debates).
+
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| **Chunk size** | 1,000 tokens (~750 words) | Captures ~4-5 min of speech — one complete idea |
+| **Overlap** | 200 tokens (20%) | Ensures no idea is cut at chunk boundaries |
+| **Token counter** | `len(text) // 4` | Simple estimator — zero dependencies, accurate enough |
+| **1-hour video** | ~12 chunks | vs ~25 with smaller chunks (less API cost, less noise) |
+
+> **Why not smaller chunks?** Spanish sentences are longer than English. A 380-word chunk (512 tokens) cuts ideas in half. 750 words captures a full answer, an anecdote, or a complete argument. The 20% overlap bridges ideas that cross chunk boundaries. This scales from 2-minute clips to 2-hour documentaries without changes.
+
+---
+
+### Embedding provider comparison
+
+| | Gemini (cloud) | BGE-M3 (local) |
+|---|---|---|
+| **Quality** | 🥇 #1 MTEB Multilingual (71.5%) | ⭐⭐⭐⭐ Excellent Spanish |
+| **Dimension** | 3072 (Matryoshka-capable) | 1024 |
+| **Cost** | Free tier (~$0 for project) | $0 |
+| **Speed** | ~1s (API call) | ~2-5s (CPU inference) |
+| **Privacy** | Text sent to Google API | Everything stays on your machine |
+| **Environment** | UV or Conda | Conda (requires PyTorch) |
+| **Best for** | Production, demos, quick setup | Offline, sensitive data, interview portfolio |
+
+---
+
+### Option A: Gemini API Embeddings (default)
+
+Uses `gemini-embedding-001` — Google's #1 multilingual model. Free tier covers the entire project.
+
+**Requires:** UV environment + `GEMINI_API_KEY` in `.env`.
+
 ```python
-from backend.core.ingestion import VideoData
 from backend.core.embedding_gemini import GeminiEmbeddingProvider
 from backend.core.processor import Processor
 from backend.core.vector_store import VectorStore
+from backend.core.ingestion import VideoData
 
-# Load a previously transcribed video
+# Load a transcribed video
 video = VideoData.load_json("data/raw/whisper/VIDEO_ID.json")
 
-# Create provider and processor
-provider = GeminiEmbeddingProvider()  # reads GEMINI_API_KEY from env
+# Create provider (reads GEMINI_API_KEY from env)
+provider = GeminiEmbeddingProvider()
 processor = Processor(provider, chunk_size=1000, overlap=200)
 
 # Chunk and embed
@@ -194,21 +324,36 @@ store.add(
 query_emb = provider.embed_query("¿De qué trata el video?")
 results = store.search(query_emb, top_k=3)
 for r in results:
-    print(r["document"][:200], "...")
+    print(r["document"][:200])
 ```
 
-> 📦 Batch processing script coming in Phase 3 (`scripts/ingest_channel.py`).
+---
 
-### Process all cached videos (Python loop)
+### Option B: BGE-M3 Local Embeddings
+
+Runs entirely on your CPU. No API keys, no internet (after model download). Same interface as Gemini — swap one line to switch.
+
+**Requires:** Conda environment (PyTorch ≥ 2.4).
+
+```python
+from backend.core.embedding_bge_m3 import BGEM3EmbeddingProvider
+
+# Same code as Gemini — just swap the provider
+provider = BGEM3EmbeddingProvider()  # loads BAAI/bge-m3 on first call
+processor = Processor(provider)
+# ... rest is identical
+```
+
+The model downloads on first use (~2.2 GB, cached locally).
+
+---
+
+### Process all videos in batch
 
 ```python
 from pathlib import Path
-from backend.core.ingestion import VideoData
-from backend.core.embedding_gemini import GeminiEmbeddingProvider
-from backend.core.processor import Processor
-from backend.core.vector_store import VectorStore
 
-provider = GeminiEmbeddingProvider()
+provider = GeminiEmbeddingProvider()  # or BGEM3EmbeddingProvider()
 processor = Processor(provider)
 store = VectorStore(persist_dir="data/chroma")
 
@@ -224,22 +369,42 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
     print(f"✅ {video.title} — {len(chunks)} chunks stored")
 ```
 
-### Run tests
+---
 
-```bash
-source .venv/bin/activate && python -m pytest tests/ -v
-```
-
-| Layer | Tests | Requires |
-|-------|-------|----------|
-| Unit | Contract + chunking + CRUD | Nothing |
-| Integration | Gemini relevance search | `GEMINI_API_KEY` |
-| E2E | Full pipeline with real video | `GEMINI_API_KEY` + cached VideoData |
-
-### Vector store location
-
-ChromaDB persists to `data/chroma/` (gitignored). Delete the directory to reset:
+### Reset the vector store
 
 ```bash
 rm -rf data/chroma/
 ```
+
+ChromaDB data is gitignored. Deleting the directory starts fresh.
+
+---
+
+## Tests
+
+```bash
+# UV environment
+source .venv/bin/activate
+python -m pytest tests/ -v
+
+# Conda environment
+conda activate migrant-archive
+python -m pytest tests/ -v
+```
+
+**Results:** 29/29 pass (UV), 31/31 pass (Conda).
+
+| Layer | Tests | What it proves |
+|-------|-------|----------------|
+| Unit | 18 | Contract enforcement, chunking logic, CRUD operations |
+| Integration | 8 | Real BGE-M3 + ChromaDB together |
+| E2E | 1 | Full pipeline with Gemini API (needs key) |
+
+---
+
+## Next Up (Phase 3)
+
+- `backend/api/routes.py` + `backend/main.py` — FastAPI REST endpoints
+- `frontend/` — HTML/CSS/JS with Web Speech API for voice input
+- `agents/` — LangChain agent with tools and memory
