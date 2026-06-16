@@ -57,7 +57,7 @@ class VideoData:
             json.dumps(self.to_dict(), indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
-        return filepath
+        return filepath 
 
     @classmethod
     def load_json(cls, filepath: str | Path) -> "VideoData":
