@@ -7,6 +7,19 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ---
 
+## Development Timeline
+
+| Week | Steps | Focus |
+|------|-------|-------|
+| 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB |
+| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite (unit/integration/E2E) |
+| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper |
+| 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation |
+
+> **Week 1 checkpoint:** Live vector DB Q&A demo — query ChromaDB directly with pre-verified questions. See `backend/scripts/rag_test.py` and `notes/rag_test_questions.md`.
+
+---
+
 ## Project Structure
 
 ```
@@ -15,16 +28,18 @@ migrant-archive/
 ├── requirements.txt            ← Python dependencies (uv/pip path)
 │
 ├── backend/
-│   └── core/
-│       ├── ingestion.py        ← VideoData dataclass + shared helpers
-│       ├── ingestion_caption.py    ← Strategy A: YouTube auto-captions
-│       ├── ingestion_audio.py      ← Strategy B: faster-whisper local CPU
-│       ├── ingestion_colab.py      ← Strategy B GPU: Colab wrapper
-│       ├── embedding.py            ← EmbeddingProvider (abstract contract)
-│       ├── embedding_gemini.py     ← Gemini API implementation
-│       ├── embedding_bge_m3.py     ← BGE-M3 local implementation
-│       ├── processor.py            ← Chunking (1000tk/200ov) + embedding
-│       └── vector_store.py         ← ChromaDB persistence
+│   ├── core/
+│   │   ├── ingestion.py        ← VideoData dataclass + shared helpers
+│   │   ├── ingestion_caption.py    ← Strategy A: YouTube auto-captions
+│   │   ├── ingestion_audio.py      ← Strategy B: faster-whisper local CPU
+│   │   ├── ingestion_colab.py      ← Strategy B GPU: Colab wrapper
+│   │   ├── embedding.py            ← EmbeddingProvider (abstract contract)
+│   │   ├── embedding_gemini.py     ← Gemini API implementation
+│   │   ├── embedding_bge_m3.py     ← BGE-M3 local implementation
+│   │   ├── processor.py            ← Chunking (1000tk/200ov) + embedding
+│   │   └── vector_store.py         ← ChromaDB persistence
+│   └── scripts/
+│       └── rag_test.py           ← Standalone RAG pipeline test script
 │
 ├── tests/
 │   ├── test_embedding.py       ← Contract tests (FakeEmbeddingProvider)
@@ -44,10 +59,13 @@ migrant-archive/
 ├── models/
 │   └── whisper/                ← faster-whisper model files (gitignored)
 │
+├── presentation/               ← HTML slides for project demo
+│
 └── notes/                      ← Decision records + research
     ├── session-1-ingestion.md
     ├── session-2-embeddings-research.md
-    └── session-2-chunking-and-testing.md
+    ├── session-2-chunking-and-testing.md
+    └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
 ```
 
 ---
@@ -57,7 +75,7 @@ migrant-archive/
 This project has two paths. Pick the one that fits your needs.
 
 | | UV (lightweight) | Conda (ML-ready) |
-|---|---|---|
+|---|---|---|---|
 | **Best for** | Gemini API embeddings | BGE-M3 local embeddings |
 | **What you get** | Transcription + Gemini cloud embeddings | Transcription + Gemini + BGE-M3 local |
 | **Install size** | ~500 MB | ~4 GB (includes PyTorch) |
@@ -401,11 +419,3 @@ python -m pytest tests/ -v
 | Unit | 18 | Contract enforcement, chunking logic, CRUD operations |
 | Integration | 8 | Real BGE-M3 + ChromaDB together |
 | E2E | 1 | Full pipeline with Gemini API (needs key) |
-
----
-
-## Next Up (Phase 3)
-
-- `backend/api/routes.py` + `backend/main.py` — FastAPI REST endpoints
-- `frontend/` — HTML/CSS/JS with Web Speech API for voice input
-- `agents/` — LangChain agent with tools and memory

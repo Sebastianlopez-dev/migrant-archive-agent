@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migrant-Archive — Project Presentation</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size:20px; } /* base for modular scale 1.333 */
+
+  /* ── Design Tokens ──
+     60% dominant:  #1a1a2e (bg)
+     30% secondary: #252544 (surface), #f0f0f4 (text)
+     10% accent:    #e94560
+     Type scale 1.333 rounded to 8pt: 20, 24, 32, 48, 64, 80
+     Deck sizes: 20 (caption), 24 (small), 48 (subhead), 64 (headline), 80 (hero)
+  ── */
+
+  :root {
+    --bg:       #1a1a2e;
+    --surface:  #252544;
+    --text:     #f0f0f4;
+    --muted:    #8e8ea0;
+    --accent:   #e94560;
+    --accent-dim: rgba(233,69,96,0.18);
+    --safe:     96px;  /* 5% of 1920 */
+    --safe-top: 80px;
+    --fs-hero:  5rem;    /* 80px at 16px base, ~80px at 20px base = 4rem? Let me recalc */
+    --fs-title: 3.2rem;  /* 64px */
+    --fs-sub:   2.4rem;  /* 48px */
+    --fs-body:  1.6rem;  /* 32px */
+    --fs-small: 1.2rem;  /* 24px */
+    --fs-cap:   1rem;    /* 20px */
+    --lh-display: 1.1;
+    --lh-body: 1.5;
+    --radius: 8px;
+    --transition: 400ms cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* at 20px base: 80px=4rem, 64px=3.2rem, 48px=2.4rem, 32px=1.6rem, 24px=1.2rem, 20px=1rem */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Slide container ── */
+  .deck { position:relative; width:100%; height:100vh; }
+  .slide {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center;
+    padding: var(--safe-top) var(--safe);
+    opacity:0; pointer-events:none;
+    transition: opacity var(--transition);
+  }
+  .slide.active { opacity:1; pointer-events:auto; }
+
+  /* ── Slide layouts ── */
+  .slide-hero  { align-items:center; text-align:center; justify-content:center; }
+  .slide-content { justify-content:center; }
+  .slide-closing { align-items:center; text-align:center; justify-content:center; }
+
+  /* ── Typography ── */
+  .t-hero    { font-size:var(--fs-hero);   font-weight:800; line-height:var(--lh-display); letter-spacing:-0.015em; max-width:15ch; }
+  .t-title   { font-size:var(--fs-title);  font-weight:700; line-height:var(--lh-display); letter-spacing:-0.01em;  max-width:18ch; }
+  .t-sub     { font-size:var(--fs-sub);    font-weight:600; line-height:1.25; max-width:22ch; }
+  .t-body    { font-size:var(--fs-body);   font-weight:400; line-height:var(--lh-body); max-width:45ch; }
+  .t-small   { font-size:var(--fs-small);  font-weight:400; line-height:1.4; color:var(--muted); }
+  .t-cap     { font-size:var(--fs-cap);    font-weight:400; line-height:1.4; color:var(--muted); }
+  .t-accent  { color:var(--accent); }
+
+  /* ── Slide elements ── */
+  .slide-label {
+    font-size:var(--fs-cap); font-weight:600; color:var(--accent);
+    text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px;
+  }
+  .big-number {
+    font-size:8rem; font-weight:900; color:var(--accent);
+    line-height:1; letter-spacing:-0.03em;
+  }
+  .big-icon {
+    display:block; width:80px; height:80px; margin-bottom:24px;
+    color:var(--accent);
+  }
+  .big-icon svg { width:100%; height:100%; stroke:currentColor; }
+  .divider {
+    width:64px; height:4px; background:var(--accent);
+    margin:24px 0; border-radius:2px;
+  }
+  .tag-row {
+    display:flex; flex-wrap:wrap; gap:16px; margin-top:24px;
+  }
+  .tag {
+    font-size:var(--fs-small); font-weight:500;
+    color:var(--text); background:var(--surface);
+    padding:12px 24px; border-radius:var(--radius);
+    border:1px solid rgba(255,255,255,0.06);
+  }
+  .tag.accent-tag {
+    background:var(--accent-dim); border-color:var(--accent); color:var(--accent);
+  }
+  .stat-row { display:flex; gap:48px; align-items:flex-end; margin-top:24px; }
+  .stat { display:flex; flex-direction:column; gap:8px; }
+  .stat-val { font-size:3.2rem; font-weight:900; color:var(--text); line-height:1; }
+  .stat-label { font-size:var(--fs-small); color:var(--muted); }
+
+  /* ── Layout helpers ── */
+  .content-block { max-width:720px; }
+  .two-col { display:flex; gap:64px; align-items:flex-start; }
+  .vs-col { display:flex; flex-direction:column; gap:8px; flex:1; }
+
+  /* ── Process flow ── */
+  .process-flow {
+    display:flex; align-items:center; gap:0;
+    margin-top:40px; flex-wrap:wrap;
+  }
+  .process-step {
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .process-num {
+    display:flex; align-items:center; justify-content:center;
+    width:56px; height:56px; border-radius:50%;
+    border:2.5px solid var(--accent);
+    font-size:var(--fs-sub); font-weight:700; color:var(--accent);
+    line-height:1;
+  }
+  .process-label {
+    font-size:var(--fs-small); color:var(--muted); font-weight:500; letter-spacing:0.03em;
+  }
+  .process-line {
+    width:64px; height:2px; background:rgba(233,69,96,0.35);
+    margin:0 12px; align-self:flex-start; margin-top:28px;
+  }
+
+  /* ── Day list (roadmap) ── */
+  .day-list { margin-top:16px; display:flex; flex-direction:column; gap:16px; }
+  .day-item { font-size:var(--fs-body); color:var(--text); line-height:var(--lh-body); }
+  .day-num { font-weight:700; color:var(--accent); margin-right:8px; }
+
+  /* ── Navigation ── */
+  .nav-hint {
+    position:fixed; bottom:32px; right:48px;
+    font-size:var(--fs-cap); color:var(--muted);
+    opacity:0.5; z-index:10; pointer-events:none;
+  }
+  .slide-counter {
+    position:fixed; bottom:32px; left:48px;
+    font-size:var(--fs-cap); color:var(--muted);
+    opacity:0.4; z-index:10; pointer-events:none;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ── Slide-specific visuals ── */
+  .visual-circle {
+    width:160px; height:160px; border-radius:50%;
+    border:3px solid var(--accent); opacity:0.6;
+  }
+  .visual-arrow {
+    width:120px; height:4px; background:var(--accent); position:relative;
+  }
+  .vs-badge {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:64px; height:64px; border-radius:var(--radius);
+    font-size:var(--fs-sub); font-weight:800;
+  }
+  .badge-a { background:rgba(255,255,255,0.06); color:var(--muted); }
+  .badge-b { background:var(--accent-dim); color:var(--accent); }
+
+  @media (max-width:1024px) {
+    :root { --safe:48px; --safe-top:48px; }
+    .t-hero { font-size:2.8rem; }
+    .t-title { font-size:2rem; }
+    .t-sub { font-size:1.6rem; }
+    .t-body { font-size:1.2rem; }
+    .big-number { font-size:5rem; }
+    .stat-val { font-size:2.4rem; }
+    .two-col { flex-direction:column; gap:32px; }
+    .stat-row { gap:32px; }
+    .process-flow { gap:16px; justify-content:center; }
+    .process-num { width:44px; height:44px; font-size:1.4rem; }
+    .process-line { width:32px; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- ═══════ SLIDE 01 · HERO ═══════ -->
+<section class="slide active slide-hero">
+  <p class="slide-label">Ironhack AI Engineer Bootcamp</p>
+  <h1 class="t-hero" style="margin-bottom:24px;">Migrant-Archive<br>Project</h1>
+  <div class="divider" style="margin:0 auto 24px;"></div>
+  <p class="t-body" style="color:var(--muted); text-align:center;">Sebastian Lopez Largo</p>
+</section>
+
+<!-- ═══════ SLIDE 02 · WHAT IS IT ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Project</p>
+  <h2 class="t-title">A multimodal AI chatbot for YouTube video Q&A</h2>
+  <div class="divider"></div>
+  <p class="t-body">Ask questions. Get answers. Grounded in real video transcripts.</p>
+</section>
+
+<!-- ═══════ SLIDE 03 · DEVELOPMENT PROCESS ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Methodology</p>
+  <h2 class="t-title">Layered architecture</h2>
+  <div class="divider"></div>
+  <div class="process-flow">
+    <div class="process-step">
+      <span class="process-num">1</span>
+      <span class="process-label">Explore</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num">2</span>
+      <span class="process-label">Decide</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num">3</span>
+      <span class="process-label">Build</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num">4</span>
+      <span class="process-label">Test</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num">5</span>
+      <span class="process-label">Document</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 04 · ROADMAP WEEK 1 ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Roadmap · Week 1</p>
+  <div class="two-col" style="align-items:center;">
+    <span class="big-number">1</span>
+    <div>
+      <h2 class="t-title">Ingestion &amp; Processing</h2>
+      <div class="day-list">
+        <div class="day-item"><span class="day-num">Step 1</span> Dual transcription — captions + faster-whisper + Colab</div>
+        <div class="day-item"><span class="day-num">Step 2</span> Processor + embeddings + ChromaDB vector store</div>
+      </div>
+      <div class="tag-row" style="margin-top:24px;">
+        <span class="tag accent-tag">Check point: vector DB Q&A</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 05 · ROADMAP WEEK 2 ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Roadmap · Week 2</p>
+  <div class="two-col" style="align-items:center;">
+    <span class="big-number">2</span>
+    <div>
+      <h2 class="t-title">Agents &amp; Testing</h2>
+      <div class="day-list">
+        <div class="day-item"><span class="day-num">Step 3</span> LangChain agent with tools and memory</div>
+        <div class="day-item"><span class="day-num">Step 4</span> Testing suite — unit, integration, E2E</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 06 · ROADMAP WEEK 3 ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Roadmap · Week 3</p>
+  <div class="two-col" style="align-items:center;">
+    <span class="big-number">3</span>
+    <div>
+      <h2 class="t-title">Evaluation &amp; API</h2>
+      <div class="day-list">
+        <div class="day-item"><span class="day-num">Step 5</span> LangSmith evaluation + documentation</div>
+        <div class="day-item"><span class="day-num">Step 6</span> FastAPI wrapper — REST endpoints + CORS</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 07 · ROADMAP WEEK 4 ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Roadmap · Week 4</p>
+  <div class="two-col" style="align-items:center;">
+    <span class="big-number">4</span>
+    <div>
+      <h2 class="t-title">Frontend &amp; Deploy</h2>
+      <div class="day-list">
+        <div class="day-item"><span class="day-num">Step 7</span> Frontend UI + voice input via Web Speech API</div>
+        <div class="day-item"><span class="day-num">Step 8</span> Presentation and final deploy</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 07 · ARCHITECTURE — DUAL STRATEGY ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Architecture Decision</p>
+  <span class="big-icon"><svg viewBox="0 0 80 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="30" height="26" rx="5"/><rect x="48" y="36" width="30" height="26" rx="5"/><path d="M32 15 C42 15, 42 49, 48 49"/><polyline points="44,45 48,49 44,53"/></svg></span>
+  <h2 class="t-title">Two transcription strategies.<br>One shared contract.</h2>
+  <div class="divider"></div>
+  <p class="t-body">VideoData dataclass — the pipeline never knows which strategy ran.</p>
+</section>
+
+<!-- ═══════ SLIDE 08 · STRATEGY A ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Strategy A</p>
+  <div class="two-col" style="align-items:center;">
+    <span class="vs-badge badge-a">A</span>
+    <div>
+      <h2 class="t-title">YouTube Captions</h2>
+      <div class="tag-row">
+        <span class="tag accent-tag">$0 cost</span>
+        <span class="tag">Instant</span>
+        <span class="tag">No punctuation</span>
+      </div>
+      <p class="t-body" style="margin-top:16px;">Free and fast. Used as fallback only.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 09 · STRATEGY B ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Strategy B</p>
+  <div class="two-col" style="align-items:center;">
+    <span class="vs-badge badge-b">B</span>
+    <div>
+      <h2 class="t-title">Faster-Whisper Local</h2>
+      <div class="tag-row">
+        <span class="tag accent-tag">$0 cost</span>
+        <span class="tag">High quality</span>
+        <span class="tag">Proper punctuation</span>
+      </div>
+      <p class="t-body" style="margin-top:16px;">CTranslate2 backend. CPU int8. The default.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 10 · STRATEGY COMPARISON ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">The Difference</p>
+  <div class="stat-row">
+    <div class="stat">
+      <span class="stat-val t-accent">+22%</span>
+      <span class="stat-label">more text extracted</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val" style="color:var(--text);">✓</span>
+      <span class="stat-label">proper punctuation</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val" style="color:var(--text);">0</span>
+      <span class="stat-label">garbled segments</span>
+    </div>
+  </div>
+  <p class="t-body" style="margin-top:32px;">Whisper output is directly usable for RAG. Captions need heavy post-processing.</p>
+</section>
+
+<!-- ═══════ SLIDE 11 · DEPENDENCY INVERSION ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Architecture Decision</p>
+  <span class="big-icon"><svg viewBox="0 0 72 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="40" height="14" rx="4"/><rect x="12" y="24" width="40" height="14" rx="4"/><rect x="20" y="44" width="40" height="14" rx="4"/></svg></span>
+  <h2 class="t-title">Dependency Inversion for Embeddings</h2>
+  <div class="divider"></div>
+  <div class="tag-row">
+    <span class="tag accent-tag">Gemini API</span>
+    <span class="tag">BGE-M3 local</span>
+    <span class="tag">OpenAI (optional)</span>
+  </div>
+  <p class="t-body" style="margin-top:16px;">One abstract contract. Three implementations. Zero coupling.</p>
+</section>
+
+<!-- ═══════ SLIDE 12 · TOOLCHAIN ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Ingestion Toolchain</p>
+  <div class="tag-row">
+    <span class="tag accent-tag">yt-dlp</span>
+    <span class="tag">ffmpeg</span>
+    <span class="tag">faster-whisper</span>
+    <span class="tag">uv</span>
+  </div>
+  <div class="divider"></div>
+  <p class="t-body">Audio download. Extraction. Transcription. Zero-cost pipeline.</p>
+</section>
+
+<!-- ═══════ SLIDE 13 · CODE QUALITY ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Code Quality</p>
+  <div class="stat-row">
+    <div class="stat">
+      <span class="stat-val t-accent">1×</span>
+      <span class="stat-label">singleton model cache</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">~3s</span>
+      <span class="stat-label">audio cache hit</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">auto</span>
+      <span class="stat-label">device detection</span>
+    </div>
+  </div>
+  <p class="t-body" style="margin-top:32px;">Dead code removed. Factory extracted. Module-level constants.</p>
+</section>
+
+<!-- ═══════ SLIDE 14 · TECH STACK ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Tech Stack</p>
+  <div class="tag-row" style="flex-wrap:wrap; max-width:600px;">
+    <span class="tag accent-tag">FastAPI</span>
+    <span class="tag">ChromaDB</span>
+    <span class="tag">Gemini Embeddings</span>
+    <span class="tag">LangChain</span>
+    <span class="tag">Web Speech API</span>
+    <span class="tag">faster-whisper</span>
+    <span class="tag">HTML+CSS+JS</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 15 · CLOSING ═══════ -->
+<section class="slide slide-closing">
+  <h2 class="t-hero" style="margin-bottom:24px;">Thank you.</h2>
+  <div class="divider" style="margin:0 auto 32px;"></div>
+  <p class="t-sub" style="color:var(--muted);">Questions?</p>
+</section>
+
+<!-- ═══════ NAV ═══════ -->
+<div class="slide-counter" id="counter">1 / 16</div>
+<div class="nav-hint">← → or click to advance</div>
+
+</div>
+
+<script>
+  (function(){
+    var slides = document.querySelectorAll('.slide');
+    var counter = document.getElementById('counter');
+    var total = slides.length;
+    var idx = 0;
+
+    function show(i){
+      if(i<0 || i>=total) return;
+      slides[idx].classList.remove('active');
+      slides[i].classList.add('active');
+      idx = i;
+      counter.textContent = (idx+1) + ' / ' + total;
+    }
+
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); show(idx+1); }
+      if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); show(idx-1); }
+    });
+
+    document.addEventListener('click',function(e){
+      var w = window.innerWidth;
+      if(e.clientX > w/2) show(idx+1);
+      else show(idx-1);
+    });
+
+    // touch support
+    var touchX=0;
+    document.addEventListener('touchstart',function(e){ touchX=e.touches[0].clientX; });
+    document.addEventListener('touchend',function(e){
+      var dx = e.changedTouches[0].clientX - touchX;
+      if(dx < -50) show(idx+1);
+      if(dx > 50) show(idx-1);
+    });
+  })();
+</script>
+</body>
+</html>
