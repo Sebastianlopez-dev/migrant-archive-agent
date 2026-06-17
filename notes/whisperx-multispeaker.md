@@ -1,6 +1,6 @@
-# Future: Multi-speaker Transcription (WhisperX)
+# Multi-speaker Transcription (WhisperX)
 
-**Status**: not implemented — documented for when needed.
+**Status**: adopted 17 Jun 2026 — replacing faster-whisper in Strategy B.
 
 ## Problem
 
@@ -164,7 +164,9 @@ Delete `_get_model()` and `_model_cache` — WhisperX manages its own caching.
 | Dependencies | 1 package | 3 packages (whisperx, pyannote, torch) |
 | Speaker accuracy | N/A | ~90% (degrades with background noise) |
 
-### When to adopt
+### When adopted
 
-When RAG answers need attribution like "Speaker A said X, Speaker B disagreed with Y".
-Not needed for single-speaker content (tutorials, keynote talks, monologues).
+**17 June 2026** — FILMIG content is conversational (interviews, panels, debates). 
+RAG answers need speaker attribution: "Speaker A argued X, Speaker B disagreed with Y."
+The first 2-hour video transcribed is a panel discussion with multiple speakers — 
+exactly the use case WhisperX was designed for.

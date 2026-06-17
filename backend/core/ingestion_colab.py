@@ -7,7 +7,7 @@ Best for: videos > 5 minutes, batch processing a full channel,
 or anytime you want large-v3 quality without waiting hours on CPU.
 
 Requirements (run in Colab first):
-    !pip install yt-dlp faster-whisper
+    !pip install yt-dlp whisperx
     from google.colab import drive; drive.mount('/content/drive')
 """
 
@@ -40,6 +40,7 @@ def extract_single_video_colab(
     device: str = "cuda",
     output_dir: str = OUTPUT_DIR,
     audio_dir: str = AUDIO_DIR,
+    hf_token: str | None = None,
 ):
     """Identical to ingestion_audio.extract_single_video, but defaults
     are tuned for Colab's free T4 GPU + Google Drive persistence."""
@@ -50,6 +51,7 @@ def extract_single_video_colab(
         device=device,
         output_dir=output_dir,
         audio_dir=audio_dir,
+        hf_token=hf_token,
     )
 
 
@@ -77,6 +79,11 @@ if __name__ == "__main__":
         default=AUDIO_DIR,
         help="Drive path for downloaded mp3 files",
     )
+    parser.add_argument(
+        "--hf-token",
+        default=None,
+        help="HuggingFace token for speaker diarisation (optional)",
+    )
     args = parser.parse_args()
 
     data = extract_single_video(
@@ -86,6 +93,7 @@ if __name__ == "__main__":
         device=args.device,
         output_dir=args.output_dir,
         audio_dir=args.audio_dir,
+        hf_token=args.hf_token,
     )
     saved = data.save_json(output_dir=args.output_dir)
     print(f"Saved: {saved}")

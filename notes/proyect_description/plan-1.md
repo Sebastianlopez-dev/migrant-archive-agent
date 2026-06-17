@@ -5,7 +5,8 @@
 | Step | Week | What | Status |
 |------|------|------|--------|
 | 1 | 1 | `core/ingestion.py` + dual transcription strategies (caption + faster-whisper + Colab) | ✅ Done |
-| 2 | 1 | `core/processor.py` + `core/embedding.py` + `core/vector_store.py` | 🔲 In progress |
+| 2 | 1 | `core/processor.py` + `core/embedding.py` + `core/vector_store.py` | ✅ Done |
+| 2b | 2 | **Upgrade to WhisperX** — multi-speaker diarisation for interviews and debates | 🔲 In progress |
 | 3 | 2 | `agents/` — LangChain agent with tools and memory | 🔲 Pending |
 | 4 | 2 | Testing suite — unit, integration, E2E | 🔲 Pending |
 | 5 | 3 | LangSmith evaluation + documentation | 🔲 Pending |
@@ -14,6 +15,8 @@
 | 8 | 4 | Presentation and final deploy | 🔲 Pending |
 
 > **Checkpoint (end of Week 1):** Live vector DB Q&A demo — query ChromaDB directly with pre-verified questions to prove the RAG pipeline works before moving to agents and API layers.
+> 
+> **Week 2 pivot (17 Jun):** Migrate from faster-whisper to **WhisperX** for multi-speaker diarisation. The FILMIG content is interviews and panels — speaker attribution is critical for RAG answer quality. See decision #10 below.
 
 ---
 
@@ -32,12 +35,13 @@
 - Decision motivated by UI/UX control and the ability to develop in parallel.
 - The frontend only does `fetch()` to the backend; it knows nothing about RAG logic or ChromaDB.
 
-### 4. Dual Transcription Strategy (updated 12 Jun 2026)
+### 4. Dual Transcription Strategy (updated 17 Jun 2026)
 - **Strategy A**: `youtube-transcript-api` → free, instant, medium quality (no punctuation).
 - **Strategy B**: `faster-whisper` local CPU → free, high quality, correct punctuation, ~2 min for a 4-min video.
 - **Strategy B GPU**: `ingestion_colab.py` for videos >5 min (same logic, defaults `large-v3 --device cuda`).
-- Both strategies produce the same `VideoData` contract → the rest of the pipeline doesn't know which one was used.
-- **Decision**: faster-whisper as default, captions as fallback. See `notes/session-1-ingestion.md`.
+- **Upgrade: WhisperX** (17 Jun) → replaces faster-whisper in Strategy B, adds word-level timestamps + speaker diarisation via `pyannote`. Requires HF_TOKEN.
+- All strategies produce the same `VideoData` contract → the rest of the pipeline doesn't know which one was used.
+- **Decision**: faster-whisper as default, captions as fallback. WhisperX active for multi-speaker content. See `notes/session-1-ingestion.md` and `notes/whisperx-multispeaker.md`.
 
 ### 5. User Voice Input with Web Speech API
 - The user can ask questions **by voice** from the frontend.
@@ -63,7 +67,7 @@
 
 | Layer | Tool | Note |
 |---|---|---|
-| Transcription | `youtube-transcript-api` + `faster-whisper` | Dual strategy: Whisper default, captions fallback |
+| Transcription | `youtube-transcript-api` + **WhisperX** | Dual strategy: WhisperX default (speaker diarisation), captions fallback |
 | Embeddings | **Gemini `embedding-001`** (default) | #1 MTEB Multilingual, free tier, $0.15/M tokens |
 | Embeddings (local) | **BGE-M3** (alternative) | Open-source, CPU, 100+ languages, $0 |
 | Embeddings (optional) | OpenAI `text-embedding-3-small` | Only if OpenAI compatibility is needed |
@@ -127,6 +131,28 @@
   ```
 - See full explanation: `notes/session-2-chunking-and-testing.md`.
 
+### 10. WhisperX Migration — Multi-Speaker Diarisation (17 Jun 2026)
+- **Decision**: Replace `faster-whisper` with **WhisperX** in Strategy B (both local CPU and Colab GPU).
+- **Why**: The FILMIG channel content is conversational — interviews, panels, and debates with multiple speakers. The previous `faster-whisper` transcribes WHAT is said but not WHO said it. Without speaker labels, RAG answers lose critical context ("Who made that argument?").
+- **What WhisperX adds** (over faster-whisper):
+  - Word-level timestamps (forced alignment — corrects segment boundaries)
+  - **Speaker diarisation** via `pyannote/speaker-diarization-3.1` → each segment gets a `"speaker"` field (e.g. `SPEAKER_00`, `SPEAKER_01`)
+  - Same Whisper model quality underneath — `large-v3` works identically
+- **What changes in the codebase**:
+  - `core/ingestion_audio.py`: `_transcribe_audio()` replaces `faster-whisper` with `whisperx` + alignment + diarisation pipeline
+  - `core/ingestion_colab.py`: forwards new `hf_token` parameter (wrapper only, no logic change)
+  - `VideoData.transcript_segments` gains a `"speaker"` key (backwards-compatible: defaults to `"UNKNOWN"`)
+  - New dependency: `whisperx` (requires PyTorch — Conda environment recommended)
+  - New env var: `HF_TOKEN` in `.env` (required for diarisation model download)
+- **What does NOT change**: `VideoData` contract shape, `processor.py`, `vector_store.py`, `ingestion_caption.py` — the rest of the pipeline is agnostic to the transcription engine.
+- **Tradeoffs**:
+  - RAM: ~2 GB → ~4 GB (WhisperX loads alignment + diarisation models)
+  - Time: adds ~2-3 min per video (alignment + diarisation steps)
+  - Speaker accuracy: ~90% with clean audio, degrades with background noise
+  - Cost: $0 (WhisperX + pyannote are open-source, HF token is free)
+- **Colab notebook impact**: The `transcribe_video_colab.ipynb` notebook must set `HF_TOKEN` before running transcription. See Section 5 (YouTube Auth) for the pattern — same approach, different env var.
+- See full migration guide: `notes/whisperx-multispeaker.md`.
+
 ---
 
 ## Project Structure (updated 12 Jun 2026)
@@ -187,7 +213,8 @@ migrant-archive/
 | `api/routes.py` | REST endpoints | You change the public interface |
 | `core/ingestion.py` | VideoData contract + shared helpers | Data schema changes |
 | `core/ingestion_caption.py` | Strategy A: YouTube captions | YouTube API changes |
-| `core/ingestion_audio.py` | Strategy B: faster-whisper CPU | Whisper model changes |
+| `core/ingestion_audio.py` | Strategy B: WhisperX (transcription + diarisation) | Whisper model or diarisation changes |
+| `core/ingestion_colab.py` | Strategy B GPU wrapper (defaults only) | Colab paths or GPU config |
 | `core/embedding.py` | EmbeddingProvider contract (abstract) | Embedding interface changes |
 | `core/embedding_gemini.py` | Gemini API implementation | Gemini API changes |
 | `core/embedding_bge_m3.py` | BGE-M3 local implementation | Local model changes |

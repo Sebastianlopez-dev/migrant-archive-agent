@@ -1,6 +1,6 @@
 """Audio-based ingestion: downloads audio and transcribes locally.
 
-Strategy: yt-dlp (audio download) → faster-whisper (local transcription).
+Strategy: yt-dlp (audio download) → WhisperX (local transcription + diarisation).
 Higher quality than auto-captions: proper punctuation, capitalisation, and
 better accuracy on challenging audio.  Requires FFmpeg and CPU/GPU time.
 Cost: $0 (runs entirely on your machine).
@@ -18,7 +18,7 @@ from pathlib import Path
 # Make sibling imports work regardless of where the script is invoked from
 sys.path.insert(0, str(Path(__file__).parent))
 
-from faster_whisper import WhisperModel
+import whisperx
 
 from ingestion import VideoData, _build_videodata, _download_audio, _fetch_metadata
 
@@ -30,11 +30,11 @@ from ingestion import VideoData, _build_videodata, _download_audio, _fetch_metad
 def _detect_device() -> str:
     """Return 'cuda' if a CUDA-capable GPU is available, else 'cpu'.
 
-    Uses ctranslate2 (faster-whisper's backend) to probe.
+    Uses torch to probe (WhisperX backend).
     """
     try:
-        import ctranslate2
-        if ctranslate2.get_cuda_device_count() > 0:
+        import torch
+        if torch.cuda.is_available():
             return "cuda"
     except (ImportError, RuntimeError):
         pass
@@ -51,35 +51,6 @@ def _compute_type_for(device: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Module-level model cache — loaded once, reused across videos
-# ---------------------------------------------------------------------------
-
-WHISPER_BEAM_SIZE = 5       # wider beam = more accurate, slightly slower
-WHISPER_MODEL_DIR = "models/whisper"  # local download cache (gitignored)
-
-# Cache keyed by (model_size, device) so switching devices reloads correctly
-_model_cache: dict[tuple[str, str], WhisperModel] = {}
-
-
-def _get_model(model_size: str, device: str) -> WhisperModel:
-    """Return a cached WhisperModel, loading it only on first call per device.
-
-    Models are stored under WHISPER_MODEL_DIR so you always know
-    where they live and when they change.
-    """
-    key = (model_size, device)
-    if key not in _model_cache:
-        Path(WHISPER_MODEL_DIR).mkdir(parents=True, exist_ok=True)
-        _model_cache[key] = WhisperModel(
-            model_size,
-            device=device,
-            compute_type=_compute_type_for(device),
-            download_root=WHISPER_MODEL_DIR,
-        )
-    return _model_cache[key]
-
-
-# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -90,6 +61,7 @@ def extract_single_video(
     device: str = "auto",
     output_dir: str = "data/raw/whisper",
     audio_dir: str = "data/audio",
+    hf_token: str | None = None,
 ) -> VideoData:
     """Extract transcript by downloading audio and transcribing locally.
 
@@ -97,11 +69,12 @@ def extract_single_video(
         video_url: Full YouTube watch URL.
         languages: Priority list for transcription, e.g. ['es', 'en'].
                    Defaults to ['es'].
-        model_size: faster-whisper model size.
+        model_size: WhisperX model size.
                     Options: tiny, base, small, medium, large-v3.
         device: Inference device. "auto" detects GPU/CPU, or "cpu" / "cuda".
         output_dir: Where to save the resulting JSON.
         audio_dir: Where to save the downloaded mp3.
+        hf_token: HuggingFace token for speaker diarisation (optional).
 
     Returns:
         VideoData with transcript segments and metadata.
@@ -119,6 +92,7 @@ def extract_single_video(
         language=languages[0],
         model_size=model_size,
         device=device,
+        hf_token=hf_token,
     )
     return _build_videodata(info, segments)
 
@@ -128,33 +102,53 @@ def _transcribe_audio(
     language: str,
     model_size: str = "small",
     device: str = "auto",
+    hf_token: str | None = None,
 ) -> list[dict]:
-    """Transcribe an audio file with faster-whisper.
+    """Transcribe an audio file with WhisperX.
+
+    Three-step pipeline:
+        1. load_model + transcribe (same Whisper quality)
+        2. load_align_model + align (word-level timestamps)
+        3. DiarizationPipeline + assign_word_speakers (speaker labels)
 
     Returns a list of dicts in our standard shape:
-        [{text, start, duration}, ...]
-
-    faster-whisper returns start/end; we convert end → duration.
+        [{text, start, duration, speaker}, ...]
     """
     if device == "auto":
         device = _detect_device()
 
-    model = _get_model(model_size, device)
+    compute = _compute_type_for(device)
+    audio_file = str(audio_path)
 
-    segments_out, _info = model.transcribe(
-        str(audio_path),
-        language=language,
-        beam_size=WHISPER_BEAM_SIZE,
-        vad_filter=True,
+    # ── Step 1: transcribe (WhisperX — same model as faster-whisper) ──
+    model = whisperx.load_model(model_size, device=device, compute_type=compute)
+    result = model.transcribe(audio_file, language=language)
+
+    # ── Step 2: align word-level timestamps ──
+    align_model, align_meta = whisperx.load_align_model(
+        language_code=language, device=device
     )
+    result = whisperx.align(
+        result["segments"], align_model, align_meta, audio_file, device
+    )
+
+    # ── Step 3: assign speakers (skip if no HF token) ──
+    if hf_token:
+        diarize = whisperx.DiarizationPipeline(use_auth_token=hf_token, device=device)
+        diarize_segments = diarize(audio_file)
+        result = whisperx.assign_word_speakers(diarize_segments, result)
+        speaker_key = lambda s: s.get("speaker", "UNKNOWN")
+    else:
+        speaker_key = lambda s: "UNKNOWN"
 
     return [
         {
-            "text": seg.text.strip(),
-            "start": round(seg.start, 1),
-            "duration": round(seg.end - seg.start, 1),
+            "text": seg["text"].strip(),
+            "start": round(seg["start"], 1),
+            "duration": round(seg["end"] - seg["start"], 1),
+            "speaker": speaker_key(seg),
         }
-        for seg in segments_out
+        for seg in result["segments"]
     ]
 
 
@@ -177,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         default="small",
-        help="faster-whisper model size: tiny, base, small, medium, large-v3",
+        help="WhisperX model size: tiny, base, small, medium, large-v3",
     )
     parser.add_argument(
         "--device",
@@ -195,6 +189,11 @@ if __name__ == "__main__":
         default="data/audio",
         help="Where to save the downloaded mp3",
     )
+    parser.add_argument(
+        "--hf-token",
+        default=None,
+        help="HuggingFace token for speaker diarisation (optional)",
+    )
     args = parser.parse_args()
 
     data = extract_single_video(
@@ -204,6 +203,7 @@ if __name__ == "__main__":
         device=args.device,
         output_dir=args.output_dir,
         audio_dir=args.audio_dir,
+        hf_token=args.hf_token,
     )
     saved = data.save_json(output_dir=args.output_dir)
     print(f"Saved: {saved}")
