@@ -1,126 +1,126 @@
 # Session 2 — Chunking Strategy & Testing Strategy
 
 **Date**: 12 June 2026
-**Goal**: Definir estrategia de chunking para contenido en español conversacional y diseñar la pirámide de testing.
+**Goal**: Define the chunking strategy for Spanish conversational content and design the testing pyramid.
 
 ---
 
 ## 1. Chunking Strategy
 
-### Decisión final: 1000 tokens / 200 overlap / estimador simple
+### Final decision: 1000 tokens / 200 overlap / simple estimator
 
-| Parámetro | Valor | Justificación |
+| Parameter | Value | Rationale |
 |-----------|-------|---------------|
-| Chunk size | **1000 tokens** (~750 palabras) | Captura ~4-5 min de habla española — una respuesta o idea completa |
-| Overlap | **200 tokens (20%)** | Suficiente para que ninguna idea quede partida entre chunks; estándar RAG |
-| Token counter | **Estimador simple** (4 chars ≈ 1 token) | Cero dependencias, precisión suficiente para chunking |
+| Chunk size | **1000 tokens** (~750 words) | Captures ~4-5 min of Spanish speech — one complete answer or idea |
+| Overlap | **200 tokens (20%)** | Enough to ensure no idea is cut between chunks; RAG standard |
+| Token counter | **Simple estimator** (4 chars ≈ 1 token) | Zero dependencies, sufficient accuracy for chunking |
 
-### ¿Por qué no 512/50?
+### Why not 512/50?
 
 | | 512 tk / 50 ov | 1000 tk / 200 ov |
 |---|---|---|
-| Palabras por chunk | ~380 | ~750 |
-| Minutos de habla | ~1.5 min | ~4-5 min |
-| Overlap | 10% (bajo) | 20% (estándar RAG) |
-| Chunks en video de 1h | ~25 | ~12 |
-| Riesgo principal | Corta ideas a la mitad ❌ | Prácticamente nulo ✅ |
+| Words per chunk | ~380 | ~750 |
+| Minutes of speech | ~1.5 min | ~4-5 min |
+| Overlap | 10% (low) | 20% (RAG standard) |
+| Chunks in 1h video | ~25 | ~12 |
+| Main risk | Cuts ideas in half ❌ | Practically zero ✅ |
 
-El español tiene oraciones más largas que el inglés. Un chunk de 380 palabras corta apenas arrancó una idea. Con 750 palabras capturás un pensamiento completo: una respuesta entera, una anécdota, un argumento.
+Spanish has longer sentences than English. A 380-word chunk cuts an idea just as it starts. At 750 words, you capture a complete thought: an entire answer, an anecdote, an argument.
 
-### ¿Escala para videos de 1 hora?
+### Does it scale for 1-hour videos?
 
-**Sí, y mejor que chunks más chicos.**
+**Yes, and better than smaller chunks.**
 
-- Un video de 1h (~9,000 palabras) genera solo **12 chunks** de 1000 tokens.
-- Con 512 tokens generaría **25 micro-chunks** — más ruido en la búsqueda, más costo de API.
-- ChromaDB maneja millones de vectores. 12 o 25 por video es irrelevante para la DB.
-- Lo que importa es la **densidad semántica**: cada chunk debe contener una idea completa. 1000 tokens lo logra.
+- A 1h video (~9,000 words) generates only **12 chunks** of 1000 tokens.
+- At 512 tokens, it would generate **25 micro-chunks** — more search noise, higher API cost.
+- ChromaDB handles millions of vectors. 12 or 25 per video is irrelevant to the DB.
+- What matters is **semantic density**: each chunk must contain one complete idea. 1000 tokens achieves this.
 
 ```
-Video de 1h |████████████████████████████████████████████████████████████|
-            
-512/50:     |██| ██| ██| ██| ██| ██| ██| ██| ██| ██| ██| ██|  ← 25 micro-chunks
-            ideas partidas ❌      fragmentación ❌
+1h video  |████████████████████████████████████████████████████████████|
+          
+512/50:   |██| ██| ██| ██| ██| ██| ██| ██| ██| ██| ██| ██|  ← 25 micro-chunks
+          cut ideas ❌           fragmentation ❌
 
-1000/200:   |█████| █████| █████| █████| █████| █████| █████|  ← 12 chunks densos
-              ~~      ~~     ~~     ~~     ~~     ~~
-            overlap preserva contexto ✅  cada chunk = 1 idea ✅
+1000/200: |█████| █████| █████| █████| █████| █████| █████|  ← 12 dense chunks
+            ~~      ~~     ~~     ~~     ~~     ~~
+          overlap preserves context ✅  each chunk = 1 idea ✅
 ```
 
 ---
 
-## 2. tiktoken vs Estimador Simple
+## 2. tiktoken vs Simple Estimator
 
-### ¿Qué es tiktoken?
+### What is tiktoken?
 
-`tiktoken` es la librería oficial de OpenAI para contar tokens. Usa el tokenizador BPE (Byte-Pair Encoding) exacto que usan los modelos de OpenAI. Te dice **exactamente** cuántos tokens tiene un texto.
+`tiktoken` is OpenAI's official library for counting tokens. It uses the exact BPE (Byte-Pair Encoding) tokenizer that OpenAI models use. It tells you **exactly** how many tokens a text has.
 
-### ¿Qué es el estimador simple?
+### What is the simple estimator?
 
-La regla `caracteres / 4 ≈ tokens`. Se basa en que, en promedio, un token en modelos modernos equivale a ~4 caracteres en inglés y ~3.5 en español.
+The rule `characters / 4 ≈ tokens`. It's based on the fact that, on average, one token in modern models equals ~4 characters in English and ~3.5 in Spanish.
 
-### Comparación real
+### Real comparison
 
 ```python
-texto = "La migración es un derecho humano fundamental y debe ser protegido"
+text = "La migración es un derecho humano fundamental y debe ser protegido"
 
-# Estimador simple
-chars = len(texto)  # 64
+# Simple estimator
+chars = len(text)  # 64
 tokens_est = chars / 4  # 16 tokens
 
-# tiktoken (si lo usáramos)
-tokens_real = 18  # varía según el tokenizador
+# tiktoken (if we used it)
+tokens_real = 18  # varies by tokenizer
 ```
 
-| Aspecto | Estimador simple | tiktoken |
+| Aspect | Simple estimator | tiktoken |
 |---------|-----------------|----------|
-| Precisión | ±15% | Exacta |
-| Dependencia | Ninguna | `tiktoken` (pip install) |
-| Velocidad | Instantáneo (división) | ~1-5ms por texto |
-| ¿Afecta al chunking? | No — ±2 tokens es irrelevante | No aporta valor |
+| Accuracy | ±15% | Exact |
+| Dependency | None | `tiktoken` (pip install) |
+| Speed | Instant (division) | ~1-5ms per text |
+| Does it affect chunking? | No — ±2 tokens is irrelevant | Adds no value |
 
-### ¿Cuándo usar cada uno?
+### When to use each?
 
-| Caso de uso | Recomendación |
+| Use case | Recommendation |
 |-------------|---------------|
-| **Chunking** (cortar texto en pedazos) | ✅ Estimador simple |
-| **Cost tracking** (calcular costo exacto de API) | tiktoken |
-| **Context window management** (no exceder límite del modelo) | tiktoken |
-| **Aproximación rápida** | ✅ Estimador simple |
+| **Chunking** (splitting text into pieces) | ✅ Simple estimator |
+| **Cost tracking** (calculate exact API cost) | tiktoken |
+| **Context window management** (avoid exceeding model limit) | tiktoken |
+| **Quick approximation** | ✅ Simple estimator |
 
-### Conclusión
+### Conclusion
 
-Para chunking, **el estimador simple alcanza y sobra**. La diferencia entre 980 y 1020 tokens reales no afecta la calidad del chunk. tiktoken solo se justifica si necesitás contar costos de API al centavo o asegurar que no excedés el context window del LLM. Para este proyecto: cero dependencias, mismo resultado práctico.
+For chunking, **the simple estimator is more than enough**. The difference between 980 and 1020 real tokens does not affect chunk quality. tiktoken is only justified if you need to count API costs to the penny or ensure you don't exceed the LLM's context window. For this project: zero dependencies, same practical result.
 
 ---
 
-## 3. Testing Strategy — Las Tres Capas
+## 3. Testing Strategy — The Three Layers
 
-### La pirámide
+### The pyramid
 
 ```
          ┌──────┐
-         │ E2E  │  ← ¿Funciona en el mundo real?
+         │ E2E  │  ← Does it work in the real world?
          │ ~30s │     Gemini API + ChromaDB + 1 video
          ├──────┤
-         │ Int. │  ← ¿Mis piezas encajan?
-         │ ~10s │     BGE-M3 real + ChromaDB real
+         │ Int. │  ← Do my pieces fit together?
+         │ ~10s │     Real BGE-M3 + real ChromaDB
          ├──────┤
-         │ Unit │  ← ¿Mi lógica funciona?
+         │ Unit │  ← Does my logic work?
          │ <1s  │     FakeEmbeddingProvider (mock)
          └──────┘
 ```
 
-### Capa 1 — Unit Tests
+### Layer 1 — Unit Tests
 
-**Qué prueba**: Lógica aislada. Chunking, orquestación, contratos.
+**What it tests**: Isolated logic. Chunking, orchestration, contracts.
 
-**Cómo**: `FakeEmbeddingProvider` — una implementación falsa que devuelve vectores dummy.
+**How**: `FakeEmbeddingProvider` — a fake implementation that returns dummy vectors.
 
 ```python
 class FakeEmbeddingProvider(EmbeddingProvider):
     def embed(self, texts):
-        return [[0.1] * 768 for _ in texts]  # vectores falsos
+        return [[0.1] * 768 for _ in texts]  # fake vectors
     
     def embed_query(self, text):
         return [0.1] * 768
@@ -133,38 +133,38 @@ def test_chunk_overlap():
     provider = FakeEmbeddingProvider()
     processor = Processor(provider, chunk_size=1000, overlap=200)
     
-    # VideoData de prueba con texto conocido
-    vd = create_test_videodata("Texto de prueba " * 500)
+    # Test VideoData with known text
+    vd = create_test_videodata("Test text " * 500)
     chunks = processor.chunk(vd)
     
     assert len(chunks) > 1
-    # Verificar que el overlap existe: última palabra del chunk N
-    # aparece en el chunk N+1
+    # Verify that overlap exists: last words of chunk N
+    # appear in chunk N+1
     last_words_chunk0 = chunks[0].text.split()[-10:]
     first_words_chunk1 = chunks[1].text.split()[:10]
     assert any(w in first_words_chunk1 for w in last_words_chunk0)
 ```
 
-**Qué caza**: Errores de lógica — chunking mal implementado, índices fuera de rango, metadata incorrecta.
+**What it catches**: Logic errors — poorly implemented chunking, out-of-range indices, incorrect metadata.
 
-**Cuándo corre**: Cada vez que tocás `processor.py` o `embedding.py`.
+**When it runs**: Every time you touch `processor.py` or `embedding.py`.
 
-**Sin**: API keys, internet, ChromaDB.
+**Without**: API keys, internet, ChromaDB.
 
 ---
 
-### Capa 2 — Integration Tests
+### Layer 2 — Integration Tests
 
-**Qué prueba**: Que las piezas REALES encajan — BGE-M3 genera vectores válidos, ChromaDB los persiste y los encuentra.
+**What it tests**: That the REAL pieces fit together — BGE-M3 generates valid vectors, ChromaDB persists and retrieves them.
 
-**Cómo**: BGE-M3 local (gratis, CPU) + ChromaDB temporal.
+**How**: Local BGE-M3 (free, CPU) + temporary ChromaDB.
 
 ```python
 def test_vector_store_add_and_search():
-    provider = BGE_M3_Provider()  # REAL, carga el modelo
-    store = VectorStore(persist_dir=":memory:")  # ChromaDB en memoria
+    provider = BGE_M3_Provider()  # REAL, loads the model
+    store = VectorStore(persist_dir=":memory:")  # ChromaDB in memory
     
-    # Insertar
+    # Insert
     store.add(
         ids=["test_1"],
         documents=["La migración es un derecho humano"],
@@ -172,7 +172,7 @@ def test_vector_store_add_and_search():
         embeddings=provider.embed(["La migración es un derecho humano"])
     )
     
-    # Buscar
+    # Search
     query_embedding = provider.embed_query("derecho humano")
     results = store.search(query_embedding, top_k=3)
     
@@ -180,35 +180,35 @@ def test_vector_store_add_and_search():
     assert results[0]["metadata"]["video_id"] == "v001"
 ```
 
-**Qué caza**: Interfaces rotas — provider no respeta el contrato, ChromaDB schema mismatch, embeddings con dimensión incorrecta.
+**What it catches**: Broken interfaces — provider doesn't respect the contract, ChromaDB schema mismatch, embeddings with incorrect dimension.
 
-**Cuándo corre**: Antes de commitear.
+**When it runs**: Before committing.
 
-**Sin**: API keys, internet. Corre 100% local (~10 segundos, la mayor parte es cargar BGE-M3 la primera vez).
+**Without**: API keys, internet. Runs 100% local (~10 seconds, most of it is loading BGE-M3 the first time).
 
 ---
 
-### Capa 3 — E2E Tests
+### Layer 3 — E2E Tests
 
-**Qué prueba**: El pipeline completo en condiciones reales — Gemini API, ChromaDB real, un video posta.
+**What it tests**: The full pipeline under real conditions — Gemini API, real ChromaDB, a real video.
 
-**Cómo**: Gemini API + ChromaDB en disco.
+**How**: Gemini API + ChromaDB on disk.
 
 ```python
 def test_full_pipeline_one_video():
-    provider = GeminiProvider()  # usa GEMINI_API_KEY
+    provider = GeminiProvider()  # uses GEMINI_API_KEY
     store = VectorStore(persist_dir="data/chroma_test")
     processor = Processor(provider, chunk_size=1000, overlap=200)
     
-    # Cargar un VideoData real (ya existe en data/raw/whisper/)
+    # Load a real VideoData (already exists in data/raw/whisper/)
     video_data = VideoData.load_json("data/raw/whisper/APgxfNssxGQ.json")
     
-    # Procesar
+    # Process
     chunks = processor.chunk(video_data)
     embeddings = processor.embed_chunks(chunks)
     store.add_from_chunks(chunks, embeddings)
     
-    # Verificar búsqueda
+    # Verify search
     query_embedding = provider.embed_query("¿Cuál es el mensaje principal?")
     results = store.search(query_embedding, top_k=5)
     
@@ -216,38 +216,38 @@ def test_full_pipeline_one_video():
     assert all(r["metadata"]["video_id"] == video_data.video_id for r in results)
 ```
 
-**Qué caza**: Problemas del mundo real — API timeout, encoding raro en transcripción, texto vacío, videos sin transcript.
+**What it catches**: Real-world problems — API timeout, weird encoding in transcription, empty text, videos without transcript.
 
-**Cuándo corre**: Antes de deployar o cuando cambiás de proveedor de embeddings.
+**When it runs**: Before deploying or when switching embedding providers.
 
-**Requiere**: `GEMINI_API_KEY` e internet.
+**Requires**: `GEMINI_API_KEY` and internet.
 
 ---
 
-### ¿Por qué tres capas y no solo tests unitarios?
+### Why three layers and not just unit tests?
 
-Porque cada capa caza bugs que la anterior no puede ver:
+Because each layer catches bugs the previous one can't see:
 
-| Bug | Unit lo ve? | Integration lo ve? | E2E lo ve? |
+| Bug | Unit sees it? | Integration sees it? | E2E sees it? |
 |-----|-------------|-------------------|------------|
-| `chunk()` no calcula bien el overlap | ✅ | ✅ | ✅ |
-| `EmbeddingProvider.embed()` devuelve dimensión incorrecta | ❌ (usa mock) | ✅ | ✅ |
-| ChromaDB schema no matchea metadata | ❌ | ✅ | ✅ |
-| Gemini API devuelve error 429 (rate limit) | ❌ | ❌ | ✅ |
-| VideoData con `full_text` vacío rompe el pipeline | ✅ | ✅ | ✅ |
-| Texto con caracteres especiales (¿¡ñ) | ❌ (mock ignora) | ✅ (BGE-M3 real) | ✅ |
+| `chunk()` doesn't calculate overlap correctly | ✅ | ✅ | ✅ |
+| `EmbeddingProvider.embed()` returns wrong dimension | ❌ (uses mock) | ✅ | ✅ |
+| ChromaDB schema doesn't match metadata | ❌ | ✅ | ✅ |
+| Gemini API returns error 429 (rate limit) | ❌ | ❌ | ✅ |
+| VideoData with empty `full_text` breaks pipeline | ✅ | ✅ | ✅ |
+| Text with special characters (¿¡ñ) | ❌ (mock ignores) | ✅ (real BGE-M3) | ✅ |
 
-**En una entrevista**, saber explicar estas tres capas y CUÁNDO usar cada una demuestra que entendés testing como herramienta de diseño, no como checklist.
+**In an interview**, knowing how to explain these three layers and WHEN to use each one demonstrates that you understand testing as a design tool, not as a checklist.
 
 ---
 
-## Resumen de decisiones
+## Summary of decisions
 
-| Decisión | Valor | Archivo donde se implementa |
+| Decision | Value | File where implemented |
 |----------|-------|---------------------------|
 | Chunk size | 1000 tokens | `core/processor.py` |
 | Overlap | 200 tokens (20%) | `core/processor.py` |
-| Token counter | Estimador simple | `core/processor.py` |
+| Token counter | Simple estimator | `core/processor.py` |
 | Unit tests | FakeEmbeddingProvider mock | `tests/test_processor.py`, `tests/test_embedding.py` |
-| Integration tests | BGE-M3 + ChromaDB temporal | `tests/test_vector_store.py` |
-| E2E tests | Gemini + ChromaDB + video real | `tests/test_pipeline_e2e.py` |
+| Integration tests | BGE-M3 + temporary ChromaDB | `tests/test_vector_store.py` |
+| E2E tests | Gemini + ChromaDB + real video | `tests/test_pipeline_e2e.py` |

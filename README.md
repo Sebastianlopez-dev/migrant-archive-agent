@@ -9,14 +9,16 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ## Development Timeline
 
-| Week | Steps | Focus |
-|------|-------|-------|
-| 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB |
-| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite (unit/integration/E2E) |
-| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper |
-| 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation |
+| Week | Steps | Focus | Status |
+|------|-------|-------|--------|
+| 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | ✅ Done |
+| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | 🔲 In progress |
+| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | 🔲 Pending |
+| 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | 🔲 Pending |
 
-> **Week 1 checkpoint:** Live vector DB Q&A demo — query ChromaDB directly with pre-verified questions. See `backend/scripts/rag_test.py` and `notes/rag_test_questions.md`.
+> **Week 1 checkpoint (Saturday 21 June):** Live vector DB Q&A demo + sample extraction.
+> - **Interactive RAG query:** `backend/scripts/rag_test.py` — query ChromaDB directly with pre-verified questions from `notes/rag_test_questions.md`
+> - **Data extraction:** `backend/scripts/extract_sample.py` — dump first 5,000 characters from ChromaDB and/or JSON sources to prove data is stored and retrievable
 
 ---
 
@@ -39,7 +41,8 @@ migrant-archive/
 │   │   ├── processor.py            ← Chunking (1000tk/200ov) + embedding
 │   │   └── vector_store.py         ← ChromaDB persistence
 │   └── scripts/
-│       └── rag_test.py           ← Standalone RAG pipeline test script
+│       ├── rag_test.py           ← Interactive RAG pipeline test script
+│       └── extract_sample.py     ← First-5K extraction from ChromaDB + JSON
 │
 ├── tests/
 │   ├── test_embedding.py       ← Contract tests (FakeEmbeddingProvider)
@@ -47,7 +50,8 @@ migrant-archive/
 │   ├── test_embedding_bge_m3.py ← BGE-M3 provider tests
 │   ├── test_processor.py       ← Chunking + orchestration tests
 │   ├── test_vector_store.py    ← ChromaDB CRUD + relevance tests
-│   └── test_pipeline_e2e.py    ← Full pipeline with real video
+│   ├── test_pipeline_e2e.py    ← Full pipeline with real video
+│   └── test_extract_sample.py  ← First-5K extraction + truncation tests
 │
 ├── data/
 │   ├── audio/                  ← Downloaded audio cache (gitignored)
@@ -61,10 +65,16 @@ migrant-archive/
 │
 ├── presentation/               ← HTML slides for project demo
 │
+├── notebooks/                   ← Colab notebooks for cloud GPU processing
+│   └── transcribe_video_colab.ipynb  ← Transcribe long videos with T4 GPU
+│
 └── notes/                      ← Decision records + research
     ├── session-1-ingestion.md
     ├── session-2-embeddings-research.md
     ├── session-2-chunking-and-testing.md
+    ├── agent-tools-discovery.md
+    ├── whisperx-multispeaker.md
+    ├── uv.md
     └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
 ```
 
@@ -400,6 +410,35 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 
 ---
 
+## Checkpoint Demo — Sample Extraction
+
+Prove the data pipeline works by extracting the first 5,000 characters from both storage backends.
+
+```bash
+# Show first 5K chars from both ChromaDB and JSON sources
+python backend/scripts/extract_sample.py
+
+# ChromaDB only
+python backend/scripts/extract_sample.py --source chroma
+
+# JSON files only
+python backend/scripts/extract_sample.py --source json
+
+# Custom character limit
+python backend/scripts/extract_sample.py --chars 2000
+
+# Use captions directory instead of whisper
+python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captions
+```
+
+**What this proves for the checkpoint:**
+- ✅ Data is correctly stored in both ChromaDB and raw JSON files
+- ✅ Video content is readable, searchable, and has the expected structure
+- ✅ Spanish special characters (¿, ¡, ñ, ó) survive the full pipeline roundtrip
+- ✅ ChromaDB chunks preserve title metadata and sequential ordering
+
+---
+
 ## Tests
 
 ```bash
@@ -412,10 +451,10 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 29/29 pass (UV), 31/31 pass (Conda).
+**Results:** 41/44 pass (UV), 47/47 pass (Conda). 4 skipped (conditional: API key or GPU).
 
 | Layer | Tests | What it proves |
 |-------|-------|----------------|
-| Unit | 18 | Contract enforcement, chunking logic, CRUD operations |
-| Integration | 8 | Real BGE-M3 + ChromaDB together |
-| E2E | 1 | Full pipeline with Gemini API (needs key) |
+| Unit | 25 | Contract enforcement, chunking logic, CRUD operations, sample extraction |
+| Integration | 13 | Real BGE-M3 + ChromaDB together, extraction from real JSON |
+| E2E | 3 | Full pipeline with Gemini API (needs key) |
