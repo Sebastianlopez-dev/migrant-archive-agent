@@ -7,4 +7,9 @@ __pycache__/
 *.pyc
 .DS_Store
 .env
-.atlcookies.txt
+.atl/
+.openclaw/
+.windsurf/
+AGENTS.md
+SOUL.md
+cookies.txt
