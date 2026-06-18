@@ -1,6 +1,6 @@
 1.  https://youtu.be/APgxfNssxGQ
 2.  https://youtu.be/myxPJCDedOE
-3.  https://www.youtube.com/watch?v=CTmWjuQcvHY&t=504s
+3.  https://youtu.be/CTmWjuQcvHY
 4.  https://youtu.be/AMn2LdbJ_A4
 5.  https://youtu.be/i2RdECeyHEE
 6.  https://youtu.be/VJqe2h0U1Fs
