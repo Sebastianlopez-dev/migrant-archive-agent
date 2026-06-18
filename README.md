@@ -16,9 +16,77 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 | 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | 🔲 Pending |
 | 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | 🔲 Pending |
 
+---
+
 > **Week 1 checkpoint (Saturday 21 June):** Live vector DB Q&A demo + sample extraction.
 > - **Interactive RAG query:** `backend/scripts/rag_test.py` — query ChromaDB directly with pre-verified questions from `notes/rag_test_questions.md`
 > - **Data extraction:** `backend/scripts/extract_sample.py` — dump first 5,000 characters from ChromaDB and/or JSON sources to prove data is stored and retrievable
+
+---
+
+## Pipeline Architecture
+
+```
+FILMIG / Plataforma Cero (YouTube)
+         │
+         ▼
+   ┌─ S 01 ──────────────────────────────────────────┐
+   │  Video Ingestion — 3 strategies                 │
+   │  A: YouTube auto-captions (instant, free)       │
+   │  B: faster-whisper CPU (small, ~2 min/4min vid) │
+   │  B GPU: Colab large-v3 (~15 s/4min vid)         │
+   │  Output: {video_id}.json (Spanish transcript)   │
+   └──────────────────────┬─────────────────────────┘
+                          │
+                          ▼
+   ┌─ S 02 ──────────────────────────────────────────┐
+   │  Text Chunking + Embedding                      │
+   │  Chunk: 1,000 tokens / 200 overlap (20%)        │
+   │  Embed: Gemini (3072d) | BGE-M3 (1024d)         │
+   │  Output: chunks + vector embeddings             │
+   └──────────────────────┬─────────────────────────┘
+                          │
+                          ▼
+   ┌─ S 03 ──────────────────────────────────────────┐
+   │  ChromaDB Vector Store                          │
+   │  Persistent storage, semantic search            │
+   │  top_k retrieval with metadata                  │
+   │  Output: queryable knowledge base               │
+   └──────────────────────┬─────────────────────────┘
+                          │
+              ┌───────────┴───────────┐
+              ▼                       ▼
+       ┌─ S 04 ──────────┐     ┌─ S 05 ──────────┐
+       │  RAG Test       │     │  Sample Extract │
+       │  Interactive QA │     │  First 5K chars │
+       │  ChromaDB direct│     │  ChromaDB + JSON│
+       │  Week 1 demo    │     │  Roundtrip      │
+       └────────┬────────┘     └────────┬────────┘
+                │                       │
+                └───────────┬───────────┘
+                            ▼
+                     ┌─ S 06  ───────────────────────────────┐
+                     │  LangChain Agent (Week 2)             │
+                     │  Tools: search, metadata, summary     │
+                     │  Memory: ConversationBufferMemory     │
+                     │  47/47 test suite (Conda)             │
+                     └──────────────────┬───────────────────┘
+                                        ▼
+                               ┌─ S 07 ───────────────────────┐
+                               │  API + Evaluation (Week 3)   │
+                               │  FastAPI REST wrapper        │
+                               │  LangSmith observability     │
+                               └──────────────┬───────────────┘
+                                              ▼
+                                     ┌─ S 08 ───────────────────────┐
+                                     │  Frontend + Deploy (Week 4)  │
+                                     │  Web Speech API voice input  │
+                                     │  HTML presentation slides    │
+                                     │  Multimodal RAG chatbot      │
+                                     └──────────────────────────────┘
+```
+
+> **How to read this diagram:** each node (`N01`–`N08`) represents a processing stage. Nodes connected vertically are sequential; horizontal forks are parallel alternatives or complementary outputs. The pipeline flows top-to-bottom, mirroring the 4-week development timeline above.
 
 ---
 
