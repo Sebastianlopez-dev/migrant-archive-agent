@@ -11,10 +11,10 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 | Week | Steps | Focus | Status |
 |------|-------|-------|--------|
-| 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | ✅ Done |
-| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | 🔲 In progress |
-| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | 🔲 Pending |
-| 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | 🔲 Pending |
+| 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | Done |
+| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | In progress |
+| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | Pending |
+| 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | Pending |
 
 ---
 
@@ -376,7 +376,7 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 | | Gemini (cloud) | BGE-M3 (local) |
 |---|---|---|
-| **Quality** | 🥇 #1 MTEB Multilingual (71.5%) | ⭐⭐⭐⭐ Excellent Spanish |
+| **Quality** | #1 MTEB Multilingual (71.5%) | Excellent Spanish |
 | **Dimension** | 3072 (Matryoshka-capable) | 1024 |
 | **Cost** | Free tier (~$0 for project) | $0 |
 | **Speed** | ~1s (API call) | ~2-5s (CPU inference) |
@@ -463,7 +463,7 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
         metadatas=[c.metadata for c in chunks],
         embeddings=embeddings,
     )
-    print(f"✅ {video.title} — {len(chunks)} chunks stored")
+    print(f" {video.title} — {len(chunks)} chunks stored")
 ```
 
 ---
@@ -500,10 +500,10 @@ python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captio
 ```
 
 **What this proves for the checkpoint:**
-- ✅ Data is correctly stored in both ChromaDB and raw JSON files
-- ✅ Video content is readable, searchable, and has the expected structure
-- ✅ Spanish special characters (¿, ¡, ñ, ó) survive the full pipeline roundtrip
-- ✅ ChromaDB chunks preserve title metadata and sequential ordering
+- Data is correctly stored in both ChromaDB and raw JSON files
+- Video content is readable, searchable, and has the expected structure
+- Spanish special characters (¿, ¡, ñ, ó) survive the full pipeline roundtrip
+- ChromaDB chunks preserve title metadata and sequential ordering
 
 ---
 
