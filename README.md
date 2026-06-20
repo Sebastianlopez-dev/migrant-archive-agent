@@ -86,7 +86,13 @@ FILMIG / Plataforma Cero (YouTube)
                                      └──────────────────────────────┘
 ```
 
-> **How to read this diagram:** each node (`N01`–`N08`) represents a processing stage. Nodes connected vertically are sequential; horizontal forks are parallel alternatives or complementary outputs. The pipeline flows top-to-bottom, mirroring the 4-week development timeline above.
+> **How to read this diagram:** each node (`S 01`–`S 08`) represents a processing stage. Nodes connected vertically are sequential; horizontal forks are parallel alternatives or complementary outputs. The pipeline flows top-to-bottom, mirroring the 4-week development timeline above.
+>
+> **Implementation map:** each stage links to the source file(s) that implement it:
+> - **S01 (Ingestion):** [`ingestion.py`](backend/core/ingestion.py) · [`ingestion_audio.py`](backend/core/ingestion_audio.py) · [`ingestion_caption.py`](backend/core/ingestion_caption.py) · [`ingestion_colab.py`](backend/core/ingestion_colab.py)
+> - **S02 (Chunking + Embedding):** [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py) · [`embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
+> - **S03 (ChromaDB):** [`vector_store.py`](backend/core/vector_store.py)
+> - **S04–S05 (Scripts):** [`rag_test.py`](backend/scripts/rag_test.py) · [`extract_sample.py`](backend/scripts/extract_sample.py)
 
 ---
 
@@ -268,6 +274,12 @@ Same as Option A above.
 
 Once your environment is ready, the first step is extracting text from YouTube videos. You have three strategies — pick based on your needs.
 
+**Quick start (Strategy B, recommended):**
+1. Activate venv → `source .venv/bin/activate`
+2. Transcribe → `python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es`
+3. Output → `data/raw/whisper/{video_id}.json`
+4. Repeat for each video.
+
 ### Strategy comparison
 
 | | A: Captions | B: Whisper local | B GPU: Colab |
@@ -301,6 +313,8 @@ Output: `data/raw/captions/{video_id}.json`
 ---
 
 ### Strategy B: faster-whisper (Local CPU)
+
+> 📄 Source: [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
 
 Best quality at zero cost. Runs entirely on your machine — no API, no uploads. Recommended default for ≤ 5 minute videos.
 
@@ -342,6 +356,8 @@ Output: `data/raw/whisper/{video_id}.json`
 
 ### Strategy B GPU: Google Colab (videos > 5 min)
 
+> 📄 Source: [`backend/core/ingestion_colab.py`](backend/core/ingestion_colab.py)
+
 Same logic as Strategy B, but runs on Colab's free GPU. ~10x faster for long videos.
 
 ```bash
@@ -357,7 +373,15 @@ Defaults: `large-v3` model, `--device cuda`. Saves to Google Drive (`migrant-arc
 
 Once you have transcriptions (Phase 1), this phase converts text into searchable vector embeddings and stores them in ChromaDB.
 
+**Quick start (Gemini, recommended):**
+1. Make sure `.json` files exist in `data/raw/whisper/`
+2. Build index → `python backend/scripts/rag_test.py --rebuild`
+3. Query → `python backend/scripts/rag_test.py`
+4. If you add more videos later → see [Embeddings Workflow](#embeddings-workflow) below.
+
 ### Chunking strategy
+
+> 📄 Source: [`backend/core/processor.py`](backend/core/processor.py) — `chunk_size=1000, overlap=200`
 
 Before embedding, text is split into overlapping chunks. These values were chosen specifically for Spanish conversational content (interviews, debates).
 
@@ -374,6 +398,8 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 ### Embedding provider comparison
 
+> 📄 Sources: [`backend/core/embedding.py`](backend/core/embedding.py) (contract) · [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py) · [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
+
 | | Gemini (cloud) | BGE-M3 (local) |
 |---|---|---|
 | **Quality** | #1 MTEB Multilingual (71.5%) | Excellent Spanish |
@@ -387,6 +413,8 @@ Before embedding, text is split into overlapping chunks. These values were chose
 ---
 
 ### Option A: Gemini API Embeddings (default)
+
+> 📄 Source: [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py)
 
 Uses `gemini-embedding-001` — Google's #1 multilingual model. Free tier covers the entire project.
 
@@ -427,6 +455,8 @@ for r in results:
 ---
 
 ### Option B: BGE-M3 Local Embeddings
+
+> 📄 Source: [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 
 Runs entirely on your CPU. No API keys, no internet (after model download). Same interface as Gemini — swap one line to switch.
 
@@ -470,6 +500,8 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
 
 ### Reset the vector store
 
+> 📄 Source: [`backend/core/vector_store.py`](backend/core/vector_store.py)
+
 ```bash
 rm -rf data/chroma/
 ```
@@ -479,6 +511,8 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 ---
 
 ## Embeddings Workflow
+
+> 📄 Scripts: [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py) · core: [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
 This section covers the three situations you'll encounter when working with embeddings: first-time creation, adding new videos, and reading stored data.
 
@@ -687,6 +721,8 @@ for r in results:
 
 ## Checkpoint Demo — Sample Extraction
 
+> 📄 Source: [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
+
 Prove the data pipeline works by extracting the first 5,000 characters from both storage backends.
 
 ```bash
@@ -715,6 +751,8 @@ python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captio
 ---
 
 ## Tests
+
+> 📄 Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py)
 
 ```bash
 # UV environment
