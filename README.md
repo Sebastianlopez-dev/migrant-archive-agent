@@ -478,6 +478,213 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 
 ---
 
+## Embeddings Workflow
+
+This section covers the three situations you'll encounter when working with embeddings: first-time creation, adding new videos, and reading stored data.
+
+### Scenario 1 — First-Time Creation (Initial Embeddings)
+
+**When:** you've transcribed videos in Phase 1 and ChromaDB is empty. This is the first time you're building the vector index.
+
+**Simplest path — use the rebuild script:**
+
+```bash
+source .venv/bin/activate                          # or: conda activate migrant-archive
+
+# This chunks, embeds, and stores ALL whisper JSON files
+python backend/scripts/rag_test.py --rebuild
+```
+
+**What happens under the hood:**
+
+1. `rag_test.py` finds every `.json` in `data/raw/whisper/`
+2. For each video: `VideoData.load_json()` → `Processor.chunk()` → `Processor.embed_chunks()` → `VectorStore.add()`
+3. ChromaDB is created at `data/chroma/` with collection `migrant_archive`
+
+**Expected output:**
+
+```
+Initializing Gemini embedding provider ...
+--rebuild flag set: re-indexing all videos ...
+
+Indexing: APgxfNssxGQ.json  ... 12 chunks
+Indexing: XYZ123.json       ... 8 chunks
+
+Indexed 20 chunks from 2 video(s) into ChromaDB.
+
+Collection size: 20 chunks
+Top-K: 3
+──────────────────────────────────────────────────────────
+Paste or type a question. Type 'quit' to exit.
+```
+
+**Alternative — programmatic (full control):**
+
+If you need more control than the script offers (custom chunk size, BGE-M3 provider, captions instead of whisper):
+
+```python
+from pathlib import Path
+from backend.core.embedding_gemini import GeminiEmbeddingProvider
+from backend.core.processor import Processor
+from backend.core.vector_store import VectorStore
+from backend.core.ingestion import VideoData
+
+provider = GeminiEmbeddingProvider()
+processor = Processor(provider, chunk_size=1000, overlap=200)
+store = VectorStore(persist_dir="data/chroma")
+
+for json_file in Path("data/raw/whisper").glob("*.json"):
+    video = VideoData.load_json(json_file)
+    chunks, embeddings = processor.process(video)
+    store.add(
+        ids=[f"{video.video_id}_chunk_{c.metadata['chunk_index']}" for c in chunks],
+        documents=[c.text for c in chunks],
+        metadatas=[c.metadata for c in chunks],
+        embeddings=embeddings,
+    )
+    print(f"✅ {video.title} — {len(chunks)} chunks stored")
+
+print(f"\nDone. {store.count} chunks in ChromaDB.")
+```
+
+---
+
+### Scenario 2 — Updating Embeddings (Adding New Videos)
+
+You've already built the index. Now you transcribe a new video and need to add it to ChromaDB WITHOUT losing what's already there. You have three options, depending on how many videos you're adding.
+
+#### Option A: Add a single new video (incremental)
+
+**Best when:** you transcribed one new video and don't want to re-embed everything.
+
+The key insight: ChromaDB IDs are `{video_id}_chunk_{index}`. A new video has a *different* `video_id`, so there's no ID conflict — you can safely call `add()` on the existing collection.
+
+```python
+from backend.core.embedding_gemini import GeminiEmbeddingProvider
+from backend.core.processor import Processor
+from backend.core.vector_store import VectorStore
+from backend.core.ingestion import VideoData
+
+provider = GeminiEmbeddingProvider()
+processor = Processor(provider, chunk_size=1000, overlap=200)
+
+# ⚠️  Do NOT call delete_collection() — use the existing store as-is
+store = VectorStore(persist_dir="data/chroma")
+print(f"Before: {store.count} chunks in ChromaDB")
+
+# Load the NEW video only
+video = VideoData.load_json("data/raw/whisper/NEW_VIDEO_ID.json")
+chunks, embeddings = processor.process(video)
+
+store.add(
+    ids=[f"{video.video_id}_chunk_{c.metadata['chunk_index']}" for c in chunks],
+    documents=[c.text for c in chunks],
+    metadatas=[c.metadata for c in chunks],
+    embeddings=embeddings,
+)
+print(f"After:  {store.count} chunks in ChromaDB (+{len(chunks)} from '{video.title}')")
+```
+
+> ⚠️ If you accidentally run this on a video that's *already* in ChromaDB, the `add()` call will fail with `IDAlreadyExistsError`. ChromaDB does not silently deduplicate — it rejects duplicate IDs. To re-index a specific video you'd need to delete its chunks first (see Option C).
+
+#### Option B: Rebuild everything (destructive, simplest)
+
+**Best when:** you added multiple new videos, or changed the chunking strategy (size/overlap), or switched embedding providers.
+
+```bash
+# This deletes the old ChromaDB index and rebuilds from ALL whisper JSONs
+python backend/scripts/rag_test.py --rebuild
+```
+
+This is the same command as Scenario 1. `--rebuild` calls `delete_collection()` internally, wiping everything before re-indexing all JSON files found in `data/raw/whisper/`.
+
+> 💡 With Gemini API, re-embedding is fast and cheap (~$0 for the entire project). Unless you have 100+ videos, rebuilding is usually the pragmatic choice.
+
+#### Option C: Start completely fresh
+
+```bash
+rm -rf data/chroma/
+python backend/scripts/rag_test.py --rebuild
+```
+
+Manually deleting the directory before rebuilding guarantees a clean slate — useful if you suspect ChromaDB corruption or switched between embedding providers (Gemini 3072d vs BGE-M3 1024d are incompatible in the same collection).
+
+---
+
+### Scenario 3 — Reading / Querying Embeddings
+
+Once your vectors are in ChromaDB, there are three ways to access them.
+
+#### Method A: Interactive semantic search (demo / exploration)
+
+```bash
+python backend/scripts/rag_test.py
+```
+
+This opens an interactive prompt. Type a question in Spanish, and it returns the top-K most semantically similar chunks with similarity scores. Pre-prepared questions are in `notes/rag_test_questions.md`.
+
+```
+Query> ¿De qué trata el video?
+Embedding query (3072d) ... done.
+Searching ChromaDB (top-3) ... 3 results.
+──────────────────────────────────────────────────────────
+  #1  similarity: 0.8234  |  distance: 0.1766
+       chunk 2  —  hablamos sobre la crisis migratoria en...
+
+  #2  similarity: 0.7891  |  distance: 0.2109
+       chunk 5  —  las políticas de frontera han cambiado...
+```
+
+Available flags:
+| Flag | Default | Effect |
+|------|---------|--------|
+| `--rebuild` | off | Force re-index before starting the prompt |
+| `--top-k 5` | 3 | Number of chunks to retrieve per query |
+
+#### Method B: Sequential extraction (data validation)
+
+```bash
+# Both ChromaDB and JSON (default)
+python backend/scripts/extract_sample.py
+
+# ChromaDB only
+python backend/scripts/extract_sample.py --source chroma
+
+# JSON only (whisper directory)
+python backend/scripts/extract_sample.py --source json
+
+# Custom character limit
+python backend/scripts/extract_sample.py --chars 2000
+```
+
+This reads chunks sequentially from ChromaDB (or raw text from JSON) and prints the first N characters. Useful to verify data roundtripped correctly without writing a query.
+
+#### Method C: Programmatic search (integration)
+
+When you need to query ChromaDB from your own code (e.g., inside a LangChain tool):
+
+```python
+from backend.core.embedding_gemini import GeminiEmbeddingProvider
+from backend.core.vector_store import VectorStore
+
+provider = GeminiEmbeddingProvider()
+store = VectorStore(persist_dir="data/chroma")
+
+query = "¿Qué dice el video sobre migración?"
+query_embedding = provider.embed_query(query)
+results = store.search(query_embedding, top_k=3)
+
+for r in results:
+    print(f"[{r['metadata'].get('title', '?')}] chunk {r['metadata'].get('chunk_index', '?')}")
+    print(f"  {r['document'][:200]}...")
+    print(f"  similarity: {1 - r['distance']:.4f}")
+    print()
+```
+
+**What `store.search()` returns:** a list of dicts with keys `id`, `document`, `metadata` (video_id, title, chunk_index, start_time, end_time), and `distance` (cosine distance — lower = more similar).
+
+---
+
 ## Checkpoint Demo — Sample Extraction
 
 Prove the data pipeline works by extracting the first 5,000 characters from both storage backends.

@@ -69,7 +69,7 @@ hashtags #EscribirEsParaValientes, #MigrarNoEsUnDelito y
 
 ---
 
-## Quick Copy-Paste Sequence (for live demo)
+## Quick Sequence (for live demo)
 
 Paste these one by one into the `rag_test.py` prompt:
 
