@@ -31,6 +31,34 @@ class VideoData:
     full_text: str  # all segments concatenated, ready for chunking
     metadata: dict = field(default_factory=dict)  # raw yt-dlp output
 
+    def enriched_text(self) -> str:
+        """Return title, description, and timestamped segments as one string.
+
+        Format:
+            Title: {title}
+            Description: {description}
+
+            [MM:SS] segment text
+            ...
+
+        Timestamps use [HH:MM:SS] when the video duration is one hour or
+        longer, otherwise [MM:SS].
+        """
+        duration = self.metadata.get("duration", 0) if self.metadata else 0
+        if not duration and self.transcript_segments:
+            duration = max(
+                seg.get("start", 0) + seg.get("duration", 0)
+                for seg in self.transcript_segments
+            )
+        use_hours = duration >= 3600
+
+        lines = [f"Title: {self.title}", f"Description: {self.description}", ""]
+        for seg in self.transcript_segments:
+            start = seg.get("start", 0)
+            text = seg.get("text", "")
+            lines.append(f"{_format_timestamp(start, use_hours)} {text}")
+        return "\n".join(lines)
+
     def to_dict(self) -> dict:
         """Serialize to plain dict for JSON export."""
         return {
