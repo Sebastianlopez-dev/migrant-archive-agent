@@ -135,16 +135,20 @@ def _build_videodata(info: dict, segments: list[dict]) -> VideoData:
     """Construct a VideoData from yt-dlp info + transcript segments.
 
     Single factory so strategies don't repeat the same dict→VideoData mapping.
+    Newly ingested videos store the enriched text (title, description, and
+    timestamped segments) as full_text so downstream consumers get context
+    without re-computing it.
     """
-    full_text = " ".join(seg["text"] for seg in segments)
-    return VideoData(
+    vd = VideoData(
         video_id=info["id"],
         title=info.get("title", ""),
         description=info.get("description", ""),
         transcript_segments=segments,
-        full_text=full_text,
+        full_text="",
         metadata=info,
     )
+    vd.full_text = vd.enriched_text()
+    return vd
 
 
 def _download_audio(video_url: str, output_dir: str = "data/audio") -> Path:

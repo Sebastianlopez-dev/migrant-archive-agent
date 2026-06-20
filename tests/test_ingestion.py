@@ -1,11 +1,12 @@
 """Unit tests for ingestion.py — VideoData, enrichment, and ingestion helpers."""
 
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend" / "core"))
 
-from ingestion import _format_timestamp, VideoData  # noqa: E402
+from ingestion import _build_videodata, _format_timestamp, VideoData  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -89,3 +90,46 @@ class TestVideoDataEnrichedText:
         assert "Title: Empty" in result
         assert "Description: No segments" in result
         assert "[" not in result  # no timestamp markers when there are no segments
+
+
+# ---------------------------------------------------------------------------
+# _build_videodata wiring
+# ---------------------------------------------------------------------------
+
+class TestBuildVideoData:
+    """Factory builds VideoData and persists enriched text."""
+
+    def test_uses_enriched_text_for_full_text(self):
+        """New ingestion stores enriched text, not plain concatenation."""
+        info = {"id": "vid4", "title": "Built", "description": "Constructed"}
+        segments = [{"text": "Hello", "start": 0, "duration": 1}]
+        vd = _build_videodata(info, segments)
+        assert vd.full_text == vd.enriched_text()
+        assert "Title: Built" in vd.full_text
+        assert "Description: Constructed" in vd.full_text
+        assert "[00:00] Hello" in vd.full_text
+
+    def test_empty_segments_store_enriched_header(self):
+        """Empty segments still store title/description header as full_text."""
+        info = {"id": "vid5", "title": "Empty", "description": "None"}
+        segments = []
+        vd = _build_videodata(info, segments)
+        assert vd.full_text == vd.enriched_text()
+        assert "Title: Empty" in vd.full_text
+        assert "Description: None" in vd.full_text
+        assert vd.transcript_segments == []
+
+    def test_enriched_text_persists_through_json_roundtrip(self):
+        """Saved JSON preserves enriched full_text and can be reloaded."""
+        info = {"id": "vid6", "title": "Roundtrip", "description": "Test"}
+        segments = [{"text": "Hello", "start": 5, "duration": 1}]
+        vd = _build_videodata(info, segments)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = vd.save_json(tmpdir)
+            loaded = VideoData.load_json(path)
+
+        assert loaded.full_text == vd.enriched_text()
+        assert "Title: Roundtrip" in loaded.full_text
+        assert "[00:05] Hello" in loaded.full_text
+        assert loaded.transcript_segments == segments
