@@ -5,10 +5,11 @@ chunks the full_text, and produces embeddings. Does NOT know which
 embedding implementation is wired in.
 """
 
+import re
 from dataclasses import dataclass, field
 
-from backend.core.embedding import EmbeddingProvider
-from backend.core.ingestion import VideoData
+from embedding import EmbeddingProvider
+from ingestion import VideoData
 
 
 # ---------------------------------------------------------------------------
@@ -68,11 +69,17 @@ class Processor:
         return chunks, embeddings
 
     def chunk(self, video_data: VideoData) -> list[Chunk]:
-        """Split full_text into overlapping chunks with metadata.
+        """Split text into overlapping chunks with metadata.
 
-        Token estimation: len(text) // 4  (simple, zero-dependency estimator).
+        Uses enriched text (title + description + timestamped segments) when
+        transcript segments are available, otherwise falls back to the stored
+        full_text. Token estimation: len(text) // 4.
         """
-        text = video_data.full_text
+        text = (
+            video_data.enriched_text()
+            if video_data.transcript_segments
+            else video_data.full_text
+        )
         if not text or not text.strip():
             return []
 
@@ -100,16 +107,17 @@ class Processor:
 
             chunk_text = text[start:end].strip()
             if chunk_text:
+                start_time = _parse_timestamp(chunk_text) or 0.0
+                end_time = (
+                    _parse_timestamp(chunk_text, last=True)
+                    or start_time
+                )
                 metadata = {
                     "video_id": video_data.video_id,
                     "title": video_data.title,
                     "chunk_index": chunk_index,
-                    "start_time": self._estimate_time(
-                        video_data.transcript_segments, start
-                    ),
-                    "end_time": self._estimate_time(
-                        video_data.transcript_segments, end
-                    ),
+                    "start_time": start_time,
+                    "end_time": end_time,
                 }
                 chunks.append(Chunk(text=chunk_text, metadata=metadata))
                 chunk_index += 1
@@ -131,11 +139,12 @@ class Processor:
 
     @staticmethod
     def _estimate_time(segments: list[dict], char_position: int) -> float:
-        """Approximate timestamp for a character position.
+        """Approximate timestamp for a character position in plain text.
 
         Walks through transcript segments accumulating character counts
         until reaching the target position, then returns the segment's
-        start time.
+        start time. Used as a fallback when chunk text has no timestamp
+        markers.
         """
         if not segments:
             return 0.0
@@ -149,3 +158,24 @@ class Processor:
         # Past the end — return last segment's end
         last = segments[-1]
         return last.get("start", 0.0) + last.get("duration", 0.0)
+
+
+def _parse_timestamp(text: str, last: bool = False) -> float | None:
+    """Parse the first or last [MM:SS] / [HH:MM:SS] marker in text.
+
+    Args:
+        text: Chunk text potentially containing timestamp markers.
+        last: If True, parse the last marker; otherwise the first.
+
+    Returns:
+        Timestamp in seconds, or None if no marker is found.
+    """
+    matches = list(re.finditer(r"\[(?:(\d{2}):)?(\d{2}):(\d{2})\]", text))
+    if not matches:
+        return None
+
+    match = matches[-1] if last else matches[0]
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2))
+    seconds = int(match.group(3))
+    return hours * 3600 + minutes * 60 + seconds

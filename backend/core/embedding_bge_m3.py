@@ -8,7 +8,7 @@ Requires: pip install sentence-transformers  (or conda equivalent)
 The torch/transformers imports are deferred until first use.
 """
 
-from backend.core.embedding import EmbeddingProvider
+from core.embedding import EmbeddingProvider
 
 
 BGE_M3_MODEL = "BAAI/bge-m3"

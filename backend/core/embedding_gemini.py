@@ -10,7 +10,7 @@ import os
 
 from google import genai
 
-from backend.core.embedding import EmbeddingProvider
+from core.embedding import EmbeddingProvider
 
 
 GEMINI_MODEL = "models/gemini-embedding-001"

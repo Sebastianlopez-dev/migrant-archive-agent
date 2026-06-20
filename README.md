@@ -42,6 +42,7 @@ FILMIG / Plataforma Cero (YouTube)
    ┌─ S 02 ──────────────────────────────────────────┐
    │  Text Chunking + Embedding                      │
    │  Chunk: 1,000 tokens / 200 overlap (20%)        │
+   │  Enriched text: title + description + [MM:SS]   │
    │  Embed: Gemini (3072d) | BGE-M3 (1024d)         │
    │  Output: chunks + vector embeddings             │
    └──────────────────────┬─────────────────────────┘
@@ -390,9 +391,13 @@ Before embedding, text is split into overlapping chunks. These values were chose
 | **Chunk size** | 1,000 tokens (~750 words) | Captures ~4-5 min of speech — one complete idea |
 | **Overlap** | 200 tokens (20%) | Ensures no idea is cut at chunk boundaries |
 | **Token counter** | `len(text) // 4` | Simple estimator — zero dependencies, accurate enough |
+| **Enriched text** | title + description + `[MM:SS]` | Gives the embedding model context about the video and segment timestamps |
+| **Legacy fallback** | plain `full_text` | JSONs without `transcript_segments` keep working without re-ingestion |
 | **1-hour video** | ~12 chunks | vs ~25 with smaller chunks (less API cost, less noise) |
 
 > **Why not smaller chunks?** Spanish sentences are longer than English. A 380-word chunk (512 tokens) cuts ideas in half. 750 words captures a full answer, an anecdote, or a complete argument. The 20% overlap bridges ideas that cross chunk boundaries. This scales from 2-minute clips to 2-hour documentaries without changes.
+
+> **Enriched text:** each chunk is built from `VideoData.enriched_text()`, which prefixes the video title and description and adds `[MM:SS]` (or `[HH:MM:SS]` for videos ≥ 1 hour) to every transcript segment. Legacy JSONs that still have plain `full_text` but also contain `transcript_segments` are enriched automatically at chunk time, so no re-ingestion is required. Each chunk's `metadata["start_time"]` / `"end_time"]` is estimated from the first and last timestamp marker inside that chunk.
 
 ---
 

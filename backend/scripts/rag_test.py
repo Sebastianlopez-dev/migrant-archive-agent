@@ -21,8 +21,11 @@ import os
 import sys
 from pathlib import Path
 
-# Allow imports from backend/core without installing the package
+# Allow imports from backend/core without installing the package.
+# backend/ enables `from core.X import ...`; backend/core/ enables
+# `from X import ...` inside processor.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "core"))
 
 from dotenv import load_dotenv
 
