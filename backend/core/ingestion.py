@@ -74,6 +74,24 @@ class VideoData:
 # ---------------------------------------------------------------------------
 
 
+def _format_timestamp(seconds: float, use_hours: bool) -> str:
+    """Format a timestamp for enriched text segments.
+
+    Args:
+        seconds: Segment start time in seconds.
+        use_hours: If True, render as [HH:MM:SS]; otherwise [MM:SS].
+
+    Returns:
+        Bracketed timestamp string ready to prefix a transcript segment.
+    """
+    secs = int(seconds)
+    hours, rem = divmod(secs, 3600)
+    mins, secs = divmod(rem, 60)
+    if use_hours:
+        return f"[{hours:02d}:{mins:02d}:{secs:02d}]"
+    return f"[{mins:02d}:{secs:02d}]"
+
+
 def _fetch_metadata(video_url: str) -> dict:
     """Get video metadata via yt-dlp (no download).
 
