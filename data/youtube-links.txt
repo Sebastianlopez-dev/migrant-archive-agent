@@ -1,0 +1,19 @@
+# Migrant Archive — YouTube Links for Batch Transcription
+# 
+# One URL per line. Use the full watch URL or short youtu.be link.
+# Lines starting with # are ignored (comments).
+# Add new videos at the end — already-processed ones will be skipped.
+#
+# Upload this file to Colab alongside ingestion.py, ingestion_audio.py,
+# ingestion_colab.py. Then run the batch section of the notebook.
+
+https://youtu.be/APgxfNssxGQ
+https://youtu.be/myxPJCDedOE
+https://youtu.be/CTmWjuQcvHY
+https://youtu.be/AMn2LdbJ_A4
+https://youtu.be/i2RdECeyHEE
+https://youtu.be/VJqe2h0U1Fs
+https://youtu.be/TB66kk0_qpI
+https://youtu.be/Jc1xJ4V4xU4
+https://youtu.be/FKymj4_fn3g
+https://youtu.be/mY1hw79ydY0
