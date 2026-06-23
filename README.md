@@ -12,7 +12,7 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 | Week | Steps | Focus | Status |
 |------|-------|-------|--------|
 | 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | Done |
-| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | In progress |
+| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | Done |
 | 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | Pending |
 | 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | Pending |
 
@@ -68,10 +68,11 @@ FILMIG / Plataforma Cero (YouTube)
                             ▼
                       ┌─ S 06  ───────────────────────────────┐
                       │  LangChain Agent (Week 2)             │
-                      │  Tools: search, metadata, summary     │
+                      │  Tools: search_transcripts            │
                       │  Memory: ConversationBufferMemory     │
-                      │  47/47 test suite (Conda)             │
-                      └──────────────────┬───────────────────┘
+                      │  14/14 agent tests                    │
+                      │  Status: Complete                     │
+                      └───────────────────┬───────────────────┘
 
 > **Memory:** Uses `ConversationBufferMemory` (LangChain 0.3.x API). This class is deprecated in LangChain 1.0 but fully functional. Migration to the newer `create_agent` with checkpointing is planned when LangChain 2.0 is released. See [LangChain short-term memory docs](https://docs.langchain.com/oss/python/langchain/short-term-memory).
 
@@ -97,6 +98,7 @@ FILMIG / Plataforma Cero (YouTube)
 > - **S02 (Chunking + Embedding):** [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py) · [`embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 > - **S03 (ChromaDB):** [`vector_store.py`](backend/core/vector_store.py)
 > - **S04–S05 (Scripts):** [`rag_test.py`](backend/scripts/rag_test.py) · [`extract_sample.py`](backend/scripts/extract_sample.py)
+> - **S06 (Agent):** [`backend/agents/agent.py`](backend/agents/agent.py) · [`backend/agents/tools.py`](backend/agents/tools.py) · [`backend/scripts/agent_cli.py`](backend/scripts/agent_cli.py)
 
 ---
 
@@ -288,7 +290,7 @@ Once your environment is ready, the first step is extracting text from YouTube v
 
 | | A: Captions | B: Whisper local | B GPU: Colab |
 |---|---|---|---|
-| **Quality** | ⭐⭐ (no punctuation) | ⭐⭐⭐⭐ (full sentences) | ⭐⭐⭐⭐⭐ (large-v3) |
+| **Quality** | 2/5 (no punctuation) | 4/5 (full sentences) | 5/5 (large-v3) |
 | **Speed** | Instant | ~2 min (4-min video) | ~15 sec (4-min video) |
 | **Cost** | $0 | $0 | $0 (Colab free tier) |
 | **Best for** | Quick tests, fallback | ≤ 5 min videos | > 5 min videos, batches |
@@ -312,13 +314,13 @@ python backend/core/ingestion_caption.py --url "VIDEO_URL" --lang es
 
 Output: `data/raw/captions/{video_id}.json`
 
-> ⚠️ Captions on Spanish/Catalan code-switching can be broken. For production use, prefer Strategy B.
+> **Warning:** Captions on Spanish/Catalan code-switching can be broken. For production use, prefer Strategy B.
 
 ---
 
 ### Strategy B: faster-whisper (Local CPU)
 
-> 📄 Source: [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
+> **Source:** [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
 >
 > **Why faster-whisper and not WhisperX?** WhisperX adds speaker diarisation and word-level
 > alignment, but is incompatible with Google Colab as of mid-2026 (numpy dependency conflicts,
@@ -366,7 +368,7 @@ Output: `data/raw/whisper/{video_id}.json`
 
 ### Strategy B GPU: Google Colab (videos > 5 min)
 
-> 📄 Source: [`backend/core/ingestion_colab.py`](backend/core/ingestion_colab.py)
+> **Source:** [`backend/core/ingestion_colab.py`](backend/core/ingestion_colab.py)
 
 Same logic as Strategy B, but runs on Colab's free GPU. ~10x faster for long videos.
 
@@ -391,7 +393,7 @@ Once you have transcriptions (Phase 1), this phase converts text into searchable
 
 ### Chunking strategy
 
-> 📄 Source: [`backend/core/processor.py`](backend/core/processor.py) — `chunk_size=1000, overlap=200`
+> **Source:** [`backend/core/processor.py`](backend/core/processor.py) — `chunk_size=1000, overlap=200`
 
 Before embedding, text is split into overlapping chunks. These values were chosen specifically for Spanish conversational content (interviews, debates).
 
@@ -412,7 +414,7 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 ### Embedding provider comparison
 
-> 📄 Sources: [`backend/core/embedding.py`](backend/core/embedding.py) (contract) · [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py) · [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
+> **Sources:** [`backend/core/embedding.py`](backend/core/embedding.py) (contract) · [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py) · [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 
 | | Gemini (cloud) | BGE-M3 (local) |
 |---|---|---|
@@ -428,7 +430,7 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 ### Option A: Gemini API Embeddings (default)
 
-> 📄 Source: [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py)
+> **Source:** [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py)
 
 Uses `gemini-embedding-001` — Google's #1 multilingual model. Free tier covers the entire project.
 
@@ -470,7 +472,7 @@ for r in results:
 
 ### Option B: BGE-M3 Local Embeddings
 
-> 📄 Source: [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
+> **Source:** [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 
 Runs entirely on your CPU. No API keys, no internet (after model download). Same interface as Gemini — swap one line to switch.
 
@@ -514,7 +516,7 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
 
 ### Reset the vector store
 
-> 📄 Source: [`backend/core/vector_store.py`](backend/core/vector_store.py)
+> **Source:** [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
 ```bash
 rm -rf data/chroma/
@@ -526,7 +528,7 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 
 ## Embeddings Workflow
 
-> 📄 Scripts: [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py) · core: [`backend/core/vector_store.py`](backend/core/vector_store.py)
+> **Scripts:** [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py) · core: [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
 This section covers the three situations you'll encounter when working with embeddings: first-time creation, adding new videos, and reading stored data.
 
@@ -633,7 +635,7 @@ store.add(
 print(f"After:  {store.count} chunks in ChromaDB (+{len(chunks)} from '{video.title}')")
 ```
 
-> ⚠️ If you accidentally run this on a video that's *already* in ChromaDB, the `add()` call will fail with `IDAlreadyExistsError`. ChromaDB does not silently deduplicate — it rejects duplicate IDs. To re-index a specific video you'd need to delete its chunks first (see Option C).
+> **Warning:** If you accidentally run this on a video that's *already* in ChromaDB, the `add()` call will fail with `IDAlreadyExistsError`. ChromaDB does not silently deduplicate — it rejects duplicate IDs. To re-index a specific video you'd need to delete its chunks first (see Option C).
 
 #### Option B: Rebuild everything (destructive, simplest)
 
@@ -646,7 +648,7 @@ python backend/scripts/rag_test.py --rebuild
 
 This is the same command as Scenario 1. `--rebuild` calls `delete_collection()` internally, wiping everything before re-indexing all JSON files found in `data/raw/whisper/`.
 
-> 💡 With Gemini API, re-embedding is fast and cheap (~$0 for the entire project). Unless you have 100+ videos, rebuilding is usually the pragmatic choice.
+> **Tip:** With Gemini API, re-embedding is fast and cheap (~$0 for the entire project). Unless you have 100+ videos, rebuilding is usually the pragmatic choice.
 
 #### Option C: Start completely fresh
 
@@ -735,7 +737,7 @@ for r in results:
 
 ## Checkpoint Demo — Sample Extraction
 
-> 📄 Source: [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
+> **Source:** [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
 
 Prove the data pipeline works by extracting the first 5,000 characters from both storage backends.
 
@@ -764,9 +766,61 @@ python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captio
 
 ---
 
+## S06 — Conversational Agent with Memory (Week 2)
+
+> Sources: [`backend/agents/agent.py`](backend/agents/agent.py) · [`backend/agents/tools.py`](backend/agents/tools.py) · [`backend/scripts/agent_cli.py`](backend/scripts/agent_cli.py)
+
+The **Cero** agent answers questions in Spanish using transcripts stored in ChromaDB and remembers conversation context.
+
+### Agent architecture
+
+```
+User → agent_cli.py → ReAct Agent (LangChain)
+                         ├── search_transcripts (ChromaDB)
+                         ├── Gemini 2.5 Flash (LLM)
+                         └── ConversationBufferMemory
+```
+
+### How to use
+
+```bash
+source .venv/bin/activate
+python backend/scripts/agent_cli.py
+```
+
+The CLI loads `GEMINI_API_KEY` from `.env`, initializes the agent with memory, and opens an interactive prompt:
+
+```
+Bienvenido a Cero. Escribe 'quit' o 'salir' para salir.
+Pregunta> What does the video say about migration?
+[agent answer with sources]
+Pregunta> And at what minute did they mention it?
+[answer using memory from previous context]
+```
+
+### Query with memory (vs plain RAG)
+
+Unlike `rag_test.py` (which only searches ChromaDB without context), the agent keeps the full conversation in `ConversationBufferMemory`. This enables follow-up questions like "and what else did they say?" without repeating the topic.
+
+### Memory
+
+Uses `ConversationBufferMemory` (LangChain 0.3.x API). This class is deprecated in LangChain 1.0 but fully functional. Migration to `create_agent` with checkpointing is planned for when LangChain 2.0 is released. See [LangChain short-term memory docs](https://docs.langchain.com/oss/python/langchain/short-term-memory).
+
+> **Pick your LLM:** the agent defaults to `gemini-2.5-flash`. Change it via the `GEMINI_MODEL` variable in `.env`.
+
+### Tests
+
+```bash
+uv run python -m pytest tests/test_agent.py -v
+```
+
+14 tests: tool, agent, memory, CLI, and E2E (requires GEMINI_API_KEY).
+
+---
+
 ## Tests
 
-> 📄 Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py)
+> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_agent.py`](tests/test_agent.py)
 
 ```bash
 # UV environment
@@ -778,10 +832,11 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 41/44 pass (UV), 47/47 pass (Conda). 4 skipped (conditional: API key or GPU).
+**Results:** 80/86 pass (UV). 6 skipped (conditional: API key or GPU).
 
 | Layer | Tests | What it proves |
 |-------|-------|----------------|
-| Unit | 25 | Contract enforcement, chunking logic, CRUD operations, sample extraction |
-| Integration | 13 | Real BGE-M3 + ChromaDB together, extraction from real JSON |
-| E2E | 3 | Full pipeline with Gemini API (needs key) |
+| Unit | 36 | Contract enforcement, chunking logic, CRUD operations, sample extraction, agent tool/agent init |
+| Integration | 32 | Real BGE-M3 + ChromaDB together, extraction from real JSON, agent memory + CLI |
+| E2E | 4 | Full pipeline with Gemini API (needs key) |
+| Agent | 14 | LangChain ReAct agent, search_transcripts tool, memory, CLI |
