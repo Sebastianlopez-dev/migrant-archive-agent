@@ -16,11 +16,6 @@ _BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_BACKEND_DIR))
 sys.path.insert(0, str(_BACKEND_DIR / "core"))
 
-# Must be before langchain_classic: stubs out a heavy optional dependency that
-# triggers a pre-existing torch/numpy incompatibility when langchain-classic is
-# imported. We do not use the sentence-transformer text splitter.
-import _compat  # noqa: F401, E402
-
 from langchain_classic.agents import AgentExecutor, create_react_agent
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -35,7 +30,15 @@ SYSTEM_PROMPT = (
     "Eres Cero, un asistente que responde en español sobre testimonios "
     "migratorios archivados. Usa la herramienta search_transcripts para "
     "buscar fragmentos relevantes. Responde en español, cita el video y "
-    "el rango de tiempo cuando sea posible, y no inventes información."
+    "el rango de tiempo cuando sea posible, y no inventes información.\n\n"
+    "Debes usar EXACTAMENTE este formato en inglés (no lo traduzcas):\n"
+    "Thought: razona sobre qué hacer\n"
+    "Action: search_transcripts\n"
+    "Action Input: la consulta en español\n"
+    "Observation: resultado de la herramienta\n"
+    "... (puedes repetir Thought/Action/Action Input/Observation)\n"
+    "Thought: ya tengo la respuesta final\n"
+    "Final Answer: responde al usuario en español"
 )
 
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
@@ -95,5 +98,6 @@ def create_agent(
         tools=tools,
         memory=memory,
         verbose=verbose,
+        max_iterations=3,
         handle_parsing_errors=True,
     )

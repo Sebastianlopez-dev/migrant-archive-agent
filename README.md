@@ -66,13 +66,16 @@ FILMIG / Plataforma Cero (YouTube)
                 │                       │
                 └───────────┬───────────┘
                             ▼
-                     ┌─ S 06  ───────────────────────────────┐
-                     │  LangChain Agent (Week 2)             │
-                     │  Tools: search, metadata, summary     │
-                     │  Memory: ConversationBufferMemory     │
-                     │  47/47 test suite (Conda)             │
-                     └──────────────────┬───────────────────┘
-                                        ▼
+                      ┌─ S 06  ───────────────────────────────┐
+                      │  LangChain Agent (Week 2)             │
+                      │  Tools: search, metadata, summary     │
+                      │  Memory: ConversationBufferMemory     │
+                      │  47/47 test suite (Conda)             │
+                      └──────────────────┬───────────────────┘
+
+> **Memory:** Uses `ConversationBufferMemory` (LangChain 0.3.x API). This class is deprecated in LangChain 1.0 but fully functional. Migration to the newer `create_agent` with checkpointing is planned when LangChain 2.0 is released. See [LangChain short-term memory docs](https://docs.langchain.com/oss/python/langchain/short-term-memory).
+
+                                         ▼
                                ┌─ S 07 ───────────────────────┐
                                │  API + Evaluation (Week 3)   │
                                │  FastAPI REST wrapper        │

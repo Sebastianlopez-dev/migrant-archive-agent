@@ -13,7 +13,11 @@ import sys
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 from langchain_core.language_models.chat_models import BaseChatModel
+
+# Load API keys from .env so conditional skips (e.g. E2E) resolve correctly.
+load_dotenv()
 
 # Allow imports from backend/core, backend/agents, and backend/scripts.
 sys.path.insert(0, str(Path(__file__).parent))
@@ -101,8 +105,10 @@ class TestSearchTranscriptsTool:
         search = make_search_transcripts(provider, store, top_k=2)
         result = search.invoke("migración")
 
-        # Each result is formatted as a block prefixed with [#].
-        assert result.count("[#") <= 2
+        # Each result is formatted as a block prefixed with [1], [2], ...
+        assert "[1]" in result
+        assert "[2]" in result
+        assert "[3]" not in result
 
 
 # ---------------------------------------------------------------------------
@@ -216,6 +222,7 @@ class TestMemoryAccumulation:
 
     def test_memory_includes_history_in_prompt(self, provider, store):
         from agent import create_agent
+        from langchain_core.messages import HumanMessage, AIMessage
 
         llm = FakeChatModel(responses=[
             "Final Answer: Primera respuesta.",
@@ -228,8 +235,14 @@ class TestMemoryAccumulation:
         executor.invoke({"input": "Pregunta dos"})
         executor.invoke({"input": "Pregunta tres"})
 
-        # The LLM should have been invoked three times total.
-        assert llm._counter == 3
+        # After three invocations, the public memory API should show three
+        # human/AI pairs. This asserts the same fact as checking the fake LLM
+        # call count, but without relying on internal state.
+        messages = executor.memory.chat_memory.messages
+        human_messages = [m for m in messages if isinstance(m, HumanMessage)]
+        ai_messages = [m for m in messages if isinstance(m, AIMessage)]
+        assert len(human_messages) == 3
+        assert len(ai_messages) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +317,10 @@ class TestAgentCLI:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(not bool(os.getenv("GEMINI_API_KEY")), reason="GEMINI_API_KEY not set")
+@pytest.mark.skipif(
+    not bool(os.getenv("GEMINI_API_KEY")),
+    reason="GEMINI_API_KEY not set; add it to .env to run end-to-end tests",
+)
 class TestAgentE2E:
     """End-to-end agent test with real Gemini LLM and embeddings."""
 
