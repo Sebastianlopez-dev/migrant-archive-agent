@@ -73,7 +73,7 @@ if __name__ == "__main__":
         "--output-dir",
         default=OUTPUT_DIR,
         help="Drive path for JSON transcripts",
-    )
+    ) 
     parser.add_argument(
         "--audio-dir",
         default=AUDIO_DIR,
@@ -90,7 +90,7 @@ if __name__ == "__main__":
         args.url,
         languages=[args.lang],
         model_size=args.model,
-        device=args.device,
+        device=args.device, 
         output_dir=args.output_dir,
         audio_dir=args.audio_dir,
         hf_token=args.hf_token,
