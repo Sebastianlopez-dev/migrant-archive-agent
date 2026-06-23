@@ -148,7 +148,7 @@ migrant-archive/
     ├── session-2-embeddings-research.md
     ├── session-2-chunking-and-testing.md
     ├── agent-tools-discovery.md
-    ├── whisperx-multispeaker.md
+    ├── faster-whisper-migration.md    ← Why faster-whisper over WhisperX
     ├── uv.md
     └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
 ```
@@ -316,6 +316,12 @@ Output: `data/raw/captions/{video_id}.json`
 ### Strategy B: faster-whisper (Local CPU)
 
 > 📄 Source: [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
+>
+> **Why faster-whisper and not WhisperX?** WhisperX adds speaker diarisation and word-level
+> alignment, but is incompatible with Google Colab as of mid-2026 (numpy dependency conflicts,
+> CUDA version mismatch). faster-whisper uses the same Whisper large-v3 model with zero
+> dependency issues. FILMIG content is mostly single-speaker, so diarisation is not critical.
+> Full decision record: [`notes/faster-whisper-migration.md`](notes/faster-whisper-migration.md).
 
 Best quality at zero cost. Runs entirely on your machine — no API, no uploads. Recommended default for ≤ 5 minute videos.
 

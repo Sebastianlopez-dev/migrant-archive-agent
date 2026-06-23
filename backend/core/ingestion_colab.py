@@ -7,7 +7,7 @@ Best for: videos > 5 minutes, batch processing a full channel,
 or anytime you want large-v3 quality without waiting hours on CPU.
 
 Requirements (run in Colab first):
-    !pip install yt-dlp whisperx
+    !pip install yt-dlp faster-whisper
     from google.colab import drive; drive.mount('/content/drive')
 """
 

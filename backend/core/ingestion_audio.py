@@ -1,6 +1,6 @@
 """Audio-based ingestion: downloads audio and transcribes locally.
 
-Strategy: yt-dlp (audio download) → WhisperX (local transcription + diarisation).
+Strategy: yt-dlp (audio download) → faster-whisper (local transcription).
 Higher quality than auto-captions: proper punctuation, capitalisation, and
 better accuracy on challenging audio.  Requires FFmpeg and CPU/GPU time.
 Cost: $0 (runs entirely on your machine).
@@ -18,7 +18,7 @@ from pathlib import Path
 # Make sibling imports work regardless of where the script is invoked from
 sys.path.insert(0, str(Path(__file__).parent))
 
-import whisperx
+from faster_whisper import WhisperModel
 
 from ingestion import VideoData, _build_videodata, _download_audio, _fetch_metadata
 
@@ -69,7 +69,7 @@ def extract_single_video(
         video_url: Full YouTube watch URL.
         languages: Priority list for transcription, e.g. ['es', 'en'].
                    Defaults to ['es'].
-        model_size: WhisperX model size.
+        model_size: Whisper model size.
                     Options: tiny, base, small, medium, large-v3.
         device: Inference device. "auto" detects GPU/CPU, or "cpu" / "cuda".
         output_dir: Where to save the resulting JSON.
@@ -104,15 +104,13 @@ def _transcribe_audio(
     device: str = "auto",
     hf_token: str | None = None,
 ) -> list[dict]:
-    """Transcribe an audio file with WhisperX.
-
-    Three-step pipeline:
-        1. load_model + transcribe (same Whisper quality)
-        2. load_align_model + align (word-level timestamps)
-        3. DiarizationPipeline + assign_word_speakers (speaker labels)
+    """Transcribe an audio file with faster-whisper.
 
     Returns a list of dicts in our standard shape:
         [{text, start, duration, speaker}, ...]
+
+    The ``hf_token`` parameter is kept for backward compatibility but is no
+    longer used; faster-whisper does not perform speaker diarisation.
     """
     if device == "auto":
         device = _detect_device()
@@ -120,35 +118,19 @@ def _transcribe_audio(
     compute = _compute_type_for(device)
     audio_file = str(audio_path)
 
-    # ── Step 1: transcribe (WhisperX — same model as faster-whisper) ──
-    model = whisperx.load_model(model_size, device=device, compute_type=compute)
-    result = model.transcribe(audio_file, language=language)
-
-    # ── Step 2: align word-level timestamps ──
-    align_model, align_meta = whisperx.load_align_model(
-        language_code=language, device=device
+    model = WhisperModel(model_size, device=device, compute_type=compute)
+    segments_iter, _info = model.transcribe(
+        audio_file, language=language, beam_size=5
     )
-    result = whisperx.align(
-        result["segments"], align_model, align_meta, audio_file, device
-    )
-
-    # ── Step 3: assign speakers (skip if no HF token) ──
-    if hf_token:
-        diarize = whisperx.DiarizationPipeline(use_auth_token=hf_token, device=device)
-        diarize_segments = diarize(audio_file)
-        result = whisperx.assign_word_speakers(diarize_segments, result)
-        speaker_key = lambda s: s.get("speaker", "UNKNOWN")
-    else:
-        speaker_key = lambda s: "UNKNOWN"
 
     return [
         {
-            "text": seg["text"].strip(),
-            "start": round(seg["start"], 1),
-            "duration": round(seg["end"] - seg["start"], 1),
-            "speaker": speaker_key(seg),
+            "text": seg.text.strip(),
+            "start": round(seg.start, 1),
+            "duration": round(seg.end - seg.start, 1),
+            "speaker": "UNKNOWN",
         }
-        for seg in result["segments"]
+        for seg in segments_iter
     ]
 
 
@@ -171,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         default="small",
-        help="WhisperX model size: tiny, base, small, medium, large-v3",
+        help="Whisper model size: tiny, base, small, medium, large-v3",
     )
     parser.add_argument(
         "--device",
