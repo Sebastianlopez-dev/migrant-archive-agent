@@ -1016,7 +1016,7 @@ uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 
 ### LangSmith Tracing
 
-> Sources: `requirements.txt` (langsmith) · `.env.example` · [`tests/conftest.py`](tests/conftest.py) · [`tests/test_langsmith.py`](tests/test_langsmith.py)
+> Sources: [`requirements.txt`](requirements.txt) · [`.env.example`](.env.example) · [`tests/conftest.py`](tests/conftest.py) · [`tests/test_langsmith.py`](tests/test_langsmith.py) · [`backend/agents/agent.py`](backend/agents/agent.py) (no changes needed)
 
 LangSmith provides full observability into every agent run: LLM calls, tool executions (`search_transcripts`), latency, token usage, and cost. Tracing activates **automatically** when `LANGSMITH_TRACING=true` is set — zero changes to `agent.py` were needed.
 
@@ -1051,7 +1051,7 @@ That's it. Run the agent or API normally — traces appear at [smith.langchain.c
 
 #### Test safety
 
-A session-scoped fixture in `tests/conftest.py` forces `LANGSMITH_TRACING=false` during pytest runs so fake LLM traces never pollute the LangSmith project:
+A session-scoped fixture in [`tests/conftest.py`](tests/conftest.py) forces `LANGSMITH_TRACING=false` during pytest runs so fake LLM traces never pollute the LangSmith project:
 
 ```python
 @pytest.fixture(autouse=True, scope="session")
@@ -1061,7 +1061,7 @@ def _disable_langsmith_tracing():
     os.environ.pop("LANGSMITH_TRACING", None)
 ```
 
-3 dedicated tests in `tests/test_langsmith.py` verify the fixture works and that the agent produces no traces when tracing is disabled.
+3 dedicated tests in [`tests/test_langsmith.py`](tests/test_langsmith.py) verify the fixture works and that the agent produces no traces when tracing is disabled.
 
 #### Free tier
 
