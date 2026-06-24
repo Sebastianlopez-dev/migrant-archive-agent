@@ -48,8 +48,8 @@ class TestPipelineE2E:
 
     @pytest.fixture(scope="class")
     def gemini_provider(self):
-        from embedding_gemini import GeminiProvider
-        return GeminiProvider()
+        from embedding_gemini import GeminiEmbeddingProvider
+        return GeminiEmbeddingProvider()
 
     @pytest.fixture
     def store(self):

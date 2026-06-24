@@ -331,6 +331,9 @@ def test_search_transcripts_observation_includes_video_id(provider, store):
     from backend.api.routes.chat import parse_sources
     from tools import make_search_transcripts
 
+    # Ensure a clean collection: ChromaDB in-memory mode can leak state
+    # from a previous test that used the same collection name.
+    store.delete_collection()
     store.add(
         ids=["v003_chunk_0"],
         documents=["Contenido del testimonio."],

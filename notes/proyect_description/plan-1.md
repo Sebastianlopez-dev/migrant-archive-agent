@@ -4,19 +4,21 @@
 
 | Step | Week | What | Status |
 |------|------|------|--------|
-| 1 | 1 | `core/ingestion.py` + dual transcription strategies (caption + faster-whisper + Colab) | ✅ Done |
-| 2 | 1 | `core/processor.py` + `core/embedding.py` + `core/vector_store.py` | ✅ Done |
-| 2b | 2 | **Upgrade to WhisperX** — multi-speaker diarisation for interviews and debates | 🔲 In progress |
-| 3 | 2 | `agents/` — LangChain agent with tools and memory | 🔲 Pending |
-| 4 | 2 | Testing suite — unit, integration, E2E | 🔲 Pending |
-| 5 | 3 | LangSmith evaluation + documentation | 🔲 Pending |
-| 6 | 3 | FastAPI wrapper — REST endpoints + CORS | 🔲 Pending |
-| 7 | 4 | `frontend/` — UI with text input + voice button (Web Speech API) | 🔲 Pending |
-| 8 | 4 | Presentation and final deploy | 🔲 Pending |
+| 1 | 1 | `core/ingestion.py` + dual transcription strategies (caption + faster-whisper + Colab) | Done |
+| 2 | 1 | `core/processor.py` + `core/embedding.py` + `core/vector_store.py` | Done |
+| 2b | 2 | ~~Upgrade to WhisperX~~ — **Abandoned** (see decision #10). Kept faster-whisper + Colab for GPU. | Abandoned |
+| 3 | 2 | `agents/` — LangChain agent with tools and memory | Done |
+| 4 | 2 | Testing suite — 125 tests (unit, integration, E2E) | Done |
+| 5 | 3 | LangSmith tracing — auto-tracing via env vars, zero code changes | Done |
+| 6 | 3 | FastAPI wrapper — `POST /api/ask`, `DELETE /api/session/{id}`, CORS | Done |
+| 7 | 3–4 | `frontend/` — chat widget (Vite + TypeScript), text input. Voice button pending. | Partial |
+| 8 | 4 | Presentation slides (in progress) + deploy to production (pending) | In progress |
 
 > **Checkpoint (end of Week 1):** Live vector DB Q&A demo — query ChromaDB directly with pre-verified questions to prove the RAG pipeline works before moving to agents and API layers.
 > 
-> **Week 2 pivot (17 Jun):** Migrate from faster-whisper to **WhisperX** for multi-speaker diarisation. The FILMIG content is interviews and panels — speaker attribution is critical for RAG answer quality. See decision #10 below.
+> **Week 2 pivot (17 Jun):** ~~Migrate from faster-whisper to WhisperX~~ — **Abandoned 24 Jun.** WhisperX caused numpy/CUDA dependency conflicts in Colab and added ~2-3 min per video for marginal value (FILMIG is mostly single-speaker). See decision #10.
+>
+> **Week 3 (24 Jun):** All core deliverables complete. LangSmith auto-traces every agent run. Chat widget shipped with Vite + TypeScript. 121/125 tests passing.
 
 ---
 
@@ -34,14 +36,15 @@
 - **Frontend**: HTML/CSS/JS (starts simple, can migrate to React later without touching the backend).
 - Decision motivated by UI/UX control and the ability to develop in parallel.
 - The frontend only does `fetch()` to the backend; it knows nothing about RAG logic or ChromaDB.
+### 4. Dual Transcription Strategy (updated 17 Jun 2026, revised 24 Jun 2026)
 
-### 4. Dual Transcription Strategy (updated 17 Jun 2026)
 - **Strategy A**: `youtube-transcript-api` → free, instant, medium quality (no punctuation).
 - **Strategy B**: `faster-whisper` local CPU → free, high quality, correct punctuation, ~2 min for a 4-min video.
 - **Strategy B GPU**: `ingestion_colab.py` for videos >5 min (same logic, defaults `large-v3 --device cuda`).
-- **Upgrade: WhisperX** (17 Jun) → replaces faster-whisper in Strategy B, adds word-level timestamps + speaker diarisation via `pyannote`. Requires HF_TOKEN.
+- ~~**Upgrade: WhisperX** (17 Jun) → replaces faster-whisper in Strategy B, adds word-level timestamps + speaker diarisation via `pyannote`. Requires HF_TOKEN.~~
+  - **ABANDONED 24 Jun:** WhisperX caused numpy/CUDA dependency conflicts in Google Colab (mid-2026). `pyannote` requires PyTorch ≥2.4 but Colab's default runtime ships incompatible versions. The FILMIG content is mostly single-speaker interviews — diarisation added complexity without proportional value. Kept faster-whisper + Colab GPU path (`large-v3` on T4) for long videos.
 - All strategies produce the same `VideoData` contract → the rest of the pipeline doesn't know which one was used.
-- **Decision**: faster-whisper as default, captions as fallback. WhisperX active for multi-speaker content. See `notes/session-1-ingestion.md` and `notes/whisperx-multispeaker.md`.
+- **Decision**: faster-whisper as default, captions as fallback. ~~WhisperX active for multi-speaker content.~~ See `notes/session-1-ingestion.md` and `notes/faster-whisper-migration.md`.
 
 ### 5. User Voice Input with Web Speech API
 - The user can ask questions **by voice** from the frontend.
@@ -63,21 +66,21 @@
   ```
 - If the browser doesn't support Web Speech API, text input still works as fallback.
 
-### 6. Technology Stack (updated 12 Jun 2026)
+### 6. Technology Stack (original 30 May, updated 12 Jun, revised 24 Jun 2026)
 
-| Layer | Tool | Note |
-|---|---|---|
-| Transcription | `youtube-transcript-api` + **WhisperX** | Dual strategy: WhisperX default (speaker diarisation), captions fallback |
-| Embeddings | **Gemini `embedding-001`** (default) | #1 MTEB Multilingual, free tier, $0.15/M tokens |
-| Embeddings (local) | **BGE-M3** (alternative) | Open-source, CPU, 100+ languages, $0 |
-| Embeddings (optional) | OpenAI `text-embedding-3-small` | Only if OpenAI compatibility is needed |
-| Vector DB | ChromaDB (local, no external server) | |
-| LLM | OpenAI `gpt-4o-mini` ⚠️ pending review | Migrate to Gemini 2.5 Flash? (Google credits available) |
-| Orchestration | LangChain (agents, tools, RAG chains) | |
-| Backend API | FastAPI | |
-| Frontend | HTML + CSS + vanilla JS | |
-| Voice input | Web Speech API (browser, free) | |
-| Evaluation | LangSmith | |
+| Layer | Planned (May) | Actual (Jun) | Why it changed |
+|---|---|---|---|
+| Transcription | YouTube captions + WhisperX | YouTube captions + **faster-whisper** + Colab GPU | WhisperX abandoned — Colab dependency conflicts (see #4) |
+| Embeddings | Gemini `embedding-001` (free tier) | Gemini `embedding-001` (**paid**) | Free tier doesn't include `embedding-001` — requires billing account. ~$0.10 total for the project. |
+| Embeddings (local) | BGE-M3 | BGE-M3 | Unchanged |
+| Vector DB | ChromaDB (local) | ChromaDB (local) | Unchanged |
+| LLM | OpenAI `gpt-4o-mini` (pending review) | **Gemini 2.5 Flash** | Google credits available. Gemini native function calling eliminates ReAct parsing. Spanish quality is excellent. |
+| Orchestration | LangChain (agents, tools, RAG) | LangChain (native tool calling) | ReAct text parsing abandoned — see decision #11 |
+| Backend API | FastAPI | FastAPI | Unchanged |
+| Frontend | HTML + CSS + **vanilla JS** | **Vite + TypeScript** | Type safety, dev server with HMR, build optimization, API proxy. See decision #14. |
+| Voice input | Web Speech API (browser) | Web Speech API (pending) | Optional per Ironhack brief — text input is sufficient |
+| Evaluation | LangSmith | LangSmith (auto-tracing) | Zero code changes — activates via `LANGSMITH_TRACING=true`. See decision #15. |
+| Memory | ConversationBufferMemory | **RunnableWithMessageHistory + InMemoryChatMessageHistory** | ConversationBufferMemory deprecated in LangChain 0.3.1. See decision #12. |
 
 ### 7. Embedding Strategy with Dependency Inversion (12 Jun 2026)
 - **Pattern**: Strategy + Dependency Inversion (same approach as ingestion).
@@ -131,8 +134,17 @@
   ```
 - See full explanation: `notes/session-2-chunking-and-testing.md`.
 
-### 10. WhisperX Migration — Multi-Speaker Diarisation (17 Jun 2026)
-- **Decision**: Replace `faster-whisper` with **WhisperX** in Strategy B (both local CPU and Colab GPU).
+### 10. WhisperX Migration — Multi-Speaker Diarisation (17 Jun 2026) — ABANDONED 24 Jun 2026
+
+> **Outcome:** This migration was attempted and abandoned. The project stayed with faster-whisper.
+> 
+> **Why it was abandoned:**
+> - **Colab dependency hell (mid-2026):** `pyannote` (diarisation) requires PyTorch ≥2.4, but Google Colab's default runtime ships NumPy 1.x which conflicts with WhisperX's dependencies. CUDA version mismatches between Colab's pre-installed PyTorch and what WhisperX needs made the notebook unreliable.
+> - **Diminishing returns:** FILMIG / Plataforma Cero content is 90% single-speaker (monologues, direct-to-camera). Speaker diarisation adds ~2-3 minutes per video and 2 GB RAM for marginal value.
+> - **Better alternative:** Kept `ingestion_colab.py` with `faster-whisper large-v3` on Colab's free T4 GPU — same model quality, zero dependency conflicts, ~15 seconds for a 4-minute video.
+> - Full decision record: `notes/faster-whisper-migration.md`.
+
+- **Original plan (preserved for reference):**
 - **Why**: The FILMIG channel content is conversational — interviews, panels, and debates with multiple speakers. The previous `faster-whisper` transcribes WHAT is said but not WHO said it. Without speaker labels, RAG answers lose critical context ("Who made that argument?").
 - **What WhisperX adds** (over faster-whisper):
   - Word-level timestamps (forced alignment — corrects segment boundaries)
@@ -152,6 +164,79 @@
   - Cost: $0 (WhisperX + pyannote are open-source, HF token is free)
 - **Colab notebook impact**: The `transcribe_video_colab.ipynb` notebook must set `HF_TOKEN` before running transcription. See Section 5 (YouTube Auth) for the pattern — same approach, different env var.
 - See full migration guide: `notes/whisperx-multispeaker.md`.
+
+---
+
+### 11. Native Tool Calling over ReAct Text Parsing (23 Jun 2026)
+
+- **Decision**: Migrate from ReAct text parsing (`Thought:/Action:/Observation:`) to Gemini's **native function calling** via `create_tool_calling_agent`.
+- **Why**:
+  - Gemini 2.5 Flash supports structured tool messages natively — no text parsing needed.
+  - The previous ReAct implementation produced `Invalid Format: Missing 'Action:'` errors on ~30% of Spanish queries. The LLM would sometimes respond in Spanish instead of the ReAct format, breaking the parser.
+  - Native tool calling sends tools as part of the LLM request schema — the model returns a structured `tool_call` object, never raw text.
+- **What changed**:
+  - `agent.py`: `create_react_agent` → `create_tool_calling_agent`
+  - Prompt: removed ReAct format instructions (no `Thought:/Action:`). System prompt is now plain Spanish instructions.
+  - `AgentExecutor` stays — it handles the tool calling loop the same way.
+- **Result**: Zero parsing failures. 16 agent tests pass. Agent reliably calls `search_transcripts` for every question.
+
+### 12. Message History over ConversationBufferMemory (23 Jun 2026)
+
+- **Decision**: Use `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` instead of LangChain's deprecated `ConversationBufferMemory`.
+- **Why**:
+  - `ConversationBufferMemory` was **deprecated in LangChain 0.3.1** (late 2024). It will be removed in a future version.
+  - The replacement pattern (`RunnableWithMessageHistory`) wraps the agent in a chain that injects/retrieves history automatically — cleaner separation of concerns.
+  - Per-session isolation: each `session_id` gets its own `InMemoryChatMessageHistory` instance stored in a dict. Sessions don't leak into each other.
+- **Memory lifecycle**:
+  - **CLI**: session cleared on `quit`/`salir`/Ctrl+C via `try/finally`
+  - **API**: `DELETE /api/session/{session_id}` clears the dict entry
+  - In-memory only — no persistence across restarts (acceptable for demo)
+- **Code pattern**:
+  ```python
+  store = {}
+  def get_session_history(session_id: str):
+      if session_id not in store:
+          store[session_id] = InMemoryChatMessageHistory()
+      return store[session_id]
+  chain = RunnableWithMessageHistory(agent, get_session_history, ...)
+  ```
+
+### 13. Gemini API Payment for embedding-001 (24 Jun 2026)
+
+- **Decision**: Enable billing on the Google Cloud account to use `gemini-embedding-001`.
+- **Why**:
+  - The original plan assumed `embedding-001` was available on the free tier. It's not — Google requires a billing account even for the generous free quota.
+  - The free tier only covers `text-embedding-004` (English-only, 768d). `embedding-001` (multilingual, 3072d, #1 MTEB) requires billing.
+  - With the project's volume (~10 videos, ~120 chunks), the total cost is ~$0.10 — effectively free.
+  - Alternative considered: BGE-M3 local (free, 1024d) works but requires Conda + PyTorch (~4 GB). Kept as fallback for offline/demo scenarios.
+- **What changed**: Added credit card to Google Cloud billing. No code changes — same `GeminiEmbeddingProvider`, same API key.
+
+### 14. Vite + TypeScript over Vanilla JS (24 Jun 2026)
+
+- **Decision**: Build the frontend with Vite + TypeScript instead of vanilla HTML/CSS/JS.
+- **Why**:
+  - **Dev server with HMR**: instant feedback when editing styles or widget logic. Vanilla JS requires manual browser refresh.
+  - **Type safety**: the chat widget has a defined API contract (`AskRequest`/`AskResponse` types). TypeScript catches mismatches at build time.
+  - **API proxy**: Vite's dev server proxies `/api/*` to FastAPI (`localhost:8000`) — no CORS issues during development.
+  - **Build optimization**: `pnpm build` produces minified, tree-shaken bundles. Zero runtime dependencies (no React, no framework — just TypeScript compiled to JS).
+  - **Industry standard**: Vite is the default for new frontend projects in 2026. Demonstrates modern tooling awareness.
+- **Tradeoff**: Added `pnpm` and `typescript` as dev dependencies. Build step required before deploy. Acceptable for the DX improvement.
+- **What didn't change**: The architecture — frontend still only does `fetch('/api/ask')`, knows nothing about RAG or ChromaDB. Same separation as planned.
+
+### 15. LangSmith Auto-Tracing via Environment Variables (24 Jun 2026)
+
+- **Decision**: Add LangSmith observability with **zero code changes** to `agent.py`.
+- **Why**:
+  - LangChain 1.x automatically registers a global callback handler when `LANGSMITH_TRACING=true` is set. `AgentExecutor` and `RunnableWithMessageHistory` are traced without any code modifications.
+  - The modern `LANGSMITH_*` prefix (not legacy `LANGCHAIN_*`) is the recommended approach as of mid-2026.
+  - 5,000 traces/month free tier — far more than the project needs.
+- **What was added**:
+  - `langsmith==0.9.1` in `requirements.txt`
+  - `.env.example` with `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT`
+  - Test-safety guard: session-scoped fixture in `conftest.py` forces `LANGSMITH_TRACING=false` during pytest runs
+  - 3 dedicated tests in `test_langsmith.py`
+- **Trace structure**: Each agent run produces: `ChatGoogleGenerativeAI` (LLM call) → `search_transcripts` (tool execution) → `ChatGoogleGenerativeAI` (response), plus session history load/insert spans.
+- See: `README.md` > S07 > LangSmith Tracing.
 
 ---
 

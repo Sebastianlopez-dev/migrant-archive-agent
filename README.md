@@ -7,20 +7,138 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ---
 
-## Development Timeline
+## Progress Dashboard
+
+### Development Timeline
 
 | Week | Steps | Focus | Status |
 |------|-------|-------|--------|
 | 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | Done |
 | 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | Done |
-| 3 | 5–6 | API + Evaluation — FastAPI REST wrapper done, LangSmith tracing complete | In progress |
-| 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | Pending |
+| 3 | 5–6 | API + Evaluation — FastAPI REST wrapper, LangSmith tracing, chat widget | Done |
+| 4 | 7–8 | Frontend + Deploy — presentation slides, deploy, polish, voice input | In progress |
+
+### What's Left
+
+| # | Task | Priority | Mandatory? |
+|---|------|----------|------------|
+| 1 | **Presentation slides** — update to reflect S06-S07, LangSmith, test suite | Current | Yes (deliverable #3) |
+| 2 | **Deploy to production** — must be a live web app (Railway, Fly.io, Cloudflare) | Next | Yes (deliverable #4) |
+| 3 | **Frontend polish** — accessibility, loading states, error toasts, responsive | Later | — |
+| 4 | **Voice input** — Web Speech API for Spanish voice queries | Last | Optional (text is fine) |
+
+### Ironhack Deliverables Checklist
+
+| # | Deliverable | Status |
+|---|-------------|--------|
+| 1 | Source code with LangChain integration | Done |
+| 2 | Documentation (architecture, methodology, LangChain usage) | Done (README + notes/) |
+| 3 | Presentation slides (objectives, process, results) | In progress |
+| 4 | **Deployed as a web/mobile app** | Not started |
 
 ---
 
-> **Week 1 checkpoint (completed):** Live vector DB Q&A demo + sample extraction.
-> - **Interactive RAG query:** `backend/scripts/rag_test.py` — query ChromaDB directly with Spanish questions about the transcribed videos
-> - **Data extraction:** `backend/scripts/extract_sample.py` — dump first 5,000 characters from ChromaDB and/or JSON sources to prove data is stored and retrievable
+## Saturday Checkpoints
+
+Weekly presentations to Ironhack instructors. Each checkpoint evaluates specific competencies.
+
+### Checkpoint 1 — Sat 13 Jun: Project Plan
+
+**Status:** Done
+
+**What was evaluated:** Present the complete 4-week development plan — architecture, timeline, technology choices, and strategy before writing any code.
+
+**Evidence:**
+- `notes/proyect_description/plan-1.md` — full plan with architecture decisions, tech stack, timeline
+- `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — Ironhack business case and deliverable requirements
+
+### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
+
+**Status:** Done
+
+**What was evaluated:** Prove the RAG pipeline works end-to-end — transcribed video content is stored in ChromaDB and retrievable via semantic search. No agent yet, just direct vector DB queries.
+
+**Evidence — CLI demo:**
+
+```bash
+# 1. Activate environment
+source .venv/bin/activate
+
+# 2. Build the vector index (first time, or after adding new videos)
+python backend/scripts/rag_test.py --rebuild
+
+# 3. Run interactive Q&A
+python backend/scripts/rag_test.py
+```
+
+**Demo questions (pre-verified, Spanish):**
+
+| Question | Expected result |
+|----------|----------------|
+| "De que trata el video?" | Returns top-3 chunks with similarity scores, titles, and timestamps. Chunks contain coherent Spanish paragraphs about the video topic. |
+| "Que dice sobre migracion?" | Returns chunks specifically about migration, with `[MM:SS]` timestamps. Similarity scores above 0.7 for relevant matches. |
+
+**Evidence files:**
+- `backend/scripts/rag_test.py` — interactive RAG query script
+- `backend/scripts/extract_sample.py` — sequential data extraction (proves data roundtrip)
+- `notes/rag_test_questions.md` — pre-verified questions for the demo
+
+### Checkpoint 3 — Sat 27 Jun: Agent, Tool, and Memory
+
+**Status:** Pending
+
+**What will be evaluated:**
+- **Agent:** Cero — conversational agent with native tool calling (`create_tool_calling_agent` + Gemini 2.5 Flash)
+- **Tool:** `search_transcripts` — semantic search over ChromaDB, returns formatted chunks with video_id, title, and timestamps
+- **Memory type:** `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` — why this over deprecated `ConversationBufferMemory`, per-session isolation, session cleanup
+
+**Evidence — CLI demo:**
+
+```bash
+# 1. Activate environment
+source .venv/bin/activate
+
+# 2. Run the agent
+python backend/scripts/agent_cli.py
+```
+
+**Demo conversation (Spanish):**
+
+```
+Pregunta> De que trata el video?
+[Agent responds with cited transcript chunks, including video titles and timestamps]
+
+Pregunta> y en que minuto mencionaron eso?
+[Agent uses memory to reference the previous answer — proves session context works]
+
+Pregunta> salir
+[Session history is cleared]
+```
+
+**What to show the instructor:**
+1. Agent answers are grounded in real transcript chunks (not hallucinated)
+2. Follow-up questions work because memory retains previous context
+3. Session cleanup on exit (memory is per-session, not persistent)
+4. Code walkthrough: where memory is defined (`agent.py`), why `RunnableWithMessageHistory` was chosen over `ConversationBufferMemory` (deprecated in LangChain 0.3.1), how `search_transcripts` formats results (`tools.py`)
+
+**Evidence files:**
+- `backend/agents/agent.py` — Cero agent with native tool calling + per-session message history
+- `backend/agents/tools.py` — `search_transcripts` tool with formatted output
+- `backend/scripts/agent_cli.py` — interactive CLI with session management
+- `tests/test_agent.py` — 16 tests: tool, agent, memory isolation, session cleanup, CLI, E2E
+
+### Checkpoint 4 — Sat 4 Jul: TBD
+
+**Status:** Pending
+
+**What will be evaluated:** Criteria not yet defined by Ironhack.
+
+**What is ready regardless:**
+- FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
+- Chat widget (Vite + TypeScript, blue bubble UI)
+- LangSmith tracing (auto-tracing via env vars)
+- Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
+- 121/125 tests passing
 
 ---
 
@@ -82,12 +200,13 @@ FILMIG / Plataforma Cero (YouTube)
                                  │  LangSmith: Complete         │
                                 └──────────────┬───────────────┘
                                                ▼
-                                      ┌─ S 08 ───────────────────────┐
-                                       │  Frontend + Deploy                 │
-                                      │  Web Speech API voice input  │
-                                      │  HTML presentation slides    │
-                                      │  Multimodal RAG chatbot      │
-                                      └──────────────────────────────┘
+                                       ┌─ S 08 ───────────────────────┐
+                                        │  Frontend + Deploy                 │
+                                       │  Web Speech API voice input  │
+                                       │  Deploy to production        │
+                                       │  Status: Voice input pending │
+                                       │  Presentation: Complete      │
+                                       └──────────────────────────────┘
 ```
 
 > **How to read this diagram:** each node (`S 01`–`S 08`) represents a processing stage. Nodes connected vertically are sequential; horizontal forks are parallel alternatives or complementary outputs. The pipeline flows top-to-bottom, mirroring the 4-week development timeline above.
@@ -1066,6 +1185,36 @@ def _disable_langsmith_tracing():
 #### Free tier
 
 LangSmith's free tier covers **5,000 traces/month** — far more than a solo project needs. The entire Migrant Archive project fits comfortably within the free quota.
+
+---
+
+> **Week 3 checkpoint (completed):** REST API + chat widget + observability.
+> - **API:** `POST /api/ask` returns answers + sources, `DELETE /api/session/{id}` clears memory
+> - **Chat widget:** Blue bubble bottom-right, sends questions to the API, renders answers with clickable source links
+> - **LangSmith:** Every agent run traced automatically — LLM calls, tool executions, latency, cost
+> - **Presentation:** `presentation/migrant-archive-slides.html` — 12-slide HTML deck with project narrative
+> - **Test count:** 125 tests (121 pass, 3 BGE-M3 skipped in UV env, 1 E2E skipped without API key)
+
+---
+
+## S08 — Frontend + Deploy (Week 4)
+
+> Sources: [`frontend/src/`](frontend/src/) · [`presentation/migrant-archive-slides.html`](presentation/migrant-archive-slides.html)
+
+The final phase: presentation, deploy, polish, and voice input. See [Progress Dashboard](#progress-dashboard) for current priority order.
+
+### What's done
+
+- **Chat widget** (`frontend/src/chat-widget.ts`): blue bubble, slide-out panel, send via `fetch('/api/ask')`, answer + source rendering with clickable YouTube links
+- **Presentation** (`presentation/migrant-archive-slides.html`): 15-slide HTML deck — being updated to reflect S06-S07 additions
+
+### Deploy options (TBD)
+
+| Platform | Pros | Cons |
+|----------|------|------|
+| **Railway** | Simple, Python-native, free tier | Cold starts on free tier |
+| **Fly.io** | Global edge, persistent volumes | More config required |
+| **Cloudflare Pages + Workers** | Fast CDN, free tier generous | Need Workers for Python backend |
 
 ---
 

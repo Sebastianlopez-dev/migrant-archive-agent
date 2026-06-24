@@ -202,7 +202,7 @@
 <!-- ═══════ SLIDE 02 · WHAT IS IT ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Project</p>
-  <h2 class="t-title">A multimodal AI chatbot for YouTube video Q&A</h2>
+  <h2 class="t-title">A RAG chatbot for YouTube video Q&amp;A</h2>
   <div class="divider"></div>
   <p class="t-body">Ask questions. Get answers. Grounded in real video transcripts.</p>
 </section>
@@ -252,7 +252,7 @@
         <div class="day-item"><span class="day-num">Step 2</span> Processor + embeddings + ChromaDB vector store</div>
       </div>
       <div class="tag-row" style="margin-top:24px;">
-        <span class="tag accent-tag">Checkpoint: vector DB Q&A</span>
+        <span class="tag accent-tag">Checkpoint: vector DB Q&amp;A</span>
       </div>
     </div>
   </div>
@@ -266,8 +266,8 @@
     <div>
       <h2 class="t-title">Agents &amp; Testing</h2>
       <div class="day-list">
-        <div class="day-item"><span class="day-num">Step 3</span> LangChain agent with tools and memory</div>
-        <div class="day-item"><span class="day-num">Step 4</span> Testing suite — unit, integration, E2E</div>
+        <div class="day-item"><span class="day-num">Step 3</span> Native tool calling (migrated from ReAct)</div>
+        <div class="day-item"><span class="day-num">Step 4</span> Per-session memory + 16 agent tests</div>
       </div>
     </div>
   </div>
@@ -279,10 +279,14 @@
   <div class="two-col" style="align-items:center;">
     <span class="big-number">3</span>
     <div>
-      <h2 class="t-title">Evaluation &amp; API</h2>
+      <h2 class="t-title">API &amp; Observability</h2>
       <div class="day-list">
-        <div class="day-item"><span class="day-num">Step 5</span> LangSmith evaluation + documentation</div>
-        <div class="day-item"><span class="day-num">Step 6</span> FastAPI wrapper — REST endpoints + CORS</div>
+        <div class="day-item"><span class="day-num">Step 5</span> FastAPI REST API (POST /api/ask, DELETE /api/session)</div>
+        <div class="day-item"><span class="day-num">Step 6</span> Chat widget — Vite + TypeScript, blue bubble</div>
+        <div class="day-item"><span class="day-num">Step 7</span> LangSmith auto-tracing — zero code changes</div>
+      </div>
+      <div class="tag-row" style="margin-top:24px;">
+        <span class="tag accent-tag">Status: Complete</span>
       </div>
     </div>
   </div>
@@ -294,10 +298,12 @@
   <div class="two-col" style="align-items:center;">
     <span class="big-number">4</span>
     <div>
-      <h2 class="t-title">Frontend &amp; Deploy</h2>
+      <h2 class="t-title">Deploy &amp; Polish</h2>
       <div class="day-list">
-        <div class="day-item"><span class="day-num">Step 7</span> Frontend UI + voice input via Web Speech API</div>
-        <div class="day-item"><span class="day-num">Step 8</span> Presentation and final deploy</div>
+        <div class="day-item"><span class="day-num">Current</span> Presentation slides</div>
+        <div class="day-item"><span class="day-num">Next</span> Deploy to production</div>
+        <div class="day-item"><span class="day-num">Next</span> Frontend polish</div>
+        <div class="day-item"><span class="day-num">Last</span> Web Speech API voice input</div>
       </div>
     </div>
   </div>
@@ -312,7 +318,7 @@
   <p class="t-body">VideoData dataclass — the pipeline never knows which strategy ran.</p>
 </section>
 
-<!-- ═══════ SLIDE 08 · STRATEGY A ═══════ -->
+<!-- ═══════ SLIDE 09 · STRATEGY A ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Strategy A</p>
   <div class="two-col" style="align-items:center;">
@@ -329,7 +335,7 @@
   </div>
 </section>
 
-<!-- ═══════ SLIDE 09 · STRATEGY B ═══════ -->
+<!-- ═══════ SLIDE 10 · STRATEGY B ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Strategy B</p>
   <div class="two-col" style="align-items:center;">
@@ -346,7 +352,7 @@
   </div>
 </section>
 
-<!-- ═══════ SLIDE 10 · STRATEGY COMPARISON ═══════ -->
+<!-- ═══════ SLIDE 11 · STRATEGY COMPARISON ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">The Difference</p>
   <div class="stat-row">
@@ -366,7 +372,7 @@
   <p class="t-body" style="margin-top:32px;">Whisper output is directly usable for RAG. Captions need heavy post-processing.</p>
 </section>
 
-<!-- ═══════ SLIDE 11 · DEPENDENCY INVERSION ═══════ -->
+<!-- ═══════ SLIDE 12 · DEPENDENCY INVERSION ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Architecture Decision</p>
   <span class="big-icon"><svg viewBox="0 0 72 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="40" height="14" rx="4"/><rect x="12" y="24" width="40" height="14" rx="4"/><rect x="20" y="44" width="40" height="14" rx="4"/></svg></span>
@@ -380,7 +386,135 @@
   <p class="t-body" style="margin-top:16px;">One abstract contract. Three implementations. Zero coupling.</p>
 </section>
 
-<!-- ═══════ SLIDE 12 · TOOLCHAIN ═══════ -->
+<!-- ═══════ SLIDE 13 · S06 AGENT ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S06 · Agent</p>
+  <h2 class="t-title">Cero — Tool-calling agent with memory</h2>
+  <div class="divider"></div>
+  <div class="process-flow" style="margin-top:32px;">
+    <div class="process-step">
+      <span class="process-num" style="border-color:var(--text); color:var(--text);">U</span>
+      <span class="process-label">User</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num">A</span>
+      <span class="process-label">Agent</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num" style="border-color:var(--text); color:var(--text);">T</span>
+      <span class="process-label">Tool</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num" style="border-color:var(--text); color:var(--text);">DB</span>
+      <span class="process-label">ChromaDB</span>
+    </div>
+  </div>
+  <div class="tag-row" style="margin-top:40px;">
+    <span class="tag accent-tag">Gemini 2.5 Flash</span>
+    <span class="tag">search_transcripts</span>
+    <span class="tag">RunnableWithMessageHistory</span>
+    <span class="tag">Spanish system prompt</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 14 · S07 API + WIDGET ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S07 · API + Widget</p>
+  <h2 class="t-title">FastAPI REST + embeddable chat widget</h2>
+  <div class="divider"></div>
+  <div class="stat-row" style="margin-top:24px;">
+    <div class="stat">
+      <span class="stat-val">POST</span>
+      <span class="stat-label">/api/ask</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val">DELETE</span>
+      <span class="stat-label">/api/session/{id}</span>
+    </div>
+  </div>
+  <div class="tag-row" style="margin-top:32px;">
+    <span class="tag accent-tag">Vanilla TypeScript</span>
+    <span class="tag">Zero runtime deps</span>
+    <span class="tag">Vite proxy</span>
+    <span class="tag">Blue bubble UI</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 15 · LANGSMITH ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Observability</p>
+  <h2 class="t-title">LangSmith — Auto-tracing, zero code</h2>
+  <div class="divider"></div>
+  <div class="process-flow" style="margin-top:32px;">
+    <div class="process-step">
+      <span class="process-num" style="border-color:var(--text); color:var(--text);">LLM</span>
+      <span class="process-label">Call</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num">Tool</span>
+      <span class="process-label">search</span>
+    </div>
+    <span class="process-line"></span>
+    <div class="process-step">
+      <span class="process-num" style="border-color:var(--text); color:var(--text);">LLM</span>
+      <span class="process-label">Response</span>
+    </div>
+  </div>
+  <div class="stat-row" style="margin-top:40px;">
+    <div class="stat">
+      <span class="stat-val t-accent">5K</span>
+      <span class="stat-label">traces/month free</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val" style="color:var(--text);">0</span>
+      <span class="stat-label">code changes</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val" style="color:var(--text);">✓</span>
+      <span class="stat-label">test-safety guard</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 16 · TEST SUITE ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Quality</p>
+  <h2 class="t-title">125 tests. 121 pass.</h2>
+  <div class="divider"></div>
+  <div class="stat-row" style="margin-top:24px;">
+    <div class="stat">
+      <span class="stat-val t-accent">40</span>
+      <span class="stat-label">unit</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">55</span>
+      <span class="stat-label">integration</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">16</span>
+      <span class="stat-label">agent</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">9</span>
+      <span class="stat-label">frontend</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">3</span>
+      <span class="stat-label">LangSmith</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val t-accent">2</span>
+      <span class="stat-label">E2E</span>
+    </div>
+  </div>
+  <p class="t-body" style="margin-top:32px;">4 skips: 3 BGE-M3 in UV env, 1 E2E without API key.</p>
+</section>
+
+<!-- ═══════ SLIDE 17 · TOOLCHAIN ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Ingestion Toolchain</p>
   <div class="tag-row">
@@ -393,41 +527,37 @@
   <p class="t-body">Audio download. Extraction. Transcription. Zero-cost pipeline.</p>
 </section>
 
-<!-- ═══════ SLIDE 13 · CODE QUALITY ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Code Quality</p>
-  <div class="stat-row">
-    <div class="stat">
-      <span class="stat-val t-accent">1×</span>
-      <span class="stat-label">singleton model cache</span>
-    </div>
-    <div class="stat">
-      <span class="stat-val t-accent">~3s</span>
-      <span class="stat-label">audio cache hit</span>
-    </div>
-    <div class="stat">
-      <span class="stat-val t-accent">auto</span>
-      <span class="stat-label">device detection</span>
-    </div>
-  </div>
-  <p class="t-body" style="margin-top:32px;">Dead code removed. Factory extracted. Module-level constants.</p>
-</section>
-
-<!-- ═══════ SLIDE 14 · TECH STACK ═══════ -->
+<!-- ═══════ SLIDE 18 · TECH STACK ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Tech Stack</p>
-  <div class="tag-row" style="flex-wrap:wrap; max-width:600px;">
+  <div class="tag-row" style="flex-wrap:wrap; max-width:720px;">
     <span class="tag accent-tag">FastAPI</span>
     <span class="tag">ChromaDB</span>
     <span class="tag">Gemini Embeddings</span>
     <span class="tag">LangChain</span>
-    <span class="tag">Web Speech API</span>
+    <span class="tag">LangSmith</span>
     <span class="tag">faster-whisper</span>
-    <span class="tag">HTML+CSS+JS</span>
+    <span class="tag">Vite + TypeScript</span>
+    <span class="tag">pytest</span>
   </div>
+  <div class="divider"></div>
+  <p class="t-body">Agent: <strong style="color:var(--accent);">Cero</strong> — Spanish-language RAG with memory.</p>
 </section>
 
-<!-- ═══════ SLIDE 15 · CLOSING ═══════ -->
+<!-- ═══════ SLIDE 19 · DEMO ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">Demo</p>
+  <h2 class="t-title">Run it locally</h2>
+  <div class="divider"></div>
+  <div class="day-list" style="margin-top:24px;">
+    <div class="day-item"><span class="day-num">Terminal 1</span> uv run uvicorn backend.api.main:app --reload --port 8000</div>
+    <div class="day-item"><span class="day-num">Terminal 2</span> cd frontend && pnpm dev</div>
+    <div class="day-item"><span class="day-num">Browser</span> http://localhost:5173</div>
+  </div>
+  <p class="t-body" style="margin-top:24px;">Traces at smith.langchain.com</p>
+</section>
+
+<!-- ═══════ SLIDE 20 · CLOSING ═══════ -->
 <section class="slide slide-closing">
   <h2 class="t-hero" style="margin-bottom:24px;">Thank you.</h2>
   <div class="divider" style="margin:0 auto 32px;"></div>
@@ -435,7 +565,7 @@
 </section>
 
 <!-- ═══════ NAV ═══════ -->
-<div class="slide-counter" id="counter">1 / 16</div>
+<div class="slide-counter" id="counter">1 / 20</div>
 <div class="nav-hint">← → or click to advance</div>
 
 </div>
@@ -474,6 +604,9 @@
       if(dx < -50) show(idx+1);
       if(dx > 50) show(idx-1);
     });
+
+    // Initialize counter on load
+    show(0);
   })();
 </script>
 </body>

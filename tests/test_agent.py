@@ -46,6 +46,7 @@ class TestSearchTranscriptsTool:
     def test_search_returns_formatted_result_with_metadata(self, provider, store):
         from tools import make_search_transcripts
 
+        store.delete_collection()
         store.add(
             ids=["v001_chunk_0"],
             documents=["La migración es un fenómeno global."],
@@ -70,6 +71,7 @@ class TestSearchTranscriptsTool:
     def test_top_k_limits_number_of_results(self, provider, store):
         from tools import make_search_transcripts
 
+        store.delete_collection()
         docs = [f"Documento de migración número {i}." for i in range(5)]
         store.add(
             ids=[f"v002_chunk_{i}" for i in range(5)],
@@ -205,6 +207,7 @@ class TestToolCallingLoop:
         from agent import create_agent
         from tools import make_search_transcripts
 
+        store.delete_collection()
         store.add(
             ids=["v003_chunk_0"],
             documents=["La migración es un fenómeno global."],
