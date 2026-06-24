@@ -28,25 +28,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "backend" / "scripts"))
 from test_embedding import FakeEmbeddingProvider  # noqa: E402
 
 
-@pytest.fixture
-def provider():
-    """Deterministic embedding provider for tests."""
-    return FakeEmbeddingProvider(dimension=128)
-
-
-@pytest.fixture
-def store():
-    """Fresh in-memory ChromaDB collection."""
-    from vector_store import VectorStore
-
-    s = VectorStore(persist_dir=":memory:")
-    yield s
-    try:
-        s.delete_collection()
-    except Exception:
-        pass
-
-
 # ---------------------------------------------------------------------------
 # Phase 2: search_transcripts tool
 # ---------------------------------------------------------------------------
