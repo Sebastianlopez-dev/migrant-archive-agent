@@ -388,6 +388,7 @@ migrant-archive/
     ├── session-2-chunking-and-testing.md
     ├── agent-tools-discovery.md
     ├── faster-whisper-migration.md    ← Why faster-whisper over WhisperX
+    ├── langsmith-tracing.md           ← Zero-code tracing: how LangSmith hooks into LangChain
     ├── uv.md
     └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
 ```
