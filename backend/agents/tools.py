@@ -36,12 +36,13 @@ def make_search_transcripts(provider, store, top_k: int = 3):
         blocks: list[str] = []
         for i, result in enumerate(results, start=1):
             metadata = result.get("metadata", {})
-            title = metadata.get("title", metadata.get("video_id", "Desconocido"))
+            video_id = metadata.get("video_id", "desconocido")
+            title = metadata.get("title", video_id)
             start = metadata.get("start_time", "?")
             end = metadata.get("end_time", "?")
             document = result.get("document", "")
             blocks.append(
-                f"[{i}] {title} ({start}–{end})\n{document}"
+                f"[{i}] {video_id} | {title} ({start}–{end})\n{document}"
             )
 
         return "\n\n".join(blocks)
