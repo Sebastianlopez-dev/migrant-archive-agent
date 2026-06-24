@@ -2,7 +2,6 @@
 models/
 data/audio/
 data/chroma/
-data/raw/
 __pycache__/
 *.pyc
 .DS_Store
