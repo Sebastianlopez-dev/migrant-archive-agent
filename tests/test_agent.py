@@ -174,7 +174,7 @@ class TestCreateAgent:
         llm = FakeChatModel(responses=["Final Answer: Respuesta de prueba."])
         executor = create_agent(llm=llm, tools=[])
 
-        assert "español" in SYSTEM_PROMPT.lower()
+        assert "spanish" in SYSTEM_PROMPT.lower()
         assert "Cero" in SYSTEM_PROMPT
         assert executor is not None
 
