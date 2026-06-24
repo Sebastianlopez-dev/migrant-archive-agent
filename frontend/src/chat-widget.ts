@@ -187,7 +187,12 @@ export class ChatWidget {
 
     const bubble = document.createElement('div');
     bubble.className = 'chat-message-bubble';
-    bubble.textContent = text;
+
+    if (sender === 'agent' && sources && sources.length > 0) {
+      bubble.innerHTML = this.linkifySources(text, sources);
+    } else {
+      bubble.textContent = text;
+    }
     message.appendChild(bubble);
 
     if (sender === 'agent' && sources && sources.length > 0) {
@@ -217,6 +222,12 @@ export class ChatWidget {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = source.title || source.video_id;
+      link.title = 'Abrir en YouTube';
+
+      const external = document.createElement('span');
+      external.setAttribute('aria-hidden', 'true');
+      external.style.cssText = 'font-size:0.75rem;margin-left:2px;';
+      external.textContent = ' ↗';
 
       const meta = document.createElement('span');
       meta.className = 'chat-source-time';
@@ -226,6 +237,7 @@ export class ChatWidget {
       excerpt.textContent = source.text;
 
       item.appendChild(link);
+      item.appendChild(external);
       item.appendChild(meta);
       item.appendChild(excerpt);
       block.appendChild(item);
@@ -238,6 +250,32 @@ export class ChatWidget {
     const seconds = this.parseTimeToSeconds(startTime);
     const base = `https://www.youtube.com/watch?v=${videoId}`;
     return seconds > 0 ? `${base}&t=${seconds}` : base;
+  }
+
+  private linkifySources(text: string, sources: Source[]): string {
+    let html = this.escapeHtml(text);
+    for (const source of sources) {
+      const url = this.buildSourceUrl(source.video_id, source.start_time);
+      const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" title="Abrir en YouTube">${this.escapeHtml(source.video_id)}</a>`;
+      // Replace bare video_id with clickable link
+      html = html.replace(
+        new RegExp(`\\b${this.escapeRegex(source.video_id)}\\b`, 'g'),
+        link
+      );
+    }
+    return html;
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private parseTimeToSeconds(time: string): number {
