@@ -23,6 +23,19 @@ plagued the previous ReAct implementation (`Invalid Format: Missing 'Action:'`).
 `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` with per-session
 isolation. Sessions are cleared on CLI exit and via `DELETE /api/session/{id}`.
 
+```python
+from langchain_core.chat_history import InMemoryChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+
+store = {}
+def get_session_history(session_id: str):
+    if session_id not in store:
+        store[session_id] = InMemoryChatMessageHistory()
+    return store[session_id]
+
+chain = RunnableWithMessageHistory(agent, get_session_history, ...)
+```
+
 → [LangChain Memory Migration Guide](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/)
 → [Conversational Memory in LangChain (Aurelio AI)](https://www.aurelio.ai/learn/langchain-conversational-memory)
 
