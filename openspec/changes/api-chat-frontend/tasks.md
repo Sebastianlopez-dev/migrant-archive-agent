@@ -55,20 +55,20 @@ Chain strategy: stacked-to-main
 
 ## Phase 6: Frontend Setup
 
-- [ ] 6.1 Create `frontend/package.json`, `frontend/vite.config.ts`, and `frontend/tsconfig.json` with dev proxy `/api` → `http://localhost:8000`
-- [ ] 6.2 Create `frontend/index.html` with a widget mount point
-- [ ] 6.3 Run `pnpm install` in `frontend/` and verify no errors
+- [x] 6.1 Create `frontend/package.json`, `frontend/vite.config.ts`, and `frontend/tsconfig.json` with dev proxy `/api` → `http://localhost:8000`
+- [x] 6.2 Create `frontend/index.html` with a widget mount point
+- [x] 6.3 Run `pnpm install` in `frontend/` and verify no errors
 
 ## Phase 7: Chat Widget
 
-- [ ] 7.1 Implement `frontend/src/styles.css` with brand CSS custom properties (`--brand-blue: #019ee3`) and animations
-- [ ] 7.2 Implement `frontend/src/chat-widget.ts`: floating bubble, slide-out 380px panel, message list, input, send button, and `fetch POST /api/ask`
-- [ ] 7.3 Implement `frontend/src/main.ts` to bootstrap the widget on DOM ready
-- [ ] 7.4 Create `frontend/public/cerito-avatar.svg` placeholder
-- [ ] 7.5 Verify widget builds with `pnpm build`
+- [x] 7.1 Implement `frontend/src/styles.css` with brand CSS custom properties (`--brand-blue: #019ee3`) and animations
+- [x] 7.2 Implement `frontend/src/chat-widget.ts`: floating bubble, slide-out 380px panel, message list, input, send button, and `fetch POST /api/ask`
+- [x] 7.3 Implement `frontend/src/main.ts` to bootstrap the widget on DOM ready
+- [x] 7.4 Create `frontend/public/cerito-avatar.svg` placeholder
+- [x] 7.5 Verify widget builds with `pnpm build`
 
 ## Phase 8: Integration + E2E
 
 - [x] 8.1 Write integration test in `tests/test_api.py` that uses the real agent and skips when `GEMINI_API_KEY` is unset
-- [ ] 8.2 Run the full test suite `uv run python -m pytest tests/ -v` and fix failures
-- [ ] 8.3 Manual smoke test: start `uvicorn backend.api.main:app` and `pnpm dev`, then submit a question through the widget
+- [x] 8.2 Run the full test suite `uv run python -m pytest tests/ -v` and fix failures caused by this change
+- [x] 8.3 Write a manual smoke test runbook in `openspec/changes/api-chat-frontend/SMOKE_TEST.md`

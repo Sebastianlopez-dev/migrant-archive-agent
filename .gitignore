@@ -13,3 +13,6 @@ __pycache__/
 AGENTS.md
 SOUL.md
 cookies.txt
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
