@@ -3,14 +3,32 @@
 from __future__ import annotations
 
 import re
+import sys
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from backend.api.dependencies import get_agent
 from backend.api.models import AskRequest, AskResponse, Source
 
+# Ensure backend/agents/ is on sys.path so the agent module is importable
+# without a pip-installed package (same pattern used in dependencies.py).
+_AGENTS_DIR = str(Path(__file__).resolve().parent.parent.parent / "agents")
+if _AGENTS_DIR not in sys.path:
+    sys.path.insert(0, _AGENTS_DIR)
+
+from agent import clear_session  # noqa: E402
+
 router = APIRouter()
+
+
+class SessionClearResponse(BaseModel):
+    """Response for DELETE /api/session/{session_id}."""
+
+    session_id: str = Field(..., description="The session that was cleared")
+    cleared: bool = Field(..., description="Whether the session existed and was cleared")
 
 # Matches an observation block produced by the search_transcripts tool:
 #   [1] VIDEO_ID | Title (start–end)
@@ -65,7 +83,11 @@ def parse_sources(intermediate_steps: list) -> list[Source]:
 async def ask(request: AskRequest, agent=Depends(get_agent)) -> AskResponse:
     """Answer a question using the migrant-archive agent."""
     try:
-        result = await run_in_threadpool(agent.invoke, {"input": request.question})
+        result = await run_in_threadpool(
+            agent.invoke,
+            {"input": request.question},
+            {"configurable": {"session_id": request.session_id}},
+        )
     except ValueError as exc:
         if "GEMINI_API_KEY" in str(exc):
             raise HTTPException(
@@ -77,3 +99,10 @@ async def ask(request: AskRequest, agent=Depends(get_agent)) -> AskResponse:
     answer = result.get("output", "")
     sources = parse_sources(result.get("intermediate_steps", []))
     return AskResponse(answer=answer, sources=sources)
+
+
+@router.delete("/session/{session_id}", response_model=SessionClearResponse)
+async def delete_session(session_id: str) -> SessionClearResponse:
+    """Clear the chat history for a session, freeing memory."""
+    was_cleared = clear_session(session_id)
+    return SessionClearResponse(session_id=session_id, cleared=was_cleared)

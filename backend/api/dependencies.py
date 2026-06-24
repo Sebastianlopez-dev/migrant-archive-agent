@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from langchain_classic.agents import AgentExecutor
+    from langchain_core.runnables.history import RunnableWithMessageHistory
 
 
 # The agent module expects `tools` and `core` to be on sys.path.  Insert the
@@ -23,11 +23,12 @@ for _sub in ("agents", "core"):
 from agent import create_agent  # noqa: E402
 
 
-def get_agent() -> AgentExecutor:
-    """Return a fresh AgentExecutor for the current request.
+def get_agent() -> RunnableWithMessageHistory:
+    """Return a fresh history-wrapped agent for the current request.
 
     A new instance is created every time so that VectorStore and Gemini
-    clients are not shared across concurrent requests.
+    clients are not shared across concurrent requests. Callers must pass
+    ``{"configurable": {"session_id": ...}}`` when invoking the runnable.
 
     Raises:
         fastapi.HTTPException: 503 Service Unavailable if ``GEMINI_API_KEY``

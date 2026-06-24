@@ -19,6 +19,7 @@ class AskRequest(BaseModel):
     """Body schema for POST /api/ask."""
 
     question: str = Field(..., min_length=1)
+    session_id: str = Field(default="default", min_length=1)
 
 
 class AskResponse(BaseModel):
