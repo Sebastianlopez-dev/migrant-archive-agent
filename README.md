@@ -1,7 +1,5 @@
 # Migrant Archive — Narratives That Resist
 
-**Agent name: Cero**
-
 Multimodal RAG chatbot that answers questions about YouTube video content.
 Built on the FILMIG / Plataforma Cero channel (Spanish).
 
@@ -9,32 +7,12 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ## Progress Dashboard
 
-### Development Timeline
-
-| Week | Steps | Focus | Status |
-|------|-------|-------|--------|
-| 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | Done |
-| 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | Done |
-| 3 | 5–6 | API + Evaluation — FastAPI REST wrapper, LangSmith tracing, chat widget | Done |
-| 4 | 7–8 | Frontend + Deploy — presentation slides, deploy, polish, voice input | In progress |
-
-### What's Left
-
-| # | Task | Priority | Mandatory? |
-|---|------|----------|------------|
-| 1 | **Presentation slides** — update to reflect S06-S07, LangSmith, test suite | Current | Yes (deliverable #3) |
-| 2 | **Deploy to production** — must be a live web app (Railway, Fly.io, Cloudflare) | Next | Yes (deliverable #4) |
-| 3 | **Frontend polish** — accessibility, loading states, error toasts, responsive | Later | — |
-| 4 | **Voice input** — Web Speech API for Spanish voice queries | Last | Optional (text is fine) |
-
-### Ironhack Deliverables Checklist
-
-| # | Deliverable | Status |
-|---|-------------|--------|
-| 1 | Source code with LangChain integration | Done |
-| 2 | Documentation (architecture, methodology, LangChain usage) | Done (README + notes/) |
-| 3 | Presentation slides (objectives, process, results) | In progress |
-| 4 | **Deployed as a web/mobile app** | Not started |
+| Week | Focus | Done | Pending |
+|------|-------|------|---------|
+| 1 | Ingestion + Processing | S01–S03 complete | — |
+| 2 | Agents + Testing | S04–S06 complete | — |
+| 3 | Observability + API | S07 complete | — |
+| 4 | Frontend + Deploy | Presentation | Deploy, polish, voice input |
 
 ---
 
@@ -44,85 +22,156 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 FILMIG / Plataforma Cero (YouTube)
          │
          ▼
-   ┌─ S 01 ──────────────────────────────────────────┐
-   │  Video Ingestion — 3 strategies                 │
-   │  A: YouTube auto-captions (instant, free)       │
-   │  B: faster-whisper CPU (small, ~2 min/4min vid) │
-   │  B GPU: Colab large-v3 (~15 s/4min vid)         │
-   │  Output: {video_id}.json (Spanish transcript)   │
-   └──────────────────────┬─────────────────────────┘
-                          │
-                          ▼
-   ┌─ S 02 ──────────────────────────────────────────┐
-   │  Text Chunking + Embedding                      │
-   │  Chunk: 1,000 tokens / 200 overlap (20%)        │
-   │  Enriched text: title + description + [MM:SS]   │
-   │  Embed: Gemini (3072d) | BGE-M3 (1024d)         │
-   │  Output: chunks + vector embeddings             │
-   └──────────────────────┬─────────────────────────┘
-                          │
-                          ▼
-   ┌─ S 03 ──────────────────────────────────────────┐
-   │  ChromaDB Vector Store                          │
-   │  Persistent storage, semantic search            │
-   │  top_k retrieval with metadata                  │
-   │  Output: queryable knowledge base               │
-   └──────────────────────┬─────────────────────────┘
-                          │
-               ┌───────────┴───────────┐
-               ▼                       ▼
-        ┌─ S 04 ──────────┐     ┌─ S 05 ──────────┐
-        │  RAG Test       │     │  Sample Extract │
-        │  Interactive QA │     │  First 5K chars │
-        │  ChromaDB direct│     │  ChromaDB + JSON│
-        │  Week 1 demo    │     │  Roundtrip      │
-        └────────┬────────┘     └────────┬────────┘
-                 │                       │
-                 └───────────┬───────────┘
-                             ▼
-                        ┌─ S 06  ────────────────────────────────────────┐
-                         │  LangChain Agent (Cero)                      │
-                        │  Tools: list_videos, get_video_info,         │
-                        │          search_transcripts (global/scoped)  │
-                        │  Memory: InMemoryChatMessageHistory          │
-                        │  Agent: create_tool_calling_agent            │
-                        │  28 agent tests + 11 speaker extraction     │
-                        │  Status: Complete                            │
-                       └───────────────────┬───────────────────┘
-                                           ▼
-                                 ┌─ S 07 ───────────────────────┐
-                                  │  API + Chat Widget                 │
-                                 │  FastAPI REST wrapper        │
-                                 │  Status: API Complete        │
-                                 │  LangSmith: Complete         │
-                                └──────────────┬───────────────┘
-                                               ▼
-                                       ┌─ S 08 ───────────────────────┐
-                                        │  Frontend + Deploy                 │
-                                       │  Web Speech API voice input  │
-                                       │  Deploy to production        │
-                                       │  Status: Voice input pending │
-                                       │  Presentation: Complete      │
-                                       └──────────────────────────────┘
+   ┌─ S01 ──────────────────────┐
+   │  Video Ingestion           │
+   │  3 strategies (Colab GPU /  │
+   │  faster-whisper / captions) │
+   └──────────────┬──────────────┘
+                  │
+                  ▼
+   ┌─ S02 ──────────────────────┐
+   │  Chunking + Embedding      │
+   │  1000tk/200ov · enriched   │
+   │  Gemini (3072d) / BGE-M3   │
+   └──────────────┬──────────────┘
+                  │
+                  ▼
+   ┌─ S03 ──────────────────────┐
+   │  ChromaDB Vector Store     │
+   │  Persistent · semantic     │
+   │  search · metadata filters │
+   └──────────────┬──────────────┘
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+   ┌─ S04 ──────┐     ┌─ S05 ──────┐
+   │  RAG Test  │     │  Sample    │
+   │  Query     │     │  Extract   │
+   │  ChromaDB  │     │  5K chars  │
+   └──────┬─────┘     └──────┬─────┘
+          │                  │
+          └────────┬─────────┘
+                   ▼
+          ┌─ S06 ──────────────────────────┐
+          │  LangChain Agent (Cero)        │
+          │  3 tools · tool-calling        │
+          │  message history · sessions    │
+          └────────────────┬───────────────┘
+                           ▼
+                   ┌─ S07 ───────────────────────┐
+                   │  LangSmith, API + Chat      │
+                   │  Widget · FastAPI           │
+                   │  embeddable widget          │
+                  └────────────┬────────────────┘
+                               ▼
+                      ┌─ S08 ──────────────┐
+                      │  Frontend + Deploy │
+                      │  Presentation      │
+                      │  Polish · Voice    │
+                      └────────────────────┘
 ```
 
-**Implementation map:**
-> - **S01 (Ingestion):** [`ingestion.py`](backend/core/ingestion.py) · [`ingestion_audio.py`](backend/core/ingestion_audio.py) · [`ingestion_caption.py`](backend/core/ingestion_caption.py) · [`ingestion_colab.py`](backend/core/ingestion_colab.py)
-> - **S02 (Chunking + Embedding):** [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py) · [`embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
-> - **S03 (ChromaDB):** [`vector_store.py`](backend/core/vector_store.py) — semantic search with optional `video_id` where filter
-> - **S04–S05 (Scripts):** [`rag_test.py`](backend/scripts/rag_test.py) · [`extract_sample.py`](backend/scripts/extract_sample.py)
-> - **S06 (Agent):** [`backend/agents/agent.py`](backend/agents/agent.py) · [`backend/agents/tools.py`](backend/agents/tools.py) · [`backend/scripts/agent_cli.py`](backend/scripts/agent_cli.py)
-> - **S07 (API + Chat Widget):** [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/chat-widget.ts`](frontend/src/chat-widget.ts)
-> - **S08 (Frontend + Deploy):** [`frontend/src/main.ts`](frontend/src/main.ts) · [`frontend/src/styles.css`](frontend/src/styles.css) · [`presentation/`](presentation/)
+<details>
+<summary>S01 — Video Ingestion: 3 strategies · 4 files · 3 test files · 3 decisions</summary>
+
+**Decisions:**
+- 3-strategy approach (Colab GPU / faster-whisper local / captions)
+- Strategy Pattern for ingestion
+- VideoData JSON as shared contract across all strategies
+
+**Files:** [`ingestion.py`](backend/core/ingestion.py) · [`ingestion_audio.py`](backend/core/ingestion_audio.py) · [`ingestion_caption.py`](backend/core/ingestion_caption.py) · [`ingestion_colab.py`](backend/core/ingestion_colab.py)
+
+**Tests:** `test_ingestion.py` · `test_faster_whisper_audio.py` · `test_faster_whisper_colab.py`
+
+</details>
+
+<details>
+<summary>S02 — Chunking + Embedding: 3 decisions · 4 files · 4 test files</summary>
+
+**Decisions:**
+- Chunk size 1000 / overlap 200 (optimized for Spanish conversational content)
+- Enriched text: title + description + [MM:SS] timestamps per segment
+- Dependency Inversion: EmbeddingProvider abstract base class
+
+**Files:** [`embedding.py`](backend/core/embedding.py) · [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py) · [`embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
+
+**Tests:** `test_embedding.py` · `test_embedding_gemini.py` · `test_embedding_bge_m3.py` · `test_processor.py`
+
+</details>
+
+<details>
+<summary>S03 — ChromaDB Vector Store: 1 file · 2 test files</summary>
+
+**Files:** [`vector_store.py`](backend/core/vector_store.py) — persistent storage, semantic search, metadata filters
+
+**Tests:** `test_vector_store.py` · `test_pipeline_e2e.py`
+
+</details>
+
+<details>
+<summary>S04–S05 — RAG Test + Sample Extraction: 3 files · 1 test file</summary>
+
+**Files:** [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
+[`rag_test.py`](backend/scripts/rag_test.py) — interactive semantic search
+[`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
+
+**Tests:** `test_extract_sample.py`
+
+</details>
+
+<details>
+<summary>S06 — LangChain Agent (Cero): 3 decisions · 3 files · 2 test files (39 tests)</summary>
+
+**Decisions:**
+- Native tool calling over ReAct text parsing (eliminated ~30% failure rate on Spanish queries)
+- RunnableWithMessageHistory over deprecated ConversationBufferMemory
+- faster-whisper over WhisperX (NumPy/CUDA incompatibility on Colab)
+
+**Files:** [`agent.py`](backend/agents/agent.py) · [`tools.py`](backend/agents/tools.py) · [`agent_cli.py`](backend/scripts/agent_cli.py)
+
+**Tests:** `test_agent.py` (28 tests) · `test_speaker_extraction.py` (11 tests)
+
+</details>
+
+<details>
+<summary>S07 — LangSmith, API + Chat Widget: 1 decision · 6 files · 3 test files (25 tests)</summary>
+
+**Decisions:**
+- LangSmith zero-code tracing (env-var auto-detection, no application code required)
+
+**Files:** [`main.py`](backend/api/main.py) · [`models.py`](backend/api/models.py) · [`dependencies.py`](backend/api/dependencies.py) · [`chat.py`](backend/api/routes/chat.py) · [`chat-widget.ts`](frontend/src/chat-widget.ts) · [`main.ts`](frontend/src/main.ts)
+
+**Tests:** `test_api.py` · `test_frontend.py` · `test_langsmith.py`
+
+</details>
+
+<details>
+<summary>S08 — Frontend + Deploy: 1 decision · 1 completed · 3 pending</summary>
+
+**Decisions:**
+- Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
+
+**Completed:** [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 20-slide HTML deck
+
+**Pending:** frontend polish (accessibility, loading states) · deploy to production · voice input (Web Speech API)
+
+</details>
 
 ---
 
-## Choose Your Environment
+## Quick Start Walkthrough
+
+From raw YouTube videos to the chat widget. Each step links to the detailed section.
+
+<details>
+<summary>Step 1 — Choose Your Environment (required first)</summary>
+
+### Step 1 — Choose Your Environment
 
 This project has two paths. Pick the one that fits your needs.
 
 | | UV (lightweight) | Conda (ML-ready) |
-|---|---|---|---|
+|---|-------------------|-------------------|
 | **Best for** | Gemini API embeddings | BGE-M3 local embeddings |
 | **What you get** | Transcription + Gemini cloud embeddings | Transcription + Gemini + BGE-M3 local |
 | **Install size** | ~500 MB | ~4 GB (includes PyTorch) |
@@ -133,123 +182,67 @@ This project has two paths. Pick the one that fits your needs.
 > **Don't know which to choose?**
 > Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total). You can add Conda later if you want local embeddings.
 
----
-
-### Option A: UV + Gemini (recommended start)
-
-**What you need:** Python 3.12+, FFmpeg, a Gemini API key.
-
-#### 1. Install UV
+#### Option A: UV + Gemini (recommended)
 
 ```bash
-# macOS / Linux
+# 1. Install UV
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Windows (PowerShell)
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-#### 2. Create the environment
-
-```bash
-# macOS / Linux / Windows
-uv venv --python 3.12
-source .venv/bin/activate      # macOS / Linux
-# .venv\Scripts\activate       # Windows (PowerShell)
-```
-
-#### 3. Install everything
-
-```bash
+# 2. Create env and install
+uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
+
+# 3. Add API keys (free: aistudio.google.com/apikey, smith.langchain.com)
+cp .env.example .env   # then set GEMINI_API_KEY, LANGSMITH_API_KEY, LANGSMITH_PROJECT
+
+# 4. System dependency
+brew install ffmpeg     # macOS
 ```
 
-#### 4. Add your Gemini API key
+#### Option B: Conda + BGE-M3 (full local)
 
 ```bash
-cp .env.example .env
-# Edit .env → set GEMINI_API_KEY=your-key-here
-```
+# 1. Install Miniconda
+curl -LsSf https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh && bash miniconda.sh
 
-Get your free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). The free tier is more than enough for this project.
+# 2. Create env
+conda create -n migrant-archive python=3.12 -y && conda activate migrant-archive
 
-#### 5. Install FFmpeg (system dependency)
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Ubuntu / Debian
-sudo apt-get install ffmpeg
-
-# Windows
-winget install ffmpeg
-```
-
----
-
-### Option B: Conda + BGE-M3 (full local stack)
-
-**What you need:** Conda, Python 3.12+, FFmpeg. No API keys required for embeddings.
-
-#### 1. Install Conda
-
-```bash
-# macOS / Linux — Miniconda (recommended)
-curl -LsSf https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh
-bash miniconda.sh
-
-# Windows — Miniconda
-# Download from: https://docs.anaconda.com/miniconda/
-```
-
-#### 2. Create the environment
-
-```bash
-# macOS / Linux / Windows
-conda create -n migrant-archive python=3.12 -y
-conda activate migrant-archive
-```
-
-#### 3. Install PyTorch (via Conda — handles native compilation)
-
-```bash
+# 3. Install dependencies
 conda install pytorch transformers -c defaults -y
-```
-
-#### 4. Install the rest (via pip inside Conda)
-
-```bash
 pip install sentence-transformers chromadb google-genai pytest python-dotenv yt-dlp youtube-transcript-api faster-whisper
+
+# 4. (Optional) Gemini + LangSmith API keys
+cp .env.example .env   # set GEMINI_API_KEY, LANGSMITH_API_KEY; BGE-M3 works without Gemini
 ```
 
-#### 5. (Optional) Add Gemini API key
+</details>
 
-If you want to use Gemini as a cloud alternative: create `.env` with `GEMINI_API_KEY=your-key`. BGE-M3 works without it.
+<details>
+<summary>Step 2 — Ingest videos + transcription</summary>
 
-#### 6. Install FFmpeg
+### Step 2 — Ingest videos + transcription
 
-Same as Option A above.
+Download and transcribe YouTube videos. Colab GPU is the best option (fast, free). Local CPU is a fallback for short videos.
 
----
+**Colab GPU (recommended):** use [`notebooks/transcribe_video_colab.ipynb`](notebooks/transcribe_video_colab.ipynb).
 
-## Quick Start Walkthrough
+**What to upload to Colab:** `ingestion.py`, `ingestion_colab.py`, `ingestion_audio.py`, cookies file, video links list.
 
-From raw YouTube videos to the chat widget. Each step links to the detailed section.
-
-### Step 0 — Ingest videos (transcription)
-
-Download and transcribe YouTube videos. Repeat for each video.
-
+Output: `data/raw/whisper/{video_id}.json` (one JSON per video with transcript + metadata).
 ```bash
+# Local CPU (fallback):
 python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
 ```
 
-Output: `data/raw/whisper/{video_id}.json` (one JSON per video with transcript + metadata).
+Full details: [S01 — Video Ingestion](#s01--video-ingestion).
 
-Full details: [Phase 1 — Video Ingestion](#phase-1--video-ingestion-transcription).
+</details>
 
-### Step 1 — Build the vector index (embeddings)
+<details>
+<summary>Step 3 — Build the vector index (embeddings)</summary>
+
+### Step 3 — Build the vector index (embeddings)
 
 Chunk transcript text, generate Gemini embeddings, and store in ChromaDB. Run once after adding new videos.
 
@@ -257,21 +250,46 @@ Chunk transcript text, generate Gemini embeddings, and store in ChromaDB. Run on
 python backend/scripts/rag_test.py --rebuild
 ```
 
-Full details: [Phase 2 — Embeddings + Vector Store](#phase-2--embeddings--vector-store) and [Embeddings Workflow](#embeddings-workflow).
+Full details: [S02 — Chunking and Embedding](#s02--chunking-and-embedding) and [Embeddings Workflow](#embeddings-workflow).
 
-### Step 2 — Query (simple RAG, no memory)
+</details>
 
-Search ChromaDB directly. No agent, no memory — just semantic search.
+<details>
+<summary>Step 4 — Query (simple RAG, no memory)</summary>
+
+### Step 4 — Query (simple RAG, no memory)
+
+Search ChromaDB directly. No agent, no memory.
 
 ```bash
+# Fast keyword search (no API, no embeddings):
+python backend/scripts/quick_search.py "FilmiG"
+
+# Semantic search (embeddings, top-k similar chunks):
 python backend/scripts/rag_test.py
 ```
 
-Type a question in Spanish. Returns top-k most similar transcript chunks.
+Try these questions once inside `rag_test.py`:
+
+| Question | What it tests |
+|----------|---------------|
+| `De que trata el video?` | General topic retrieval |
+| `Que dice Lucia Mbomio sobre racismo?` | Speaker + topic scoping |
+| `Cuales son los videos de 2025?` | Metadata-aware search |
+
+```bash
+# Sequential extraction (reads chunks in order):
+python backend/scripts/extract_sample.py --source chroma
+```
 
 Full details: [Scenario 3 — Reading / Querying Embeddings](#scenario-3--reading--querying-embeddings).
 
-### Step 3 — Query with memory (agent CLI)
+</details>
+
+<details>
+<summary>Step 5 — Query with memory (agent CLI)</summary>
+
+### Step 5 — Query with memory (agent CLI)
 
 Same ChromaDB, but with conversation context. The agent remembers previous turns, disambiguates vague queries by listing videos, and can scope searches to a single video.
 
@@ -279,36 +297,72 @@ Same ChromaDB, but with conversation context. The agent remembers previous turns
 python backend/scripts/agent_cli.py
 ```
 
+Try these questions to exercise each tool:
+
+| Question | Tool tested |
+|----------|-------------|
+| `Que videos tienes?` | `list_videos` — lists all indexed videos |
+| `Dame informacion del video Escrituras Otras` | `get_video_info` — single video detail |
+| `Que dice Safia El Aaddam sobre racismo?` | `search_transcripts` — scoped semantic search |
+| `Y que libros ha escrito?` | Memory — follow-up on Safia El Aaddam from previous answer |
+| `Resume los argumentos principales del video sobre produccion cultural migrante` | `search_transcripts` — synthesis from chunks |
+| `En que se diferencia el video de 2024 del de 2025 sobre FILMIG?` | `list_videos` + `search_transcripts` — cross-video comparison |
+| `Cuantos de esos videos tienen ponentes?` | Memory — follow-up after `list_videos` |
+
 Full details: [S06 — Conversational Agent with Memory](#s06--conversational-agent-with-memory).
 
-### Step 4 — Query through the web widget
+</details>
 
-Start the API and frontend, then open the browser.
+<details>
+<summary>Step 6 — Trace with LangSmith (observability)</summary>
 
-**Terminal 1 — API:**
+### Step 6 — Trace with LangSmith (observability)
+
+See every agent run live: LLM calls, tool executions, latency, token usage, and cost. Zero application code required — LangChain auto-detects the env vars.
+
 ```bash
-uv run uvicorn backend.api.main:app --reload --port 8000
+# Add to your .env file:
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_pt...
+LANGSMITH_PROJECT=migrant-archive
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 ```
 
-**Terminal 2 — Frontend:**
+Run the agent or API normally. Traces appear at [smith.langchain.com](https://smith.langchain.com).
+
+Full details: [LangSmith Tracing](#langsmith-tracing).
+
+</details>
+
+<details>
+<summary>Step 7 — Query through the web widget</summary>
+
+### Step 7 — Query through the web widget
+
+Start the API, then the frontend.
+
 ```bash
+# Terminal 1 — API:
+uv run uvicorn backend.api.main:app --reload --port 8000
+
+# Terminal 2 — Frontend:
 cd frontend && pnpm install && pnpm dev
 ```
 
-Open `http://localhost:5173`. Click the blue bubble (bottom-right). The chat panel opens. Full details: [S07 — API + Chat Widget](#s07--api--chat-widget).
+Open `http://localhost:5173`. Blue bubble bottom-right — click to open.
 
-### Quick verification checklist
+Full details: [S07 — LangSmith, API + Chat Widget](#s07--langsmith-api--chat-widget).
 
-- [ ] Step 0: `data/raw/whisper/` contains transcribed `.json` files
-- [ ] Step 1: `data/chroma/` exists and is populated (run `--rebuild` if not)
-- [ ] Step 2: `rag_test.py` returns relevant chunks for a Spanish query
-- [ ] Step 3: `agent_cli.py` answers, disambiguates vague queries via `list_videos`, scopes searches with `get_video_info`, and remembers context across turns
-- [ ] Step 4: API returns 200 on `POST /api/ask`, widget renders and sends messages
-- [ ] Step 5: Agent traces appear at [smith.langchain.com](https://smith.langchain.com) → project `migrant-archive`
+</details>
 
 ---
 
-## Project Structure
+## Architectural Decisions and Concepts
+
+<details>
+<summary>Project Structure</summary>
+
+### Project Structure
 
 ```
 migrant-archive/
@@ -393,57 +447,57 @@ migrant-archive/
     └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
 ```
 
+</details>
+
 ---
 
-## Phase 1 — Video Ingestion (Transcription)
+<details>
+<summary>S01 — Video Ingestion</summary>
+
+### S01 — Video Ingestion
 
 Once your environment is ready, the first step is extracting text from YouTube videos. You have three strategies — pick based on your needs.
 
-**Quick start (Strategy B, recommended):**
-1. Activate venv → `source .venv/bin/activate`
-2. Transcribe → `python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es`
+**Quick start (Strategy A, recommended):**
+1. Upload files to Colab → `ingestion.py`, `ingestion_colab.py`, cookies, video links
+2. Transcribe → `python backend/core/ingestion_colab.py --url "VIDEO_URL" --lang es`
 3. Output → `data/raw/whisper/{video_id}.json`
 4. Repeat for each video.
 
-### Strategy comparison
+#### Strategy comparison
 
-| | A: Captions | B: Whisper local | B GPU: Colab |
+| | A: Colab GPU | B: Whisper local | C: Captions |
 |---|---|---|---|
-| **Quality** | 2/5 (no punctuation) | 4/5 (full sentences) | 5/5 (large-v3) |
-| **Speed** | Instant | ~2 min (4-min video) | ~15 sec (4-min video) |
-| **Cost** | $0 | $0 | $0 (Colab free tier) |
-| **Best for** | Quick tests, fallback | ≤ 5 min videos | > 5 min videos, batches |
-| **Hardware** | None | Intel i9 / 32GB RAM | Google Colab GPU |
+| **Quality** | 5/5 (large-v3) | 4/5 (full sentences) | 2/5 (no punctuation) |
+| **Speed** | ~15 sec (4-min video) | ~2 min (4-min video) | Instant |
+| **Cost** | $0 (Colab free tier) | $0 | $0 |
+| **Best for** | All videos, batches | ≤ 5 min videos | Quick tests, fallback |
+| **Hardware** | Google Colab GPU | Intel i9 / 32GB RAM | None |
 
 ---
 
-### Strategy A: YouTube Auto-Captions
+#### Strategy A: Google Colab GPU (recommended)
 
-Best for quick tests. Instant, free, but captions lack punctuation and may have garbled segments.
+> **Source:** [`backend/core/ingestion_colab.py`](backend/core/ingestion_colab.py)
+
+Best quality, fastest speed, zero cost. Runs on Colab's free T4 GPU with the `large-v3` model. ~10x faster than local CPU.
 
 ```bash
-# macOS / Linux
-source .venv/bin/activate                       # or: conda activate migrant-archive
-python backend/core/ingestion_caption.py --url "VIDEO_URL" --lang es
-
-# Windows (PowerShell) — same commands, adjust venv path
-.venv\Scripts\activate
-python backend/core/ingestion_caption.py --url "VIDEO_URL" --lang es
+# Upload ingestion.py, ingestion_colab.py, cookies, and video links to Colab, then run:
+python backend/core/ingestion_colab.py --url "VIDEO_URL" --lang es
 ```
 
-Output: `data/raw/captions/{video_id}.json`
-
-> **Warning:** Captions on Spanish/Catalan code-switching can be broken. For production use, prefer Strategy B.
+Defaults: `large-v3` model, `--device cuda`. Saves to Google Drive (`migrant-archive/output/`).
 
 ---
 
-### Strategy B: faster-whisper (Local CPU)
+#### Strategy B: faster-whisper (Local CPU)
 
 > **Source:** [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
 >
-> **Why faster-whisper over WhisperX?** WhisperX adds speaker diarisation and word-level alignment but is incompatible with Google Colab as of mid-2026 (NumPy/CUDA conflicts). faster-whisper uses the same Whisper large-v3 model with zero dependency issues. FILMIG content is mostly single-speaker. Full decision: [`notes/faster-whisper-migration.md`](notes/faster-whisper-migration.md).
+> **Why faster-whisper over WhisperX?** WhisperX adds speaker diarisation and word-level alignment but is incompatible with Google Colab as of mid-2026 (NumPy/CUDA conflicts). faster-whisper uses the same Whisper large-v3 model with zero dependency issues. FILMIG content is mostly single-speaker. faster-whisper was chosen for its zero dependency issues and Colab compatibility. Full decision: [`notes/faster-whisper-migration.md`](notes/faster-whisper-migration.md).
 
-Best quality at zero cost. Runs entirely on your machine — no API, no uploads. Recommended default for ≤ 5 minute videos.
+Good quality at zero cost. Runs entirely on your machine — no API, no uploads. Good fallback for short videos when Colab is unavailable.
 
 ```bash
 # macOS / Linux
@@ -481,24 +535,28 @@ Output: `data/raw/whisper/{video_id}.json`
 
 ---
 
-### Strategy B GPU: Google Colab (videos > 5 min)
+#### Strategy C: YouTube Auto-Captions (fallback)
 
-> **Source:** [`backend/core/ingestion_colab.py`](backend/core/ingestion_colab.py)
-
-Same logic as Strategy B, but runs on Colab's free GPU. ~10x faster for long videos.
+Instant, free, but captions lack punctuation and may have garbled segments. Use only for quick tests.
 
 ```bash
-# Upload ingestion_colab.py to Colab, then run:
-python backend/core/ingestion_colab.py --url "VIDEO_URL" --lang es
+source .venv/bin/activate
+python backend/core/ingestion_caption.py --url "VIDEO_URL" --lang es
 ```
 
-Defaults: `large-v3` model, `--device cuda`. Saves to Google Drive (`migrant-archive/output/`).
+Output: `data/raw/captions/{video_id}.json`
 
----
+> **Warning:** Captions on Spanish/Catalan code-switching can be broken. Prefer Strategy A or B for production.
 
-## Phase 2 — Embeddings + Vector Store
+</details>
 
-Once you have transcriptions (Phase 1), this phase converts text into searchable vector embeddings and stores them in ChromaDB.
+
+<details>
+<summary>S02 — Chunking and Embedding</summary>
+
+### S02 — Chunking and Embedding
+
+Once you have transcriptions (S01), this stage converts text into searchable vector embeddings and stores them in ChromaDB.
 
 **Quick start (Gemini, recommended):**
 1. Make sure `.json` files exist in `data/raw/whisper/`
@@ -506,7 +564,7 @@ Once you have transcriptions (Phase 1), this phase converts text into searchable
 3. Query → `python backend/scripts/rag_test.py`
 4. If you add more videos later → see [Embeddings Workflow](#embeddings-workflow) below.
 
-### Chunking strategy
+#### Chunking strategy
 
 > **Source:** [`backend/core/processor.py`](backend/core/processor.py) — `chunk_size=1000, overlap=200`
 
@@ -527,7 +585,7 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 ---
 
-### Embedding provider comparison
+#### Embedding provider comparison
 
 > **Sources:** [`backend/core/embedding.py`](backend/core/embedding.py) (contract) · [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py) · [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 
@@ -543,7 +601,7 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 ---
 
-### Option A: Gemini API Embeddings (default)
+#### Option A: Gemini API Embeddings (default)
 
 > **Source:** [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py)
 
@@ -585,7 +643,7 @@ for r in results:
 
 ---
 
-### Option B: BGE-M3 Local Embeddings
+#### Option B: BGE-M3 Local Embeddings
 
 > **Source:** [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 
@@ -606,7 +664,7 @@ The model downloads on first use (~2.2 GB, cached locally).
 
 ---
 
-### Process all videos in batch
+#### Process all videos in batch
 
 ```python
 from pathlib import Path
@@ -629,7 +687,7 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
 
 ---
 
-### Reset the vector store
+#### Reset the vector store
 
 > **Source:** [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
@@ -641,15 +699,15 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 
 ---
 
-### Embeddings Workflow
+#### Embeddings Workflow
 
 > **Scripts:** [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py) · core: [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
 Three scenarios: first-time creation, adding new videos, and reading stored data.
 
-#### Scenario 1 — First-Time Creation (Initial Embeddings)
+##### Scenario 1 — First-Time Creation (Initial Embeddings)
 
-**When:** you've transcribed videos in Phase 1 and ChromaDB is empty. This is the first time you're building the vector index.
+**When:** you've transcribed videos in S01 and ChromaDB is empty. This is the first time you're building the vector index.
 
 **Simplest path — use the rebuild script:**
 
@@ -714,7 +772,7 @@ print(f"\nDone. {store.count} chunks in ChromaDB.")
 
 ---
 
-#### Scenario 2 — Updating Embeddings (Adding New Videos)
+##### Scenario 2 — Updating Embeddings (Adding New Videos)
 
 You've already built the index. Now you transcribe a new video and need to add it to ChromaDB WITHOUT losing what's already there. You have three options, depending on how many videos you're adding.
 
@@ -776,7 +834,7 @@ Manually deleting the directory before rebuilding guarantees a clean slate — u
 
 ---
 
-#### Scenario 3 — Reading / Querying Embeddings
+##### Scenario 3 — Reading / Querying Embeddings
 
 Once your vectors are in ChromaDB, there are three ways to access them.
 
@@ -848,170 +906,218 @@ for r in results:
 
 **What `store.search()` returns:** a list of dicts with keys `id`, `document`, `metadata` (video_id, title, chunk_index, start_time, end_time), and `distance` (cosine distance — lower = more similar).
 
----
+</details>
 
-## Checkpoint Demo — Sample Extraction
+
+<details>
+<summary>S03 — ChromaDB Vector Store</summary>
+
+### S03 — ChromaDB Vector Store
+
+> **Source:** [`backend/core/vector_store.py`](backend/core/vector_store.py)
+
+Stores chunk embeddings and retrieves them via semantic search with optional metadata filtering.
+
+**Why ChromaDB over alternatives:**
+
+| | ChromaDB | Pinecone | Weaviate | Qdrant |
+|---|---|---|---|---|
+| **Deployment** | Local, zero-config | Cloud-only (free tier) | Self-hosted or cloud | Self-hosted or cloud |
+| **API keys** | None | Required | Required for cloud | Required for cloud |
+| **Python integration** | Native, LangChain built-in | SDK required | SDK required | SDK required |
+| **Persistence** | Disk (`data/chroma/`) | Cloud | Disk or cloud | Disk or cloud |
+| **Cost** | $0 | Free tier limited | Free tier limited | Free tier limited |
+
+ChromaDB was chosen because it requires no API keys, no external services, and no configuration beyond a directory path. For a solo project with ~200 chunks, a local vector store is sufficient. Pinecone or Weaviate would add operational complexity without benefit at this scale.
+
+**How it works:**
+
+- Collection `migrant_archive` stores documents with embeddings (3072d Gemini or 1024d BGE-M3) and metadata (video_id, title, chunk_index, start_time, end_time)
+- `store.search(query_embedding, top_k=3)` returns nearest neighbors by cosine distance
+- `store.search(query_embedding, top_k=5, where={"video_id": "VJqe2h0U1Fs"})` scopes results to a single video using ChromaDB's metadata `where` filter — this powers the agent's scoped search
+
+**Tests:** `test_vector_store.py` (CRUD + relevance) · `test_pipeline_e2e.py` (full pipeline with real video)
+
+</details>
+
+
+<details>
+<summary>S04 — RAG Test Script</summary>
+
+### S04 — RAG Test Script
+
+> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py)
+
+Three scripts to verify the pipeline at different levels, from no-API to full semantic search.
+
+**`quick_search.py` — Fast keyword search (no API, no embeddings)**
+
+The most important verification tool. Searches chunks directly in ChromaDB by keyword — no API key required, no embeddings, no rate limits. If chunking worked, this proves it instantly.
+
+```bash
+python backend/scripts/quick_search.py "FilmiG"   # keyword search
+python backend/scripts/quick_search.py              # show all chunks
+python backend/scripts/quick_search.py --all         # full text dump
+```
+
+**`rag_test.py` — Semantic search (embeddings, requires API)**
+
+Interactive script that queries ChromaDB with embeddings. Used to verify the embedding pipeline produces relevant results before building the agent on top. Requires `GEMINI_API_KEY`.
+
+**Why a standalone script:** separating retrieval testing from agent development isolates failures. If semantic search returns irrelevant chunks, the problem is in chunking or embedding — not in the agent's tool-calling logic.
+
+```bash
+python backend/scripts/rag_test.py --rebuild   # build index
+python backend/scripts/rag_test.py              # interactive Q&A
+python backend/scripts/rag_test.py --top-k 5    # custom result count
+```
+
+**`extract_sample.py` — Sequential extraction**
+
+Reads chunks in order from ChromaDB and JSON to verify data roundtripped correctly. See [S05 — Sample Extraction](#s05--sample-extraction).
+
+</details>
+
+
+<details>
+<summary>S05 — Sample Extraction</summary>
+
+### S05 — Sample Extraction
 
 > **Source:** [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
 
-Extract the first 5,000 characters from both ChromaDB and raw JSON to verify the data pipeline.
+Sequentially reads the first 5,000 characters from ChromaDB and raw JSON files to verify the data pipeline roundtripped correctly.
 
-```bash
-python backend/scripts/extract_sample.py               # both backends
-python backend/scripts/extract_sample.py --source chroma  # ChromaDB only
-python backend/scripts/extract_sample.py --source json    # JSON only
-python backend/scripts/extract_sample.py --chars 2000     # custom length
-```
+**Why dual-backend extraction:** ChromaDB stores chunked, embedded text. JSON stores raw transcripts. Reading both and comparing confirms that chunking preserved the original content, Spanish characters survived embedding, and metadata (title, timestamps) remained attached to each chunk.
 
-**Verified:** data readable in both backends, Spanish characters preserved, ChromaDB chunks maintain title metadata and sequential order.
+**Key behavior:**
+- `--source chroma` extracts from ChromaDB sequentially (not semantically — just reads chunks in order)
+- `--source json` extracts from raw JSON files
+- `--chars N` sets the character limit (default: 5000)
 
----
+**Tests:** `test_extract_sample.py` — verifies truncation, dual-backend reads, and character preservation.
 
-## Architecture Decisions
+</details>
 
-### Native Tool Calling over ReAct Text Parsing
 
-Gemini 2.5 Flash supports native function calling via structured tool messages.
-`create_tool_calling_agent` eliminates text-parsing failures that occurred with
-ReAct format on ~30% of Spanish queries.
+<details>
+<summary>S06 — Conversational Agent with Memory</summary>
 
-[LangChain + Gemini Function Calling Guide](https://www.philschmid.de/gemini-function-calling)
+### S06 — Conversational Agent with Memory
 
-### Message History over ConversationBufferMemory
-
-`ConversationBufferMemory` was deprecated in LangChain 0.3.1. Replaced with
-`RunnableWithMessageHistory` + `InMemoryChatMessageHistory` with per-session
-isolation. Sessions cleared on CLI exit and via `DELETE /api/session/{id}`.
-
-```python
-from langchain_core.chat_history import InMemoryChatMessageHistory
-from langchain_core.runnables.history import RunnableWithMessageHistory
-
-store = {}
-def get_session_history(session_id: str):
-    if session_id not in store:
-        store[session_id] = InMemoryChatMessageHistory()
-    return store[session_id]
-
-chain = RunnableWithMessageHistory(agent, get_session_history, ...)
-```
-
-[LangChain Memory Migration Guide](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/)
-[Conversational Memory in LangChain (Aurelio AI)](https://www.aurelio.ai/learn/langchain-conversational-memory)
-
----
-
-## S06 — Conversational Agent with Memory (Week 2-3)
+**Agent name: Cero**
 
 > Sources: [`backend/agents/agent.py`](backend/agents/agent.py) · [`backend/agents/tools.py`](backend/agents/tools.py) · [`backend/scripts/agent_cli.py`](backend/scripts/agent_cli.py)
 
 The **Cero** agent answers questions in Spanish using transcripts stored in ChromaDB and remembers conversation context via session-based message history.
 
-### Agent architecture
+**Key decisions:**
+- **Native tool calling** (`create_tool_calling_agent`) over ReAct text parsing — eliminated ~30% failure rate on Spanish queries.
+- **`RunnableWithMessageHistory`** over deprecated `ConversationBufferMemory` — per-session isolation, cleared on CLI exit and via `DELETE /api/session/{id}`.
+
+#### Agent architecture
 
 ```
 User → agent_cli.py → Tool Calling Agent (LangChain)
-                         ├── list_videos (video metadata from JSON)
-                         ├── get_video_info (single video detail)
-                         ├── search_transcripts (ChromaDB, global or scoped)
-                         ├── Gemini 2.5 Flash (LLM) via native function calling
+                         ├── list_videos (JSON files)
+                         ├── get_video_info (JSON files)
+                         ├── search_transcripts (ChromaDB)
+                         ├── Gemini 2.5 Flash (LLM)
                          └── RunnableWithMessageHistory + InMemoryChatMessageHistory
 ```
 
-The agent uses three tools:
+#### Tools and data sources
 
-| Tool | Parameters | Source | Purpose |
-|------|-----------|--------|---------|
-| `list_videos` | `year=None`, `speaker=None` | VideoData JSON files | Disambiguation: list/filter videos by metadata |
-| `get_video_info` | `video_id` | VideoData JSON files | Single video: title, description, year, channel, speakers |
-| `search_transcripts` | `query`, `video_id=None`, `top_k=5` | ChromaDB (embeddings) | Semantic search: global when `video_id=None`, scoped to one video otherwise |
+| Tool | Parameters | Searches in | Purpose |
+|------|-----------|-------------|---------|
+| `list_videos` | `year=None`, `speaker=None` | `data/raw/whisper/*.json` | List/filter videos by metadata — no embeddings, no API cost |
+| `get_video_info` | `video_id` | `data/raw/whisper/*.json` | Single video: title, description, year, channel, speakers |
+| `search_transcripts` | `query`, `video_id=None`, `top_k=5` | ChromaDB vector store | Semantic search — scoped to a video when `video_id` is set |
 
-**Why metadata from JSON and not embeddings?** Questions like "what videos do you have?" or "which videos are from 2024?" are structured lookups — they don't need semantic similarity. The JSON files contain the structured metadata (title, year, description) extracted during ingestion. Embeddings are reserved for content questions ("what does this video say about migration?"). This separation keeps API costs low and responses fast.
+- **JSON files**: structured metadata from ingestion. `list_videos` and `get_video_info` read these directly — fast, zero API cost.
+- **ChromaDB**: chunked text with embeddings. `search_transcripts` queries this for content questions — the only tool with API cost.
 
-**Channel vs. Speakers:** `list_videos` and `get_video_info` return two separate fields:
-- `channel`: always "Plataforma Cero" (from yt-dlp metadata)
-- `speakers`: only when the video description contains structured participant names (e.g., "Lucia Mbomio Rubio, Safia El Aaddam, Desirée Bela-Lobedde"). Extracted via regex patterns matching 5 common description formats.
+**Speaker extraction** (`backend/agents/tools.py`): handles 5 description patterns (`Participantes:`, `Nos acompanan:`, `convoca a:`, `Modera:`, title fallback). Unicode math-bold characters normalized to ASCII.
 
-**Speaker extraction** (`backend/agents/tools.py`): The `_extract_speakers_from_description` function handles 5 patterns found in FILMIG video descriptions: `Participantes:` sections with pin markers, `Nos acompanan:` sections with arrow markers, `convoca a:` comma-separated lists, `Modera:` markers, and title fallback (`... con X, Y y Z`). Mathematical bold/italic Unicode characters (U+1D400-U+1D7FF) used in YouTube descriptions are normalized to ASCII before pattern matching.
+#### Disambiguation flow
 
-### Disambiguation flow
-
-When a user asks an ambiguous question, the agent does NOT blindly search all transcripts. Instead:
+The agent does NOT blindly search all transcripts for vague queries — it asks first.
 
 ```
 User: "De que trata el video?"
-Agent: [calls list_videos] "Tengo 10 videos: 1 de 2024, 9 de 2025. Cual te interesa?"
+Agent: [list_videos] "Tengo 10 videos. Cual te interesa?"
 User: "2024"
-Agent: [calls list_videos year=2024] "Uno: Presentacion FILMIG 2024"
+Agent: [list_videos year=2024] "Uno: Presentacion FILMIG 2024"
 User: "ese"
-Agent: [calls search_transcripts query="main topics..." video_id="APgxfNssxGQ"]
-       "La FILMIG es una feria itinerante que..."
+Agent: [search_transcripts video_id="APgxfNssxGQ"] → scoped results
 ```
 
-This flow uses `list_videos` for disambiguation, then `search_transcripts` with a scoped `video_id` for precise results — no noise from unrelated videos.
+#### Query reformulation
 
-### Query reformulation
+Short user questions are rewritten into descriptive English before embedding to improve semantic match quality. "de que va?" → "main topics and key arguments discussed".
 
-The agent's system prompt instructs it to rewrite short or vague user questions into descriptive English sentences before calling `search_transcripts`. Example:
+#### Memory
+
+The agent keeps full conversation history per `session_id` via `InMemoryChatMessageHistory` — follow-up questions work without repeating context.
 
 ```
-User: "de que va?"
-Agent reformulates: "main topics and key arguments discussed"
-Agent calls: search_transcripts(query="main topics and key arguments discussed", video_id="FKymj4_fn3g")
+Pregunta> Que dice Safia El Aaddam sobre racismo?
+Agent: [search_transcripts] "Safia El Aaddam argumenta que..."
+
+Pregunta> Y que libros ha escrito?
+Agent: [remembers "Safia El Aaddam"] "Ha escrito Hija de inmigrantes..."
 ```
 
-This improves embedding quality because Gemini embeddings (`text-embedding-004`, 3072d) capture semantic intent better from rich phrases than from 2-3 word fragments.
+Each session is isolated — two users won't mix contexts. Memory clears on CLI exit or `DELETE /api/session/{id}`.
 
-### List-formatted responses
-
-The system prompt mandates that all answers use numbered or bulleted lists — never dense text blocks. This makes the agent's output scannable and readable in both CLI and chat widget contexts.
-
-### How to use
+#### How to use
 
 ```bash
 source .venv/bin/activate
 python backend/scripts/agent_cli.py
 ```
 
-The CLI loads `GEMINI_API_KEY` from `.env`, initializes the agent with a fresh `cli-session`, and opens an interactive prompt:
+> **Pick your LLM:** defaults to `gemini-2.5-flash`. Change via `GEMINI_MODEL` in `.env`.
 
-```
-Bienvenido a Cero, tu asistente sobre testimonios migratorios.
-Escribe 'quit' o 'salir' para salir.
-────────────────────────────────────────────────────────────
-Pregunta> Que videos tienes?
-[numbered list of 10 videos with title, year, channel, and speakers when available]
-Pregunta> De que trata el conversatorio sobre produccion cultural migrante?
-[scoped search — only chunks from that specific video with timestamps]
-```
-
-### Query with memory (vs plain RAG)
-
-Unlike `rag_test.py` (which only searches ChromaDB without context), the agent keeps the full conversation in `InMemoryChatMessageHistory` keyed by `session_id`. This enables follow-up questions like "and what else did they say?" without repeating the topic.
-
-### Memory
-
-Uses `RunnableWithMessageHistory` wrapping an `AgentExecutor` with `InMemoryChatMessageHistory` per session. The deprecated `ConversationBufferMemory` was replaced in June 2026. See [Architecture Decisions](#architecture-decisions) above.
-
-> **Pick your LLM:** the agent defaults to `gemini-2.5-flash`. Change it via the `GEMINI_MODEL` variable in `.env`.
-
-### Tests
+#### Tests
 
 ```bash
 uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 ```
 
-39 tests: 28 agent (tool, memory, disambiguation, scoped search, prompt assertions, E2E) + 11 speaker extraction (5 description patterns, unicode normalization, channel fallback).
+39 tests: 28 agent (tools, memory, disambiguation, scoped search, E2E) + 11 speaker extraction.
 
----
+</details>
 
-## S07 — API + Chat Widget (Week 3)
+
+<details>
+<summary>S07 — LangSmith, API + Chat Widget</summary>
+
+### S07 — LangSmith, API + Chat Widget
 
 > Sources: [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/chat-widget.ts`](frontend/src/chat-widget.ts)
 
-The **Cero** agent is exposed as a REST API and embeddable chat widget.
+The **Cero** agent is exposed as a REST API with LangSmith tracing and an embeddable chat widget.
 
-### Architecture
+#### LangSmith Tracing
+
+Every agent run traced automatically — zero application code. `langsmith` hooks into LangChain's callback system when it detects `LANGSMITH_TRACING=true` at import time. No changes to `agent.py` required.
+
+```bash
+# .env
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_pt...
+LANGSMITH_PROJECT=migrant-archive
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+```
+
+Traces show: LLM calls, tool executions, latency, token usage, cost. Appear live at [smith.langchain.com](https://smith.langchain.com).
+
+**Test safety:** [`tests/conftest.py`](tests/conftest.py) forces `LANGSMITH_TRACING=false` during pytest via a session-scoped autouse fixture. [`tests/test_langsmith.py`](tests/test_langsmith.py) (3 tests) verifies the guard.
+
+**Free tier:** 5,000 traces/month — well under the project's usage.
+
+#### Architecture
 
 ```
 Browser widget ──POST /api/ask──► FastAPI ──► Agent (Cero) ──► ChromaDB
@@ -1019,122 +1125,54 @@ Browser widget ──POST /api/ask──► FastAPI ──► Agent (Cero) ─�
                                   Gemini LLM
 ```
 
-### Start the API
+#### Start the API
 
 ```bash
 uv run uvicorn backend.api.main:app --reload --port 8000
 ```
 
-`POST /api/ask` accepts `{"question": "...", "session_id": "..."}` and returns `{"answer": "...", "sources": [...]}`.
-
-### Start the chat widget
-
-```bash
-cd frontend && pnpm install && pnpm dev
-```
-
-Open `http://localhost:5173`. A blue bubble appears bottom-right. Click to open the chat panel.
-
-### API details
+#### API details
 
 | Endpoint | Method | Request | Response |
 |----------|--------|---------|----------|
 | `/api/ask` | POST | `{"question": "string", "session_id": "string"}` | `{"answer": "string", "sources": [...]}` |
 | `/api/session/{session_id}` | DELETE | — | `{"session_id": "string", "cleared": bool}` |
 
-Each source contains `video_id`, `title`, `start_time`, `end_time`, and `text`.
+Each source: `video_id`, `title`, `start_time`, `end_time`, `text`. Session defaults to `"default"`. Errors: `422` (empty question), `503` (no API key).
 
-`session_id` defaults to `"default"` if omitted. The DELETE endpoint clears conversation history for a session, freeing memory.
-
-Errors: `422` for empty question, `503` when `GEMINI_API_KEY` is not configured.
-
-### Tests
+#### Tests
 
 ```bash
 uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 ```
 
-25 tests: models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, and widget structure.
+25 tests: models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, widget structure.
 
-### LangSmith Tracing
-
-Observability into every agent run: LLM calls, tool executions, latency, token usage, and cost. Tracing activates via environment variables — zero application code required.
-
-**Where LangSmith lives:**
-
-| File | What it contains |
-|------|-----------------|
-| `requirements.txt` | `langsmith==0.9.1` dependency |
-| `.env` | `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT` |
-| `tests/conftest.py` | Session fixture that forces `LANGSMITH_TRACING=false` during pytest |
-| `tests/test_langsmith.py` | 3 tests verifying the guard fixture and that agent produces no traces when disabled |
-| `backend/agents/agent.py` | No LangSmith code — `langsmith` auto-detects the env var and hooks into LangChain's callback system |
-
-**Why zero application code?** The `langsmith` package registers a global callback handler automatically when `LANGSMITH_TRACING=true` is detected at import time. `AgentExecutor` and `RunnableWithMessageHistory` are traced without any code changes to `agent.py`.
-
-**Trace structure:**
-
-```
-ChatGoogleGenerativeAI (LLM call)
-  → search_transcripts (tool execution)
-    → ChatGoogleGenerativeAI (response)
-Plus: session history load/insert, response normalization spans
-```
-
-#### Setup
+#### Start the chat widget
 
 ```bash
-# Add these to your .env file
-LANGSMITH_TRACING=true
-LANGSMITH_API_KEY=lsv2_pt...
-LANGSMITH_PROJECT=migrant-archive
-LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+cd frontend && pnpm install && pnpm dev
 ```
 
-Run the agent or API normally. Traces appear at [smith.langchain.com](https://smith.langchain.com) in the `migrant-archive` project.
+Open `http://localhost:5173`. Blue bubble bottom-right — click to open.
 
-#### Test safety
+</details>
 
-[`tests/conftest.py`](tests/conftest.py) prevents test traces from polluting LangSmith:
+<details>
+<summary>S08 — Frontend + Deploy</summary>
 
-```python
-@pytest.fixture(autouse=True, scope="session")
-def _disable_langsmith_tracing():
-    os.environ["LANGSMITH_TRACING"] = "false"
-    yield
-    os.environ.pop("LANGSMITH_TRACING", None)
-```
-
-[`tests/test_langsmith.py`](tests/test_langsmith.py) (3 tests) verifies the guard works.
-
-#### Free tier
-
-**5,000 traces/month** — the project uses well under this limit.
-
----
-
-> **Week 3 checkpoint (completed):** REST API + chat widget + observability.
-> - **API:** `POST /api/ask` returns answers + sources, `DELETE /api/session/{id}` clears memory
-> - **Chat widget:** Blue bubble bottom-right, sends questions to the API, renders answers with clickable source links
-> - **LangSmith:** Every agent run traced automatically — LLM calls, tool executions, latency, cost
-> - **Agent:** 3-tool architecture (list_videos, get_video_info, search_transcripts) with disambiguation and scoped search
-> - **Presentation:** `presentation/migrant-archive-slides.html` — 20-slide HTML deck with project narrative
-> - **Test count:** 149 passing, 3 pre-existing BGE-M3 failures (UV env), 1 skipped (E2E without key)
-
----
-
-## S08 — Frontend + Deploy (Week 4)
+### S08 — Frontend + Deploy
 
 > Sources: [`frontend/src/`](frontend/src/) · [`presentation/migrant-archive-slides.html`](presentation/migrant-archive-slides.html)
 
 The final phase: presentation, deploy, polish, and voice input. See [Progress Dashboard](#progress-dashboard) for current priority order.
 
-### What's done
+#### What's done
 
 - **Chat widget** (`frontend/src/chat-widget.ts`): blue bubble, slide-out panel, send via `fetch('/api/ask')`, answer + source rendering with clickable YouTube links
 - **Presentation** (`presentation/migrant-archive-slides.html`): 20-slide HTML deck
 
-### Deploy options (TBD)
+#### Deploy options (TBD)
 
 | Platform | Pros | Cons |
 |----------|------|------|
@@ -1142,9 +1180,14 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 | **Fly.io** | Global edge, persistent volumes | More config required |
 | **Cloudflare Pages + Workers** | Fast CDN, free tier generous | Need Workers for Python backend |
 
+</details>
+
 ---
 
-## Tests
+<details>
+<summary>Tests</summary>
+
+### Tests
 
 > Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_embedding_bge_m3.py`](tests/test_embedding_bge_m3.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py)
 
@@ -1171,13 +1214,18 @@ python -m pytest tests/ -v
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
 
 
+</details>
+
 ---
 
-## Saturday Checkpoints
+<details>
+<summary>Saturday Checkpoints</summary>
+
+### Saturday Checkpoints
 
 Weekly presentations to Ironhack instructors. Each checkpoint evaluates specific competencies.
 
-### Checkpoint 1 — Sat 13 Jun: Project Plan
+#### Checkpoint 1 — Sat 13 Jun: Project Plan
 
 **Status:** Done
 
@@ -1187,7 +1235,7 @@ Complete 4-week development plan: architecture, timeline, technology choices, an
 - `notes/proyect_description/plan-1.md` — architecture decisions, tech stack, timeline
 - `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — business case and deliverable requirements
 
-### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
+#### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
 
 **Status:** Done
 
@@ -1213,7 +1261,18 @@ python backend/scripts/rag_test.py              # interactive Q&A
 - `backend/scripts/extract_sample.py` — sequential data extraction (data roundtrip)
 - `notes/rag_test_questions.md` — pre-verified demo questions
 
-### Checkpoint 3 — Sat 27 Jun: Agent, Tools, and Memory
+**Sample extraction usage:**
+
+```bash
+python backend/scripts/extract_sample.py               # both backends
+python backend/scripts/extract_sample.py --source chroma  # ChromaDB only
+python backend/scripts/extract_sample.py --source json    # JSON only
+python backend/scripts/extract_sample.py --chars 2000     # custom length
+```
+
+**Verified:** data readable in both backends, Spanish characters preserved, ChromaDB chunks maintain title metadata and sequential order.
+
+#### Checkpoint 3 — Sat 27 Jun: Agent, Tools, and Memory
 
 **Status:** Ready
 
@@ -1295,20 +1354,22 @@ Pregunta> y cuantos videos tienen ponentes?
 | `tests/test_speaker_extraction.py` | 11 tests: 5 description patterns, normalization, fallback |
 
 **Design justification:**
-- [Native Tool Calling](#native-tool-calling-over-react-text-parsing) — Gemini 2.5 Flash structured `tool_call` objects, zero parsing failures
-- [Message History](#message-history-over-conversationbuffermemory) — `RunnableWithMessageHistory` replaces deprecated `ConversationBufferMemory`
+- [Native Tool Calling](#s06--conversational-agent-with-memory) — Gemini 2.5 Flash structured `tool_call` objects, zero parsing failures
+- [Message History](#s06--conversational-agent-with-memory) — `RunnableWithMessageHistory` replaces deprecated `ConversationBufferMemory`
 - [ChromaDB metadata filtering](https://docs.trychroma.com/usage-guide#filtering-by-metadata) — native `where` filter, no post-processing
-- [Strategy Pattern](#phase-1--video-ingestion-transcription) — JSON metadata uses same `VideoData` contract as ingestion
+- [Strategy Pattern](#s01--video-ingestion) — JSON metadata uses same `VideoData` contract as ingestion
 
-### Checkpoint 4 — Sat 4 Jul: TBD
+#### Checkpoint 4 — Sat 4 Jul: TBD
 
 **Status:** Pending
 
 Criteria not yet defined by Ironhack.
 
 **Ready:**
+- LangSmith tracing (auto-tracing via env vars)
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
 - Chat widget (Vite + TypeScript, blue bubble UI)
-- LangSmith tracing (auto-tracing via env vars)
 - Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
 - 149 tests passing (3 pre-existing BGE-M3 failures in UV env)
+
+</details>
