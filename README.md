@@ -326,7 +326,7 @@ migrant-archive/
 │   │       └── chat.py         ← POST /api/ask + DELETE /api/session/{id}
 │   ├── agents/
 │   │   ├── agent.py            ← Tool-calling agent + per-session message history
-│   │   └── tools.py            ← search_transcripts tool
+│   │   └── tools.py            ← 3 tools + speaker extraction
 │   ├── core/
 │   │   ├── ingestion.py        ← VideoData dataclass + shared helpers
 │   │   ├── ingestion_caption.py    ← Strategy A: YouTube auto-captions
@@ -1149,7 +1149,7 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 ### What's done
 
 - **Chat widget** (`frontend/src/chat-widget.ts`): blue bubble, slide-out panel, send via `fetch('/api/ask')`, answer + source rendering with clickable YouTube links
-- **Presentation** (`presentation/migrant-archive-slides.html`): 15-slide HTML deck — being updated to reflect S06-S07 additions
+- **Presentation** (`presentation/migrant-archive-slides.html`): 20-slide HTML deck
 
 ### Deploy options (TBD)
 
