@@ -61,6 +61,23 @@ def test_ask_request_accepts_valid_question():
     assert request.question == "¿Cuál es el testimonio de María?"
 
 
+def test_ask_request_defaults_session_id():
+    from backend.api.models import AskRequest
+
+    request = AskRequest(question="¿Cuál es el testimonio de María?")
+    assert request.session_id == "default"
+
+
+def test_ask_request_accepts_session_id():
+    from backend.api.models import AskRequest
+
+    request = AskRequest(
+        question="¿Cuál es el testimonio de María?",
+        session_id="session-123",
+    )
+    assert request.session_id == "session-123"
+
+
 def test_source_model_requires_all_fields():
     from backend.api.models import Source
 
@@ -105,8 +122,10 @@ class _FakeAgent:
     def __init__(self, answer: str, observation: str = ""):
         self.answer = answer
         self.observation = observation
+        self.last_config: dict | None = None
 
-    def invoke(self, inputs: dict):
+    def invoke(self, inputs: dict, config: dict | None = None):
+        self.last_config = config
         return {
             "input": inputs["input"],
             "output": self.answer,
@@ -152,6 +171,36 @@ def test_post_ask_returns_answer_and_sources(sample_observation):
     assert body["sources"][0]["end_time"] == "18.3"
     assert "María describe su viaje" in body["sources"][0]["text"]
     assert body["sources"][1]["video_id"] == "v002"
+
+
+def test_post_ask_passes_session_id_to_agent(sample_observation):
+    from fastapi.testclient import TestClient
+
+    from backend.api.dependencies import get_agent
+    from backend.api.main import app
+
+    fake_agent = _FakeAgent(
+        answer="María viajó en 2020.",
+        observation=sample_observation,
+    )
+    app.dependency_overrides[get_agent] = lambda: fake_agent
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/ask",
+            json={
+                "question": "¿Qué pasó con María?",
+                "session_id": "api-session-123",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert fake_agent.last_config == {
+        "configurable": {"session_id": "api-session-123"},
+    }
 
 
 def test_post_ask_accepts_no_intermediate_steps():
