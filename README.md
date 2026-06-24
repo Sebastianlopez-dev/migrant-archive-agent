@@ -1057,42 +1057,44 @@ uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 
 ### LangSmith Tracing
 
-> Sources: [`requirements.txt`](requirements.txt) · [`.env.example`](.env.example) · [`tests/conftest.py`](tests/conftest.py) · [`tests/test_langsmith.py`](tests/test_langsmith.py) · [`backend/agents/agent.py`](backend/agents/agent.py) (no changes needed)
+Observability into every agent run: LLM calls, tool executions, latency, token usage, and cost. Tracing activates via environment variables — zero application code required.
 
-LangSmith provides full observability into every agent run: LLM calls, tool executions (`search_transcripts`), latency, token usage, and cost. Tracing activates **automatically** when `LANGSMITH_TRACING=true` is set — zero changes to `agent.py` were needed.
+**Where LangSmith lives:**
 
-#### How it works
+| File | What it contains |
+|------|-----------------|
+| `requirements.txt` | `langsmith==0.9.1` dependency |
+| `.env` | `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, `LANGSMITH_ENDPOINT` |
+| `tests/conftest.py` | Session fixture that forces `LANGSMITH_TRACING=false` during pytest |
+| `tests/test_langsmith.py` | 3 tests verifying the guard fixture and that agent produces no traces when disabled |
+| `backend/agents/agent.py` | No LangSmith code — `langsmith` auto-detects the env var and hooks into LangChain's callback system |
+
+**Why zero application code?** The `langsmith` package registers a global callback handler automatically when `LANGSMITH_TRACING=true` is detected at import time. `AgentExecutor` and `RunnableWithMessageHistory` are traced without any code changes to `agent.py`.
+
+**Trace structure:**
 
 ```
-Agent (Cero) ──► AgentExecutor ──► LangSmith (auto-trace)
-                     │
-         ┌───────────┼───────────┐
-         ▼           ▼           ▼
-      LLM call   search_transcripts   LLM response
-         │           │               │
-         └───────────┴───────────────┘
-                     │
-              Trace: 3 spans, latency, tokens, cost
+ChatGoogleGenerativeAI (LLM call)
+  → search_transcripts (tool execution)
+    → ChatGoogleGenerativeAI (response)
+Plus: session history load/insert, response normalization spans
 ```
-
-Each trace shows the full chain: `ChatGoogleGenerativeAI` → `search_transcripts` → `ChatGoogleGenerativeAI`, plus session history load/insert and response normalization.
 
 #### Setup
 
-Add your LangSmith API key to `.env`:
-
 ```bash
+# Add these to your .env file
 LANGSMITH_TRACING=true
 LANGSMITH_API_KEY=lsv2_pt...
 LANGSMITH_PROJECT=migrant-archive
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 ```
 
-That's it. Run the agent or API normally — traces appear at [smith.langchain.com](https://smith.langchain.com) in the `migrant-archive` project.
+Run the agent or API normally. Traces appear at [smith.langchain.com](https://smith.langchain.com) in the `migrant-archive` project.
 
 #### Test safety
 
-A session-scoped fixture in [`tests/conftest.py`](tests/conftest.py) forces `LANGSMITH_TRACING=false` during pytest runs so fake LLM traces never pollute the LangSmith project:
+[`tests/conftest.py`](tests/conftest.py) prevents test traces from polluting LangSmith:
 
 ```python
 @pytest.fixture(autouse=True, scope="session")
@@ -1102,11 +1104,11 @@ def _disable_langsmith_tracing():
     os.environ.pop("LANGSMITH_TRACING", None)
 ```
 
-3 dedicated tests in [`tests/test_langsmith.py`](tests/test_langsmith.py) verify the fixture works and that the agent produces no traces when tracing is disabled.
+[`tests/test_langsmith.py`](tests/test_langsmith.py) (3 tests) verifies the guard works.
 
 #### Free tier
 
-LangSmith's free tier covers **5,000 traces/month** — far more than a solo project needs. The entire Migrant Archive project fits comfortably within the free quota.
+**5,000 traces/month** — the project uses well under this limit.
 
 ---
 
@@ -1116,7 +1118,7 @@ LangSmith's free tier covers **5,000 traces/month** — far more than a solo pro
 > - **LangSmith:** Every agent run traced automatically — LLM calls, tool executions, latency, cost
 > - **Agent:** 3-tool architecture (list_videos, get_video_info, search_transcripts) with disambiguation and scoped search
 > - **Presentation:** `presentation/migrant-archive-slides.html` — 20-slide HTML deck with project narrative
-> - **Test count:** 149 tests (146 pass, 3 BGE-M3 skipped in UV env)
+> - **Test count:** 149 passing, 3 pre-existing BGE-M3 failures (UV env), 1 skipped (E2E without key)
 
 ---
 
@@ -1155,7 +1157,7 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 149 tests collected. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped entirely without an API key.
+**Results:** 149 passing. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key. 3 pre-existing BGE-M3 failures in UV environment (torch < 2.6 / transformers CVE-2025-32434).
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
