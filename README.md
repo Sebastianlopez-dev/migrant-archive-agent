@@ -13,13 +13,13 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 |------|-------|-------|--------|
 | 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | Done |
 | 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | Done |
-| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | In progress |
+| 3 | 5–6 | API + Evaluation — FastAPI REST wrapper done, LangSmith pending | In progress |
 | 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | Pending |
 
 ---
 
-> **Week 1 checkpoint (Saturday 21 June):** Live vector DB Q&A demo + sample extraction.
-> - **Interactive RAG query:** `backend/scripts/rag_test.py` — query ChromaDB directly with pre-verified questions from `notes/rag_test_questions.md`
+> **Week 1 checkpoint (completed):** Live vector DB Q&A demo + sample extraction.
+> - **Interactive RAG query:** `backend/scripts/rag_test.py` — query ChromaDB directly with Spanish questions about the transcribed videos
 > - **Data extraction:** `backend/scripts/extract_sample.py` — dump first 5,000 characters from ChromaDB and/or JSON sources to prove data is stored and retrievable
 
 ---
@@ -55,40 +55,38 @@ FILMIG / Plataforma Cero (YouTube)
    │  Output: queryable knowledge base               │
    └──────────────────────┬─────────────────────────┘
                           │
-              ┌───────────┴───────────┐
-              ▼                       ▼
-       ┌─ S 04 ──────────┐     ┌─ S 05 ──────────┐
-       │  RAG Test       │     │  Sample Extract │
-       │  Interactive QA │     │  First 5K chars │
-       │  ChromaDB direct│     │  ChromaDB + JSON│
-       │  Week 1 demo    │     │  Roundtrip      │
-       └────────┬────────┘     └────────┬────────┘
-                │                       │
-                └───────────┬───────────┘
-                            ▼
-                      ┌─ S 06  ───────────────────────────────┐
-                      │  LangChain Agent (Week 2)             │
-                      │  Tools: search_transcripts            │
-                      │  Memory: ConversationBufferMemory     │
-                      │  14/14 agent tests                    │
-                      │  Status: Complete                     │
-                      └───────────────────┬───────────────────┘
-
-> **Memory:** Uses `ConversationBufferMemory` (LangChain 0.3.x API). This class is deprecated in LangChain 1.0 but fully functional. Migration to the newer `create_agent` with checkpointing is planned when LangChain 2.0 is released. See [LangChain short-term memory docs](https://docs.langchain.com/oss/python/langchain/short-term-memory).
-
-                                         ▼
-                               ┌─ S 07 ───────────────────────┐
-                               │  API + Evaluation (Week 3)   │
-                               │  FastAPI REST wrapper        │
-                               │  LangSmith observability     │
-                               └──────────────┬───────────────┘
-                                              ▼
-                                     ┌─ S 08 ───────────────────────┐
-                                     │  Frontend + Deploy (Week 4)  │
-                                     │  Web Speech API voice input  │
-                                     │  HTML presentation slides    │
-                                     │  Multimodal RAG chatbot      │
-                                     └──────────────────────────────┘
+               ┌───────────┴───────────┐
+               ▼                       ▼
+        ┌─ S 04 ──────────┐     ┌─ S 05 ──────────┐
+        │  RAG Test       │     │  Sample Extract │
+        │  Interactive QA │     │  First 5K chars │
+        │  ChromaDB direct│     │  ChromaDB + JSON│
+        │  Week 1 demo    │     │  Roundtrip      │
+        └────────┬────────┘     └────────┬────────┘
+                 │                       │
+                 └───────────┬───────────┘
+                             ▼
+                       ┌─ S 06  ───────────────────────────────┐
+                       │  LangChain Agent (Week 2)             │
+                       │  Tools: search_transcripts            │
+                       │  Memory: ConversationBufferMemory     │
+                       │  14/14 agent tests                    │
+                       │  Status: Complete                     │
+                       └───────────────────┬───────────────────┘
+                                           ▼
+                                ┌─ S 07 ───────────────────────┐
+                                │  API + Chat Widget (Week 3)  │
+                                │  FastAPI REST wrapper        │
+                                │  Status: API Complete        │
+                                │  LangSmith: Pending          │
+                                └──────────────┬───────────────┘
+                                               ▼
+                                      ┌─ S 08 ───────────────────────┐
+                                      │  Frontend + Deploy (Week 4)  │
+                                      │  Web Speech API voice input  │
+                                      │  HTML presentation slides    │
+                                      │  Multimodal RAG chatbot      │
+                                      └──────────────────────────────┘
 ```
 
 > **How to read this diagram:** each node (`S 01`–`S 08`) represents a processing stage. Nodes connected vertically are sequential; horizontal forks are parallel alternatives or complementary outputs. The pipeline flows top-to-bottom, mirroring the 4-week development timeline above.
@@ -99,6 +97,82 @@ FILMIG / Plataforma Cero (YouTube)
 > - **S03 (ChromaDB):** [`vector_store.py`](backend/core/vector_store.py)
 > - **S04–S05 (Scripts):** [`rag_test.py`](backend/scripts/rag_test.py) · [`extract_sample.py`](backend/scripts/extract_sample.py)
 > - **S06 (Agent):** [`backend/agents/agent.py`](backend/agents/agent.py) · [`backend/agents/tools.py`](backend/agents/tools.py) · [`backend/scripts/agent_cli.py`](backend/scripts/agent_cli.py)
+> - **S07 (API + Chat Widget):** [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/chat-widget.ts`](frontend/src/chat-widget.ts)
+> - **S08 (Frontend + Deploy):** [`frontend/src/main.ts`](frontend/src/main.ts) · [`frontend/src/styles.css`](frontend/src/styles.css) · [`presentation/`](presentation/)
+
+---
+
+## Quick Start Walkthrough
+
+This walkthrough shows the 0-to-4 progression from raw YouTube videos to the chat widget. Each step links to the detailed section where the command is fully explained.
+
+### Step 0 — Ingest videos (transcription)
+
+Download and transcribe YouTube videos. Repeat for each video.
+
+```bash
+python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
+```
+
+Output: `data/raw/whisper/{video_id}.json` (one JSON per video with transcript + metadata).
+
+Full details: [Phase 1 — Video Ingestion](#phase-1--video-ingestion-transcription).
+
+### Step 1 — Build the vector index (embeddings)
+
+Chunk transcript text, generate Gemini embeddings, and store in ChromaDB. Run once after adding new videos.
+
+```bash
+python backend/scripts/rag_test.py --rebuild
+```
+
+Full details: [Phase 2 — Embeddings + Vector Store](#phase-2--embeddings--vector-store) and [Embeddings Workflow](#embeddings-workflow).
+
+### Step 2 — Query (simple RAG, no memory)
+
+Search ChromaDB directly. No agent, no memory — just semantic search.
+
+```bash
+python backend/scripts/rag_test.py
+```
+
+Type a question in Spanish. Returns top-k most similar transcript chunks.
+
+Full details: [Scenario 3 — Reading / Querying Embeddings](#scenario-3--reading--querying-embeddings).
+
+### Step 3 — Query with memory (agent CLI)
+
+Same ChromaDB, but with conversation context. The agent remembers previous turns.
+
+```bash
+python backend/scripts/agent_cli.py
+```
+
+Full details: [S06 — Conversational Agent with Memory](#s06--conversational-agent-with-memory).
+
+### Step 4 — Query through the web widget
+
+Start the API and frontend, then open the browser.
+
+**Terminal 1 — API:**
+```bash
+uv run uvicorn backend.api.main:app --reload --port 8000
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd frontend && pnpm install && pnpm dev
+```
+
+Open `http://localhost:5173`. Click the blue bubble (bottom-right). The chat panel opens. Full details: [S07 — API + Chat Widget](#s07--api--chat-widget).
+
+### Quick verification checklist
+
+- [ ] Step 0: `data/raw/whisper/` contains transcribed `.json` files
+- [ ] Step 1: `data/chroma/` exists and is populated (run `--rebuild` if not)
+- [ ] Step 2: `rag_test.py` returns relevant chunks for a Spanish query
+- [ ] Step 3: `agent_cli.py` answers and remembers context across turns
+- [ ] Step 4: API returns 200 on `POST /api/ask`, widget renders and sends messages
 
 ---
 
@@ -110,6 +184,15 @@ migrant-archive/
 ├── requirements.txt            ← Python dependencies (uv/pip path)
 │
 ├── backend/
+│   ├── api/
+│   │   ├── main.py             ← FastAPI app factory
+│   │   ├── models.py           ← Pydantic request/response schemas
+│   │   ├── dependencies.py     ← Agent dependency injection
+│   │   └── routes/
+│   │       └── chat.py         ← POST /api/ask endpoint
+│   ├── agents/
+│   │   ├── agent.py            ← LangChain ReAct agent + memory
+│   │   └── tools.py            ← search_transcripts tool
 │   ├── core/
 │   │   ├── ingestion.py        ← VideoData dataclass + shared helpers
 │   │   ├── ingestion_caption.py    ← Strategy A: YouTube auto-captions
@@ -121,17 +204,34 @@ migrant-archive/
 │   │   ├── processor.py            ← Chunking (1000tk/200ov) + embedding
 │   │   └── vector_store.py         ← ChromaDB persistence
 │   └── scripts/
-│       ├── rag_test.py           ← Interactive RAG pipeline test script
-│       └── extract_sample.py     ← First-5K extraction from ChromaDB + JSON
+│       ├── agent_cli.py        ← Interactive agent CLI
+│       ├── rag_test.py         ← Interactive RAG pipeline test script
+│       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
+│
+├── frontend/
+│   ├── index.html              ← Widget mount point
+│   ├── package.json            ← pnpm dependencies
+│   ├── vite.config.ts          ← Vite + API proxy config
+│   └── src/
+│       ├── main.ts             ← Widget bootstrap
+│       ├── chat-widget.ts      ← Chat widget logic
+│       └── styles.css          ← Widget styles
 │
 ├── tests/
+│   ├── conftest.py             ← Shared pytest fixtures
+│   ├── test_agent.py           ← Agent, tool, memory, CLI tests
+│   ├── test_api.py             ← API models, routes, CORS, errors
+│   ├── test_frontend.py        ← Frontend build + widget structure
 │   ├── test_embedding.py       ← Contract tests (FakeEmbeddingProvider)
 │   ├── test_embedding_gemini.py ← Gemini provider tests
 │   ├── test_embedding_bge_m3.py ← BGE-M3 provider tests
 │   ├── test_processor.py       ← Chunking + orchestration tests
 │   ├── test_vector_store.py    ← ChromaDB CRUD + relevance tests
 │   ├── test_pipeline_e2e.py    ← Full pipeline with real video
-│   └── test_extract_sample.py  ← First-5K extraction + truncation tests
+│   ├── test_extract_sample.py  ← First-5K extraction + truncation tests
+│   ├── test_ingestion.py       ← VideoData + timestamp helper tests
+│   ├── test_faster_whisper_audio.py ← faster-whisper strategy tests
+│   └── test_faster_whisper_colab.py ← Colab notebook validation tests
 │
 ├── data/
 │   ├── audio/                  ← Downloaded audio cache (gitignored)
@@ -145,7 +245,7 @@ migrant-archive/
 │
 ├── presentation/               ← HTML slides for project demo
 │
-├── notebooks/                   ← Colab notebooks for cloud GPU processing
+├── notebooks/                  ← Colab notebooks for cloud GPU processing
 │   └── transcribe_video_colab.ipynb  ← Transcribe long videos with T4 GPU
 │
 └── notes/                      ← Decision records + research
@@ -509,7 +609,7 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
         metadatas=[c.metadata for c in chunks],
         embeddings=embeddings,
     )
-    print(f" {video.title} — {len(chunks)} chunks stored")
+    print(f"[OK] {video.title} — {len(chunks)} chunks stored")
 ```
 
 ---
@@ -526,13 +626,13 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 
 ---
 
-## Embeddings Workflow
+### Embeddings Workflow
 
 > **Scripts:** [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py) · core: [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
 This section covers the three situations you'll encounter when working with embeddings: first-time creation, adding new videos, and reading stored data.
 
-### Scenario 1 — First-Time Creation (Initial Embeddings)
+#### Scenario 1 — First-Time Creation (Initial Embeddings)
 
 **When:** you've transcribed videos in Phase 1 and ChromaDB is empty. This is the first time you're building the vector index.
 
@@ -592,18 +692,18 @@ for json_file in Path("data/raw/whisper").glob("*.json"):
         metadatas=[c.metadata for c in chunks],
         embeddings=embeddings,
     )
-    print(f"✅ {video.title} — {len(chunks)} chunks stored")
+    print(f"[OK] {video.title} — {len(chunks)} chunks stored")
 
 print(f"\nDone. {store.count} chunks in ChromaDB.")
 ```
 
 ---
 
-### Scenario 2 — Updating Embeddings (Adding New Videos)
+#### Scenario 2 — Updating Embeddings (Adding New Videos)
 
 You've already built the index. Now you transcribe a new video and need to add it to ChromaDB WITHOUT losing what's already there. You have three options, depending on how many videos you're adding.
 
-#### Option A: Add a single new video (incremental)
+##### Option A: Add a single new video (incremental)
 
 **Best when:** you transcribed one new video and don't want to re-embed everything.
 
@@ -618,7 +718,7 @@ from backend.core.ingestion import VideoData
 provider = GeminiEmbeddingProvider()
 processor = Processor(provider, chunk_size=1000, overlap=200)
 
-# ⚠️  Do NOT call delete_collection() — use the existing store as-is
+# WARNING: Do NOT call delete_collection() — use the existing store as-is
 store = VectorStore(persist_dir="data/chroma")
 print(f"Before: {store.count} chunks in ChromaDB")
 
@@ -637,7 +737,7 @@ print(f"After:  {store.count} chunks in ChromaDB (+{len(chunks)} from '{video.ti
 
 > **Warning:** If you accidentally run this on a video that's *already* in ChromaDB, the `add()` call will fail with `IDAlreadyExistsError`. ChromaDB does not silently deduplicate — it rejects duplicate IDs. To re-index a specific video you'd need to delete its chunks first (see Option C).
 
-#### Option B: Rebuild everything (destructive, simplest)
+##### Option B: Rebuild everything (destructive, simplest)
 
 **Best when:** you added multiple new videos, or changed the chunking strategy (size/overlap), or switched embedding providers.
 
@@ -650,7 +750,7 @@ This is the same command as Scenario 1. `--rebuild` calls `delete_collection()` 
 
 > **Tip:** With Gemini API, re-embedding is fast and cheap (~$0 for the entire project). Unless you have 100+ videos, rebuilding is usually the pragmatic choice.
 
-#### Option C: Start completely fresh
+##### Option C: Start completely fresh
 
 ```bash
 rm -rf data/chroma/
@@ -661,17 +761,17 @@ Manually deleting the directory before rebuilding guarantees a clean slate — u
 
 ---
 
-### Scenario 3 — Reading / Querying Embeddings
+#### Scenario 3 — Reading / Querying Embeddings
 
 Once your vectors are in ChromaDB, there are three ways to access them.
 
-#### Method A: Interactive semantic search (demo / exploration)
+##### Method A: Interactive semantic search (demo / exploration)
 
 ```bash
 python backend/scripts/rag_test.py
 ```
 
-This opens an interactive prompt. Type a question in Spanish, and it returns the top-K most semantically similar chunks with similarity scores. Pre-prepared questions are in `notes/rag_test_questions.md`.
+This opens an interactive prompt. Type a question in Spanish, and it returns the top-K most semantically similar chunks with similarity scores.
 
 ```
 Query> ¿De qué trata el video?
@@ -691,7 +791,7 @@ Available flags:
 | `--rebuild` | off | Force re-index before starting the prompt |
 | `--top-k 5` | 3 | Number of chunks to retrieve per query |
 
-#### Method B: Sequential extraction (data validation)
+##### Method B: Sequential extraction (data validation)
 
 ```bash
 # Both ChromaDB and JSON (default)
@@ -709,7 +809,7 @@ python backend/scripts/extract_sample.py --chars 2000
 
 This reads chunks sequentially from ChromaDB (or raw text from JSON) and prints the first N characters. Useful to verify data roundtripped correctly without writing a query.
 
-#### Method C: Programmatic search (integration)
+##### Method C: Programmatic search (integration)
 
 When you need to query ChromaDB from your own code (e.g., inside a LangChain tool):
 
@@ -735,7 +835,7 @@ for r in results:
 
 ---
 
-## Checkpoint Demo — Sample Extraction
+## Checkpoint Demo — Sample Extraction (completed)
 
 > **Source:** [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
 
@@ -791,10 +891,10 @@ python backend/scripts/agent_cli.py
 The CLI loads `GEMINI_API_KEY` from `.env`, initializes the agent with memory, and opens an interactive prompt:
 
 ```
-Bienvenido a Cero. Escribe 'quit' o 'salir' para salir.
-Pregunta> What does the video say about migration?
+Welcome to Cero. Type 'quit' or 'exit' to leave.
+Question> What does the video say about migration?
 [agent answer with sources]
-Pregunta> And at what minute did they mention it?
+Question> And at what minute did they mention it?
 [answer using memory from previous context]
 ```
 
@@ -818,120 +918,59 @@ uv run python -m pytest tests/test_agent.py -v
 
 ---
 
-## End-to-End Usage Guide
+## S07 — API + Chat Widget (Week 3)
 
-This section walks through the full pipeline: from raw YouTube videos to asking questions through a chat widget.
+> Sources: [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/chat-widget.ts`](frontend/src/chat-widget.ts)
 
-### Prerequisites
+The **Cero** agent is exposed as a REST API and embeddable chat widget.
 
-```bash
-source .venv/bin/activate
-cp .env.example .env   # add your GEMINI_API_KEY
-```
-
-### Step 0 — Ingest videos (transcription)
-
-Download and transcribe YouTube videos. Repeat for each video.
-
-```bash
-python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
-```
-
-Output: `data/raw/whisper/{video_id}.json` (one JSON per video with transcript + metadata).
-
-**Current state:** 10 JSON files with full YouTube info and transcriptions.
-
-### Step 1 — Build the vector index (embeddings)
-
-Chunk transcript text, generate Gemini embeddings, and store in ChromaDB. Run once after adding new videos.
-
-```bash
-python backend/scripts/rag_test.py --rebuild
-```
-
-This finds all `.json` files in `data/raw/whisper/`, chunks them, embeds via Gemini, and persists to `data/chroma/`.
-
-**Current state:** index built with at least one video. Run `--rebuild` after adding the remaining videos.
-
-### Step 2 — Query (simple RAG, no memory)
-
-Search ChromaDB directly. No agent, no memory — just semantic search.
-
-```bash
-python backend/scripts/rag_test.py
-```
-
-Type a question in Spanish. Returns top-k most similar transcript chunks.
+### Architecture
 
 ```
-Query> Que se dice sobre la migracion?
-  #1  similarity: 0.8234 | 12.5-18.3 | La migracion es un fenomeno...
-  #2  similarity: 0.7891 | 45.0-52.1 | Las fronteras han cambiado...
+Browser widget ──POST /api/ask──► FastAPI ──► Agent (Cero) ──► ChromaDB
+                                     │
+                                  Gemini LLM
 ```
 
-### Step 3 — Query with memory (agent CLI)
+### Start the API
 
-Same ChromaDB, but with conversation context. The agent remembers previous turns.
-
-```bash
-python backend/scripts/agent_cli.py
-```
-
-```
-Bienvenido a Cero. Escribe 'quit' o 'salir' para salir.
-Pregunta> Que dice el video sobre migracion?
-[answer with sources]
-
-Pregunta> Y en que minuto lo menciono?
-[answer using memory — knows which video/topic without repeating]
-```
-
-### Step 4 — Query through the web widget
-
-Start the API and frontend, then open the browser.
-
-**Terminal 1 — API:**
 ```bash
 uv run uvicorn backend.api.main:app --reload --port 8000
 ```
 
-**Terminal 2 — Frontend:**
+`POST /api/ask` accepts `{"question": "..."}` and returns `{"answer": "...", "sources": [...]}`.
+
+### Start the chat widget
+
 ```bash
 cd frontend && pnpm install && pnpm dev
 ```
 
-Open `http://localhost:5173`. Click the blue bubble (bottom-right). The chat panel opens. Type a question.
+Open `http://localhost:5173`. A blue bubble appears bottom-right. Click to open the chat panel.
 
-### Quick verification checklist
+### API details
 
-- [ ] Step 0: `data/raw/whisper/` contains 10 `.json` files
-- [ ] Step 1: `data/chroma/` exists and is populated (run `--rebuild` if not)
-- [ ] Step 2: `rag_test.py` returns relevant chunks for a Spanish query
-- [ ] Step 3: `agent_cli.py` answers and remembers context across turns
-- [ ] Step 4: API returns 200 on `POST /api/ask`, widget renders and sends messages
+| Endpoint | Method | Request | Response |
+|----------|--------|---------|----------|
+| `/api/ask` | POST | `{"question": "string"}` | `{"answer": "string", "sources": [...]}` |
 
-### Environment variables
+Each source contains `video_id`, `title`, `start_time`, `end_time`, and `text`.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GEMINI_API_KEY` | Yes | — | Google Gemini API key |
-| `GEMINI_MODEL` | No | `gemini-2.5-flash` | LLM model for the agent |
-| `CHROMA_PERSIST_DIR` | No | `data/chroma` | ChromaDB storage path |
-| `ALLOWED_ORIGINS` | No | `http://localhost:5173` | CORS origins for the API |
+Errors: `422` for empty question, `503` when `GEMINI_API_KEY` is not configured.
 
-### Troubleshooting
+### Tests
 
-**Gemini 429 (RESOURCE_EXHAUSTED):** free tier RPM limit exceeded. Wait 60 seconds or upgrade at [Google AI Studio](https://aistudio.google.com/apikey).
+```bash
+uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
+```
 
-**ModuleNotFoundError on import:** run commands from the `migrant-archive/` root with the venv activated.
-
-**ChromaDB collection mismatch:** delete `data/chroma/` and re-run `--rebuild` if you switch embedding providers.
+22 tests: models, route, CORS, error handling, source parsing, frontend build, and widget structure.
 
 ---
 
 ## Tests
 
-> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_agent.py`](tests/test_agent.py)
+> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_embedding_bge_m3.py`](tests/test_embedding_bge_m3.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_agent.py`](tests/test_agent.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py)
 
 ```bash
 # UV environment
@@ -943,11 +982,12 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 80/86 pass (UV). 6 skipped (conditional: API key or GPU).
+**Results:** 117 tests collected. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped entirely without an API key.
 
-| Layer | Tests | What it proves |
-|-------|-------|----------------|
-| Unit | 36 | Contract enforcement, chunking logic, CRUD operations, sample extraction, agent tool/agent init |
-| Integration | 32 | Real BGE-M3 + ChromaDB together, extraction from real JSON, agent memory + CLI |
-| E2E | 4 | Full pipeline with Gemini API (needs key) |
-| Agent | 14 | LangChain ReAct agent, search_transcripts tool, memory, CLI |
+| Layer | Tests | Files | What it proves |
+|-------|-------|-------|----------------|
+| Unit | 40 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
+| Integration | 52 | `test_embedding_gemini.py`, `test_embedding_bge_m3.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes |
+| Agent | 14 | `test_agent.py` | LangChain ReAct agent, search_transcripts tool, memory, CLI |
+| Frontend | 9 | `test_frontend.py` | Vite build, widget class structure, DOM bootstrap, styling |
+| E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
