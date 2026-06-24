@@ -41,9 +41,9 @@ def show_chunks(store: VectorStore, keyword: str | None = None):
         print(f"  Video: {meta.get('title', '?')}")
         print(f"  Time:  {meta.get('start_time', 0):.0f}s → {meta.get('end_time', 0):.0f}s")
         print(f"{'─' * 60}")
-        print(doc[:2000])  # first 2000 chars
-        if len(doc) > 2000:
-            print(f"\n  ... ({len(doc) - 2000} more chars)")
+        print(doc[:500])  # first 500 chars
+        if len(doc) > 500:
+            print(f"\n  ... ({len(doc) - 500} more chars)")
 
     if keyword:
         print(f"\n🔍 {matched} chunks matched '{keyword}' out of {len(documents)} total.")
