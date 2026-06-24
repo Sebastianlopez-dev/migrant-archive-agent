@@ -68,22 +68,30 @@ class VectorStore:
         )
 
     def search(
-        self, query_embedding: list[float], top_k: int = 5
+        self,
+        query_embedding: list[float],
+        top_k: int = 5,
+        video_id: str | None = None,
     ) -> list[dict]:
         """Semantic search for documents similar to query_embedding.
 
         Args:
             query_embedding: Embedding vector of the search query.
             top_k: Maximum number of results to return.
+            video_id: If provided, restrict results to chunks from this video.
 
         Returns:
             List of dicts with keys: id, document, metadata, distance.
         """
-        results = self._collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-            include=["documents", "metadatas", "distances"],
-        )
+        query_kwargs: dict = {
+            "query_embeddings": [query_embedding],
+            "n_results": top_k,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if video_id is not None:
+            query_kwargs["where"] = {"video_id": video_id}
+
+        results = self._collection.query(**query_kwargs)
 
         # Flatten ChromaDB's nested-list response into a list of dicts
         documents = results.get("documents", [[]])[0]
@@ -100,6 +108,40 @@ class VectorStore:
                 "distance": distances[i] if i < len(distances) else 0.0,
             })
         return output
+
+    def get_unique_videos(self) -> list[dict]:
+        """Return every video_id in the collection with its chunk count.
+
+        Returns:
+            List of dicts with keys: video_id, title, chunk_count.
+            Title is taken from chunk metadata when available.
+        """
+        if self._collection.count() == 0:
+            return []
+
+        results = self._collection.get(include=["metadatas"])
+        metadatas = results.get("metadatas", [])
+        if not metadatas:
+            return []
+
+        counts: dict[str, int] = {}
+        titles: dict[str, str] = {}
+        for meta in metadatas:
+            vid = meta.get("video_id")
+            if not vid:
+                continue
+            counts[vid] = counts.get(vid, 0) + 1
+            if vid not in titles:
+                titles[vid] = meta.get("title", "")
+
+        return [
+            {
+                "video_id": vid,
+                "title": titles.get(vid, ""),
+                "chunk_count": count,
+            }
+            for vid, count in sorted(counts.items())
+        ]
 
     def delete_collection(self) -> None:
         """Delete the entire collection (reset)."""

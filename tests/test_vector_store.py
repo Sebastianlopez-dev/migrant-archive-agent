@@ -98,6 +98,88 @@ class TestVectorStoreCRUD:
         assert store.count == 3
 
 
+class TestVectorStoreVideoScoping:
+    """Scoped search and video catalog aggregation."""
+
+    @pytest.fixture
+    def provider(self):
+        return FakeEmbeddingProvider(dimension=128)
+
+    @pytest.fixture
+    def store(self):
+        from vector_store import VectorStore
+        store = VectorStore(persist_dir=":memory:")
+        yield store
+        try:
+            store.delete_collection()
+        except Exception:
+            pass
+
+    def test_search_with_video_id_filter_returns_only_matching_video(
+        self, provider, store
+    ):
+        docs = ["Texto del video A.", "Texto del video B."]
+        store.add(
+            ids=["vA_chunk_0", "vB_chunk_0"],
+            documents=docs,
+            metadatas=[
+                {"video_id": "vA", "chunk_index": 0},
+                {"video_id": "vB", "chunk_index": 0},
+            ],
+            embeddings=provider.embed(docs),
+        )
+
+        results = store.search(
+            provider.embed_query("texto"), top_k=5, video_id="vA"
+        )
+
+        assert len(results) == 1
+        assert results[0]["metadata"]["video_id"] == "vA"
+
+    def test_search_with_video_id_filter_no_match_returns_empty(
+        self, provider, store
+    ):
+        docs = ["Texto del video A."]
+        store.add(
+            ids=["vA_chunk_0"],
+            documents=docs,
+            metadatas=[{"video_id": "vA", "chunk_index": 0}],
+            embeddings=provider.embed(docs),
+        )
+
+        results = store.search(
+            provider.embed_query("texto"), top_k=5, video_id="missing"
+        )
+
+        assert results == []
+
+    def test_get_unique_videos_returns_ids_and_chunk_counts(
+        self, provider, store
+    ):
+        store.add(
+            ids=["vA_chunk_0", "vA_chunk_1", "vB_chunk_0"],
+            documents=["uno", "dos", "tres"],
+            metadatas=[
+                {"video_id": "vA", "chunk_index": 0},
+                {"video_id": "vA", "chunk_index": 1},
+                {"video_id": "vB", "chunk_index": 0},
+            ],
+            embeddings=provider.embed(["uno", "dos", "tres"]),
+        )
+
+        videos = store.get_unique_videos()
+
+        assert len(videos) == 2
+        by_id = {v["video_id"]: v for v in videos}
+        assert by_id["vA"]["chunk_count"] == 2
+        assert by_id["vB"]["chunk_count"] == 1
+
+    def test_get_unique_videos_is_empty_for_empty_collection(
+        self, provider, store
+    ):
+        assert store.get_unique_videos() == []
+
+
 @pytest.mark.skipif(not has_gemini(), reason="GEMINI_API_KEY not set")
 class TestVectorStoreGemini:
     """Semantic relevance tests — uses Gemini embedding (project default)."""

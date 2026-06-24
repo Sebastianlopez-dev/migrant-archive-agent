@@ -23,20 +23,31 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from tools import make_search_transcripts
+from tools import make_get_video_info, make_list_videos, make_search_transcripts
 from core.embedding_gemini import GeminiEmbeddingProvider
 from core.vector_store import VectorStore
 
 
 SYSTEM_PROMPT = (
     "You are Cero, an assistant that answers questions in Spanish about archived "
-    "migrant testimonies. Use the search_transcripts tool to find relevant "
-    "transcript fragments. Always respond in Spanish, cite the video and "
-    "time range when possible, and do not invent information."
+    "migrant testimonies. You have three tools: list_videos, get_video_info, "
+    "and search_transcripts. "
+    "If a query is vague or a bare proper name (e.g. 'Lina'), use list_videos "
+    "or get_video_info to disambiguate, or rewrite the query into a descriptive "
+    "English sentence of at least 3-5 words before calling search_transcripts. "
+    "When presenting multiple results, steps, or examples, always use a numbered "
+    "or bulleted list. Always respond in Spanish, cite the video and time range "
+    "when possible, and do not invent information. "
+    "When a tool returns a 'channel' field, always include it (e.g. 'Canal: "
+    "Plataforma Cero'). When a tool returns a 'speakers' field, always list the "
+    "speakers as 'Ponentes:' in the response. Use the structured fields directly "
+    "— do not re-parse the description text to find names that are already "
+    "provided in the 'speakers' field."
 )
 
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
+DEFAULT_VIDEO_DATA_DIR = Path(os.getenv("VIDEO_DATA_DIR", "data/raw/whisper"))
 
 # Per-session message history store. In production this can be swapped for a
 # Redis/SQL backend without changing the agent factory interface.
@@ -70,7 +81,7 @@ def create_agent(
 
     Args:
         llm: LangChain chat model. Defaults to ChatGoogleGenerativeAI.
-        tools: List of LangChain tools. Defaults to [search_transcripts].
+        tools: List of LangChain tools. Defaults to [list_videos, get_video_info, search_transcripts].
         verbose: Whether to enable AgentExecutor verbose logging.
 
     Returns:
@@ -89,7 +100,11 @@ def create_agent(
     if tools is None:
         provider = GeminiEmbeddingProvider()
         store = VectorStore(persist_dir=DEFAULT_CHROMA_DIR)
-        tools = [make_search_transcripts(provider, store, top_k=3)]
+        tools = [
+            make_list_videos(DEFAULT_VIDEO_DATA_DIR, store),
+            make_get_video_info(DEFAULT_VIDEO_DATA_DIR, store),
+            make_search_transcripts(provider, store, top_k=3),
+        ]
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
