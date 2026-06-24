@@ -7,6 +7,27 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ---
 
+## Architecture Decisions
+
+### Native Tool Calling over ReAct Text Parsing
+
+Gemini 2.5 Flash supports native function calling via structured tool messages.
+Using `create_tool_calling_agent` eliminates the text-parsing failures that
+plagued the previous ReAct implementation (`Invalid Format: Missing 'Action:'`).
+
+→ [LangChain + Gemini Function Calling Guide](https://www.philschmid.de/gemini-function-calling)
+
+### Message History over ConversationBufferMemory
+
+`ConversationBufferMemory` was deprecated in LangChain 0.3.1. Migrated to
+`RunnableWithMessageHistory` + `InMemoryChatMessageHistory` with per-session
+isolation. Sessions are cleared on CLI exit and via `DELETE /api/session/{id}`.
+
+→ [LangChain Memory Migration Guide](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/)
+→ [Conversational Memory in LangChain (Aurelio AI)](https://www.aurelio.ai/learn/langchain-conversational-memory)
+
+---
+
 ## Development Timeline
 
 | Week | Steps | Focus | Status |
@@ -66,12 +87,13 @@ FILMIG / Plataforma Cero (YouTube)
                  │                       │
                  └───────────┬───────────┘
                              ▼
-                       ┌─ S 06  ───────────────────────────────┐
-                       │  LangChain Agent (Week 2)             │
-                       │  Tools: search_transcripts            │
-                       │  Memory: ConversationBufferMemory     │
-                       │  14/14 agent tests                    │
-                       │  Status: Complete                     │
+                        ┌─ S 06  ───────────────────────────────┐
+                        │  LangChain Agent (Week 2)             │
+                        │  Tools: search_transcripts            │
+                        │  Memory: InMemoryChatMessageHistory   │
+                        │  Agent: create_tool_calling_agent     │
+                        │  16/16 agent tests                    │
+                        │  Status: Complete                     │
                        └───────────────────┬───────────────────┘
                                            ▼
                                 ┌─ S 07 ───────────────────────┐
@@ -186,12 +208,12 @@ migrant-archive/
 ├── backend/
 │   ├── api/
 │   │   ├── main.py             ← FastAPI app factory
-│   │   ├── models.py           ← Pydantic request/response schemas
-│   │   ├── dependencies.py     ← Agent dependency injection
+│   │   ├── models.py           ← Pydantic schemas (AskRequest with session_id)
+│   │   ├── dependencies.py     ← Agent dependency injection (RunnableWithMessageHistory)
 │   │   └── routes/
-│   │       └── chat.py         ← POST /api/ask endpoint
+│   │       └── chat.py         ← POST /api/ask + DELETE /api/session/{id}
 │   ├── agents/
-│   │   ├── agent.py            ← LangChain ReAct agent + memory
+│   │   ├── agent.py            ← Tool-calling agent + per-session message history
 │   │   └── tools.py            ← search_transcripts tool
 │   ├── core/
 │   │   ├── ingestion.py        ← VideoData dataclass + shared helpers
@@ -870,16 +892,22 @@ python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captio
 
 > Sources: [`backend/agents/agent.py`](backend/agents/agent.py) · [`backend/agents/tools.py`](backend/agents/tools.py) · [`backend/scripts/agent_cli.py`](backend/scripts/agent_cli.py)
 
-The **Cero** agent answers questions in Spanish using transcripts stored in ChromaDB and remembers conversation context.
+The **Cero** agent answers questions in Spanish using transcripts stored in ChromaDB and remembers conversation context via session-based message history.
 
 ### Agent architecture
 
 ```
-User → agent_cli.py → ReAct Agent (LangChain)
+User → agent_cli.py → Tool Calling Agent (LangChain)
                          ├── search_transcripts (ChromaDB)
-                         ├── Gemini 2.5 Flash (LLM)
-                         └── ConversationBufferMemory
+                         ├── Gemini 2.5 Flash (LLM) via native function calling
+                         └── RunnableWithMessageHistory + InMemoryChatMessageHistory
 ```
+
+The agent uses `create_tool_calling_agent` with Gemini's native function calling — no text parsing, no `Thought:/Action:` format. Memory is per-session: each `session_id` gets an isolated `InMemoryChatMessageHistory`.
+
+Session history is cleared when:
+- **CLI**: user types `quit`/`salir` or presses Ctrl+C (via `try/finally`)
+- **API**: `DELETE /api/session/{session_id}` endpoint
 
 ### How to use
 
@@ -888,23 +916,25 @@ source .venv/bin/activate
 python backend/scripts/agent_cli.py
 ```
 
-The CLI loads `GEMINI_API_KEY` from `.env`, initializes the agent with memory, and opens an interactive prompt:
+The CLI loads `GEMINI_API_KEY` from `.env`, initializes the agent with a fresh `cli-session`, and opens an interactive prompt:
 
 ```
-Welcome to Cero. Type 'quit' or 'exit' to leave.
-Question> What does the video say about migration?
+Bienvenido a Cero, tu asistente sobre testimonios migratorios.
+Escribe 'quit' o 'salir' para salir.
+────────────────────────────────────────────────────────────
+Pregunta> ¿Qué dice el video sobre migración?
 [agent answer with sources]
-Question> And at what minute did they mention it?
+Pregunta> ¿y en qué minuto lo mencionaron?
 [answer using memory from previous context]
 ```
 
 ### Query with memory (vs plain RAG)
 
-Unlike `rag_test.py` (which only searches ChromaDB without context), the agent keeps the full conversation in `ConversationBufferMemory`. This enables follow-up questions like "and what else did they say?" without repeating the topic.
+Unlike `rag_test.py` (which only searches ChromaDB without context), the agent keeps the full conversation in `InMemoryChatMessageHistory` keyed by `session_id`. This enables follow-up questions like "and what else did they say?" without repeating the topic.
 
 ### Memory
 
-Uses `ConversationBufferMemory` (LangChain 0.3.x API). This class is deprecated in LangChain 1.0 but fully functional. Migration to `create_agent` with checkpointing is planned for when LangChain 2.0 is released. See [LangChain short-term memory docs](https://docs.langchain.com/oss/python/langchain/short-term-memory).
+Uses `RunnableWithMessageHistory` wrapping an `AgentExecutor` with `InMemoryChatMessageHistory` per session. The deprecated `ConversationBufferMemory` was replaced in June 2026. See [Architecture Decisions](#architecture-decisions) above.
 
 > **Pick your LLM:** the agent defaults to `gemini-2.5-flash`. Change it via the `GEMINI_MODEL` variable in `.env`.
 
@@ -914,7 +944,7 @@ Uses `ConversationBufferMemory` (LangChain 0.3.x API). This class is deprecated 
 uv run python -m pytest tests/test_agent.py -v
 ```
 
-14 tests: tool, agent, memory, CLI, and E2E (requires GEMINI_API_KEY).
+16 tests: tool, agent, memory isolation, session cleanup, CLI, and E2E (requires GEMINI_API_KEY).
 
 ---
 
@@ -938,7 +968,7 @@ Browser widget ──POST /api/ask──► FastAPI ──► Agent (Cero) ─�
 uv run uvicorn backend.api.main:app --reload --port 8000
 ```
 
-`POST /api/ask` accepts `{"question": "..."}` and returns `{"answer": "...", "sources": [...]}`.
+`POST /api/ask` accepts `{"question": "...", "session_id": "..."}` and returns `{"answer": "...", "sources": [...]}`.
 
 ### Start the chat widget
 
@@ -952,9 +982,12 @@ Open `http://localhost:5173`. A blue bubble appears bottom-right. Click to open 
 
 | Endpoint | Method | Request | Response |
 |----------|--------|---------|----------|
-| `/api/ask` | POST | `{"question": "string"}` | `{"answer": "string", "sources": [...]}` |
+| `/api/ask` | POST | `{"question": "string", "session_id": "string"}` | `{"answer": "string", "sources": [...]}` |
+| `/api/session/{session_id}` | DELETE | — | `{"session_id": "string", "cleared": bool}` |
 
 Each source contains `video_id`, `title`, `start_time`, `end_time`, and `text`.
+
+`session_id` defaults to `"default"` if omitted. The DELETE endpoint clears conversation history for a session, freeing memory.
 
 Errors: `422` for empty question, `503` when `GEMINI_API_KEY` is not configured.
 
@@ -964,7 +997,7 @@ Errors: `422` for empty question, `503` when `GEMINI_API_KEY` is not configured.
 uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 ```
 
-22 tests: models, route, CORS, error handling, source parsing, frontend build, and widget structure.
+22 tests: models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, and widget structure.
 
 ---
 
@@ -982,12 +1015,12 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 117 tests collected. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped entirely without an API key.
+**Results:** 122 tests collected. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped entirely without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
 | Unit | 40 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
 | Integration | 52 | `test_embedding_gemini.py`, `test_embedding_bge_m3.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes |
-| Agent | 14 | `test_agent.py` | LangChain ReAct agent, search_transcripts tool, memory, CLI |
+| Agent | 16 | `test_agent.py` | Tool-calling agent, search_transcripts tool, session memory, cleanup, CLI |
 | Frontend | 9 | `test_frontend.py` | Vite build, widget class structure, DOM bootstrap, styling |
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
