@@ -22,7 +22,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agent import create_agent
+from agent import clear_session, create_agent
+
+CLI_SESSION_ID = "cli-session"
 
 
 def main() -> None:
@@ -31,30 +33,36 @@ def main() -> None:
         print("ERROR: GEMINI_API_KEY not set in .env")
         sys.exit(1)
 
-    agent = create_agent()
+    agent = create_agent(verbose=True)
 
     print("Bienvenido a Cero, tu asistente sobre testimonios migratorios.")
     print("Escribe 'quit' o 'salir' para salir.")
     print("─" * 60)
 
-    while True:
-        try:
-            query = input("Pregunta> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            print("\nAdiós.")
-            break
+    try:
+        while True:
+            try:
+                query = input("Pregunta> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\nAdiós.")
+                break
 
-        if not query:
-            continue
+            if not query:
+                continue
 
-        if query.lower() in ("quit", "salir", "q"):
-            print("Adiós.")
-            break
+            if query.lower() in ("quit", "salir", "q"):
+                print("Adiós.")
+                break
 
-        result = agent.invoke({"input": query})
-        answer = result.get("output", "")
-        print(f"\n{answer}\n")
-        print("─" * 60)
+            result = agent.invoke(
+                {"input": query},
+                config={"configurable": {"session_id": CLI_SESSION_ID}},
+            )
+            answer = result.get("output", "")
+            print(f"\n{answer}\n")
+            print("─" * 60)
+    finally:
+        clear_session(CLI_SESSION_ID)
 
 
 if __name__ == "__main__":
