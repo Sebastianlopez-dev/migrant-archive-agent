@@ -2,9 +2,9 @@
 
 Covers:
   - search_transcripts tool formatting and edge cases
-  - Agent initialization with memory
-  - ConversationBufferMemory accumulation across turns
-  - CLI REPL behavior
+  - Agent initialization with native tool calling and session history
+  - Per-session message retention across turns
+  - CLI REPL behavior and session plumbing
   - End-to-end agent answering (skipped unless GEMINI_API_KEY is set)
 """
 
@@ -38,6 +38,7 @@ def provider():
 def store():
     """Fresh in-memory ChromaDB collection."""
     from vector_store import VectorStore
+
     s = VectorStore(persist_dir=":memory:")
     yield s
     try:
@@ -116,28 +117,45 @@ class TestSearchTranscriptsTool:
 # ---------------------------------------------------------------------------
 
 
-class FakeChatModel(BaseChatModel):
-    """BaseChatModel that returns programmed text responses."""
+class FakeToolCallingModel(BaseChatModel):
+    """BaseChatModel that simulates native tool calling.
 
-    responses: list[str]
+    First call returns an AIMessage with a single tool call. Subsequent calls
+    (after a ToolMessage has been injected by the executor) return the final
+    answer.
+    """
+
+    final_answer: str = "Respuesta de prueba."
+    tool_name: str = "search_transcripts"
+    tool_args: dict = {"query": "migración"}
 
     def _generate(self, messages, stop=None, **kwargs):
-        from langchain_core.messages import AIMessage
+        from langchain_core.messages import AIMessage, ToolMessage
         from langchain_core.outputs import ChatGeneration, ChatResult
 
-        text = self.responses[self._counter % len(self.responses)]
-        self._counter += 1
-        return ChatResult(
-            generations=[ChatGeneration(message=AIMessage(content=text))]
-        )
+        if any(isinstance(m, ToolMessage) for m in messages):
+            msg = AIMessage(content=self.final_answer)
+        else:
+            msg = AIMessage(
+                content="",
+                tool_calls=[{
+                    "name": self.tool_name,
+                    "args": self.tool_args,
+                    "id": "call_1",
+                }],
+            )
+        return ChatResult(generations=[ChatGeneration(message=msg)])
+
+    def bind_tools(self, tools, **kwargs):
+        """Return self so create_tool_calling_agent can bind tools."""
+        return self
 
     @property
     def _llm_type(self) -> str:
-        return "fake-chat-model"
+        return "fake-tool-calling-model"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._counter = 0
 
 
 # ---------------------------------------------------------------------------
@@ -148,117 +166,178 @@ class FakeChatModel(BaseChatModel):
 class TestCreateAgent:
     """Unit tests for backend/agents/agent.py::create_agent."""
 
-    def test_create_agent_returns_agent_executor(self, provider, store):
+    def test_create_agent_returns_runnable_with_history(self, provider, store):
         from agent import create_agent
-        from langchain_classic.agents import AgentExecutor
+        from langchain_core.runnables.history import RunnableWithMessageHistory
 
-        llm = FakeChatModel(responses=["Final Answer: Respuesta de prueba."])
-        tools = []
-        executor = create_agent(llm=llm, tools=tools, verbose=False)
+        llm = FakeToolCallingModel(final_answer="Respuesta final.")
+        agent = create_agent(llm=llm, tools=[], verbose=False)
 
-        assert isinstance(executor, AgentExecutor)
+        assert isinstance(agent, RunnableWithMessageHistory)
 
-    def test_create_agent_has_conversation_buffer_memory(self, provider, store):
+    def test_create_agent_wires_history_keys(self, provider, store):
         from agent import create_agent
-        from langchain_classic.memory import ConversationBufferMemory
+        from langchain_core.runnables.history import RunnableWithMessageHistory
 
-        llm = FakeChatModel(responses=["Final Answer: Respuesta de prueba."])
-        executor = create_agent(llm=llm, tools=[])
+        llm = FakeToolCallingModel(final_answer="Respuesta final.")
+        agent = create_agent(llm=llm, tools=[], verbose=False)
 
-        assert isinstance(executor.memory, ConversationBufferMemory)
-        assert executor.memory.memory_key == "chat_history"
+        assert agent.input_messages_key == "input"
+        assert agent.history_messages_key == "chat_history"
 
-    def test_create_agent_prompt_is_spanish(self, provider, store):
+    def test_create_agent_prompt_has_no_react_format(self, provider, store):
         from agent import create_agent, SYSTEM_PROMPT
+        from langchain_core.runnables.history import RunnableWithMessageHistory
 
-        llm = FakeChatModel(responses=["Final Answer: Respuesta de prueba."])
-        executor = create_agent(llm=llm, tools=[])
+        llm = FakeToolCallingModel(final_answer="Respuesta final.")
+        agent = create_agent(llm=llm, tools=[], verbose=False)
 
-        assert "spanish" in SYSTEM_PROMPT.lower()
+        assert isinstance(agent, RunnableWithMessageHistory)
         assert "Cero" in SYSTEM_PROMPT
-        assert executor is not None
+        assert "spanish" in SYSTEM_PROMPT.lower()
+        assert "Thought:" not in SYSTEM_PROMPT
+        assert "Action:" not in SYSTEM_PROMPT
+        assert "agent_scratchpad" not in SYSTEM_PROMPT
 
     def test_create_agent_can_invoke_with_fake_llm(self, provider, store):
         from agent import create_agent
 
-        llm = FakeChatModel(responses=["Final Answer: Respuesta de prueba."])
-        executor = create_agent(llm=llm, tools=[])
+        llm = FakeToolCallingModel(final_answer="Respuesta final.")
+        agent = create_agent(llm=llm, tools=[], verbose=False)
 
-        result = executor.invoke({"input": "Hola"})
-        assert "Respuesta de prueba" in result["output"]
+        result = agent.invoke(
+            {"input": "Hola"},
+            {"configurable": {"session_id": "test-session"}},
+        )
+        assert "Respuesta final" in result["output"]
 
 
 # ---------------------------------------------------------------------------
-# Phase 4: Memory accumulation
+# Phase 4: Tool calling loop
+# ---------------------------------------------------------------------------
+
+
+class TestToolCallingLoop:
+    """Native tool calling execution with a fake LLM."""
+
+    def test_fake_llm_calls_search_transcripts(self, provider, store):
+        from agent import create_agent
+        from tools import make_search_transcripts
+
+        store.add(
+            ids=["v003_chunk_0"],
+            documents=["La migración es un fenómeno global."],
+            metadatas=[{
+                "video_id": "v003",
+                "title": "Testimonio de migración",
+                "chunk_index": 0,
+                "start_time": 12.5,
+                "end_time": 18.3,
+            }],
+            embeddings=provider.embed(["La migración es un fenómeno global."]),
+        )
+
+        search = make_search_transcripts(provider, store, top_k=3)
+        llm = FakeToolCallingModel(
+            final_answer="La migración es un fenómeno global.",
+            tool_args={"query": "migración"},
+        )
+        agent = create_agent(llm=llm, tools=[search], verbose=False)
+
+        result = agent.invoke(
+            {"input": "¿Qué es la migración?"},
+            {"configurable": {"session_id": "tool-session"}},
+        )
+
+        assert "fenómeno global" in result["output"]
+        assert result.get("intermediate_steps")
+
+
+# ---------------------------------------------------------------------------
+# Phase 5: Memory accumulation
 # ---------------------------------------------------------------------------
 
 
 class TestMemoryAccumulation:
-    """ConversationBufferMemory accumulates turns within a session."""
+    """Per-session message history accumulates turns."""
 
-    def test_memory_accumulates_two_turns(self, provider, store):
-        from agent import create_agent
+    def test_history_retains_two_turns_same_session(self, provider, store):
+        from agent import create_agent, get_session_history
         from langchain_core.messages import HumanMessage, AIMessage
 
-        llm = FakeChatModel(responses=[
-            "Final Answer: Primera respuesta.",
-            "Final Answer: Segunda respuesta.",
-        ])
-        executor = create_agent(llm=llm, tools=[])
+        llm = FakeToolCallingModel(final_answer="Primera respuesta.")
+        agent = create_agent(llm=llm, tools=[], verbose=False)
 
-        executor.invoke({"input": "Pregunta uno"})
-        executor.invoke({"input": "Pregunta dos"})
+        agent.invoke(
+            {"input": "Pregunta uno"},
+            {"configurable": {"session_id": "mem-session"}},
+        )
 
-        messages = executor.memory.chat_memory.messages
+        llm.final_answer = "Segunda respuesta."
+        agent.invoke(
+            {"input": "Pregunta dos"},
+            {"configurable": {"session_id": "mem-session"}},
+        )
+
+        history = get_session_history("mem-session")
+        messages = history.messages
         human_messages = [m for m in messages if isinstance(m, HumanMessage)]
-        ai_messages = [m for m in messages if isinstance(m, AIMessage)]
+        ai_answers = [
+            m for m in messages
+            if isinstance(m, AIMessage)
+            and m.content in ("Primera respuesta.", "Segunda respuesta.")
+        ]
 
         assert len(human_messages) == 2
-        assert len(ai_messages) == 2
         assert human_messages[0].content == "Pregunta uno"
         assert human_messages[1].content == "Pregunta dos"
-        assert "Primera respuesta" in ai_messages[0].content
-        assert "Segunda respuesta" in ai_messages[1].content
+        assert len(ai_answers) == 2
 
-    def test_memory_includes_history_in_prompt(self, provider, store):
-        from agent import create_agent
-        from langchain_core.messages import HumanMessage, AIMessage
+    def test_history_is_isolated_by_session_id(self, provider, store):
+        from agent import create_agent, get_session_history
+        from langchain_core.messages import HumanMessage
 
-        llm = FakeChatModel(responses=[
-            "Final Answer: Primera respuesta.",
-            "Final Answer: Segunda respuesta.",
-            "Final Answer: Tercera respuesta.",
-        ])
-        executor = create_agent(llm=llm, tools=[])
+        llm = FakeToolCallingModel(final_answer="Respuesta A.")
+        agent = create_agent(llm=llm, tools=[], verbose=False)
 
-        executor.invoke({"input": "Pregunta uno"})
-        executor.invoke({"input": "Pregunta dos"})
-        executor.invoke({"input": "Pregunta tres"})
+        agent.invoke(
+            {"input": "Pregunta A"},
+            {"configurable": {"session_id": "session-a"}},
+        )
+        agent.invoke(
+            {"input": "Pregunta B"},
+            {"configurable": {"session_id": "session-b"}},
+        )
 
-        # After three invocations, the public memory API should show three
-        # human/AI pairs. This asserts the same fact as checking the fake LLM
-        # call count, but without relying on internal state.
-        messages = executor.memory.chat_memory.messages
-        human_messages = [m for m in messages if isinstance(m, HumanMessage)]
-        ai_messages = [m for m in messages if isinstance(m, AIMessage)]
-        assert len(human_messages) == 3
-        assert len(ai_messages) == 3
+        history_a = get_session_history("session-a")
+        history_b = get_session_history("session-b")
+
+        assert len([m for m in history_a.messages if isinstance(m, HumanMessage)]) == 1
+        assert len([m for m in history_b.messages if isinstance(m, HumanMessage)]) == 1
+        assert history_a.messages[0].content == "Pregunta A"
+        assert history_b.messages[0].content == "Pregunta B"
 
 
 # ---------------------------------------------------------------------------
-# Phase 5: CLI REPL
+# Phase 6: CLI REPL
 # ---------------------------------------------------------------------------
 
 
 class TestAgentCLI:
     """Unit tests for backend/scripts/agent_cli.py REPL."""
 
-    def test_cli_welcome_and_quit(self, monkeypatch, capsys):
+    def _make_fake_agent(self):
         from unittest.mock import MagicMock
-        import agent_cli
 
         fake_agent = MagicMock()
-        monkeypatch.setattr(agent_cli, "create_agent", lambda: fake_agent)
+        fake_agent.invoke.return_value = {"output": "Respuesta del agente."}
+        return fake_agent
+
+    def test_cli_welcome_and_quit(self, monkeypatch, capsys):
+        import agent_cli
+
+        fake_agent = self._make_fake_agent()
+        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
         monkeypatch.setattr("builtins.input", lambda _: "quit")
 
         agent_cli.main()
@@ -269,12 +348,10 @@ class TestAgentCLI:
         fake_agent.invoke.assert_not_called()
 
     def test_cli_asks_question_and_prints_answer(self, monkeypatch, capsys):
-        from unittest.mock import MagicMock
         import agent_cli
 
-        fake_agent = MagicMock()
-        fake_agent.invoke.return_value = {"output": "Respuesta del agente."}
-        monkeypatch.setattr(agent_cli, "create_agent", lambda: fake_agent)
+        fake_agent = self._make_fake_agent()
+        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
 
         inputs = iter(["¿De qué trata?", "salir"])
         monkeypatch.setattr("builtins.input", lambda _: next(inputs))
@@ -285,12 +362,28 @@ class TestAgentCLI:
         assert "Respuesta del agente" in captured.out
         fake_agent.invoke.assert_called_once()
 
-    def test_cli_exits_with_salir(self, monkeypatch, capsys):
-        from unittest.mock import MagicMock
+    def test_cli_invokes_with_session_id(self, monkeypatch, capsys):
         import agent_cli
 
-        fake_agent = MagicMock()
-        monkeypatch.setattr(agent_cli, "create_agent", lambda: fake_agent)
+        fake_agent = self._make_fake_agent()
+        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
+
+        inputs = iter(["¿De qué trata?", "salir"])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+
+        agent_cli.main()
+
+        fake_agent.invoke.assert_called_once()
+        call_args = fake_agent.invoke.call_args
+        assert call_args.kwargs.get("config") == {
+            "configurable": {"session_id": "cli-session"},
+        }
+
+    def test_cli_exits_with_salir(self, monkeypatch, capsys):
+        import agent_cli
+
+        fake_agent = self._make_fake_agent()
+        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
         monkeypatch.setattr("builtins.input", lambda _: "salir")
 
         agent_cli.main()
@@ -313,7 +406,7 @@ class TestAgentCLI:
 
 
 # ---------------------------------------------------------------------------
-# Phase 6: End-to-end (requires GEMINI_API_KEY)
+# Phase 7: End-to-end (requires GEMINI_API_KEY)
 # ---------------------------------------------------------------------------
 
 
@@ -351,7 +444,10 @@ class TestAgentE2E:
 
         tools = [make_search_transcripts(provider, store, top_k=3)]
         agent = create_agent(tools=tools)
-        result = agent.invoke({"input": "¿Qué se dice sobre la migración en el mediterráneo?"})
+        result = agent.invoke(
+            {"input": "¿Qué se dice sobre la migración en el mediterráneo?"},
+            {"configurable": {"session_id": "e2e-session"}},
+        )
         answer = result.get("output", "")
 
         assert "mediterráneo" in answer.lower() or "migración" in answer.lower()
