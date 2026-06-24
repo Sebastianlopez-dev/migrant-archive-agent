@@ -106,9 +106,7 @@ FILMIG / Plataforma Cero (YouTube)
                                        └──────────────────────────────┘
 ```
 
-> **How to read this diagram:** each node (`S 01`–`S 08`) represents a processing stage. Nodes connected vertically are sequential; horizontal forks are parallel alternatives or complementary outputs. The pipeline flows top-to-bottom, mirroring the 4-week development timeline above.
->
-> **Implementation map:** each stage links to the source file(s) that implement it:
+**Implementation map:**
 > - **S01 (Ingestion):** [`ingestion.py`](backend/core/ingestion.py) · [`ingestion_audio.py`](backend/core/ingestion_audio.py) · [`ingestion_caption.py`](backend/core/ingestion_caption.py) · [`ingestion_colab.py`](backend/core/ingestion_colab.py)
 > - **S02 (Chunking + Embedding):** [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py) · [`embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
 > - **S03 (ChromaDB):** [`vector_store.py`](backend/core/vector_store.py) — semantic search with optional `video_id` where filter
@@ -237,7 +235,7 @@ Same as Option A above.
 
 ## Quick Start Walkthrough
 
-This walkthrough shows the step-by-step progression from raw YouTube videos to the chat widget. Each step links to the detailed section where the command is fully explained.
+From raw YouTube videos to the chat widget. Each step links to the detailed section.
 
 ### Step 0 — Ingest videos (transcription)
 
@@ -442,11 +440,7 @@ Output: `data/raw/captions/{video_id}.json`
 
 > **Source:** [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
 >
-> **Why faster-whisper and not WhisperX?** WhisperX adds speaker diarisation and word-level
-> alignment, but is incompatible with Google Colab as of mid-2026 (numpy dependency conflicts,
-> CUDA version mismatch). faster-whisper uses the same Whisper large-v3 model with zero
-> dependency issues. FILMIG content is mostly single-speaker, so diarisation is not critical.
-> Full decision record: [`notes/faster-whisper-migration.md`](notes/faster-whisper-migration.md).
+> **Why faster-whisper over WhisperX?** WhisperX adds speaker diarisation and word-level alignment but is incompatible with Google Colab as of mid-2026 (NumPy/CUDA conflicts). faster-whisper uses the same Whisper large-v3 model with zero dependency issues. FILMIG content is mostly single-speaker. Full decision: [`notes/faster-whisper-migration.md`](notes/faster-whisper-migration.md).
 
 Best quality at zero cost. Runs entirely on your machine — no API, no uploads. Recommended default for ≤ 5 minute videos.
 
@@ -650,7 +644,7 @@ ChromaDB data is gitignored. Deleting the directory starts fresh.
 
 > **Scripts:** [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py) · core: [`backend/core/vector_store.py`](backend/core/vector_store.py)
 
-This section covers the three situations you'll encounter when working with embeddings: first-time creation, adding new videos, and reading stored data.
+Three scenarios: first-time creation, adding new videos, and reading stored data.
 
 #### Scenario 1 — First-Time Creation (Initial Embeddings)
 
@@ -855,34 +849,20 @@ for r in results:
 
 ---
 
-## Checkpoint Demo — Sample Extraction (completed)
+## Checkpoint Demo — Sample Extraction
 
 > **Source:** [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
 
-Prove the data pipeline works by extracting the first 5,000 characters from both storage backends.
+Extract the first 5,000 characters from both ChromaDB and raw JSON to verify the data pipeline.
 
 ```bash
-# Show first 5K chars from both ChromaDB and JSON sources
-python backend/scripts/extract_sample.py
-
-# ChromaDB only
-python backend/scripts/extract_sample.py --source chroma
-
-# JSON files only
-python backend/scripts/extract_sample.py --source json
-
-# Custom character limit
-python backend/scripts/extract_sample.py --chars 2000
-
-# Use captions directory instead of whisper
-python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captions
+python backend/scripts/extract_sample.py               # both backends
+python backend/scripts/extract_sample.py --source chroma  # ChromaDB only
+python backend/scripts/extract_sample.py --source json    # JSON only
+python backend/scripts/extract_sample.py --chars 2000     # custom length
 ```
 
-**What this proves for the checkpoint:**
-- Data is correctly stored in both ChromaDB and raw JSON files
-- Video content is readable, searchable, and has the expected structure
-- Spanish special characters (¿, ¡, ñ, ó) survive the full pipeline roundtrip
-- ChromaDB chunks preserve title metadata and sequential ordering
+**Verified:** data readable in both backends, Spanish characters preserved, ChromaDB chunks maintain title metadata and sequential order.
 
 ---
 
@@ -891,16 +871,16 @@ python backend/scripts/extract_sample.py --source json --raw-dir data/raw/captio
 ### Native Tool Calling over ReAct Text Parsing
 
 Gemini 2.5 Flash supports native function calling via structured tool messages.
-Using `create_tool_calling_agent` eliminates the text-parsing failures that
-plagued the previous ReAct implementation (`Invalid Format: Missing 'Action:'`).
+`create_tool_calling_agent` eliminates text-parsing failures that occurred with
+ReAct format on ~30% of Spanish queries.
 
-→ [LangChain + Gemini Function Calling Guide](https://www.philschmid.de/gemini-function-calling)
+[LangChain + Gemini Function Calling Guide](https://www.philschmid.de/gemini-function-calling)
 
 ### Message History over ConversationBufferMemory
 
-`ConversationBufferMemory` was deprecated in LangChain 0.3.1. Migrated to
+`ConversationBufferMemory` was deprecated in LangChain 0.3.1. Replaced with
 `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` with per-session
-isolation. Sessions are cleared on CLI exit and via `DELETE /api/session/{id}`.
+isolation. Sessions cleared on CLI exit and via `DELETE /api/session/{id}`.
 
 ```python
 from langchain_core.chat_history import InMemoryChatMessageHistory
@@ -915,8 +895,8 @@ def get_session_history(session_id: str):
 chain = RunnableWithMessageHistory(agent, get_session_history, ...)
 ```
 
-→ [LangChain Memory Migration Guide](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/)
-→ [Conversational Memory in LangChain (Aurelio AI)](https://www.aurelio.ai/learn/langchain-conversational-memory)
+[LangChain Memory Migration Guide](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/)
+[Conversational Memory in LangChain (Aurelio AI)](https://www.aurelio.ai/learn/langchain-conversational-memory)
 
 ---
 
@@ -1198,149 +1178,134 @@ Weekly presentations to Ironhack instructors. Each checkpoint evaluates specific
 
 **Status:** Done
 
-**What was evaluated:** Present the complete 4-week development plan — architecture, timeline, technology choices, and strategy before writing any code.
+Complete 4-week development plan: architecture, timeline, technology choices, and strategy before any code.
 
 **Evidence:**
-- `notes/proyect_description/plan-1.md` — full plan with architecture decisions, tech stack, timeline
-- `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — Ironhack business case and deliverable requirements
+- `notes/proyect_description/plan-1.md` — architecture decisions, tech stack, timeline
+- `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — business case and deliverable requirements
 
 ### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
 
 **Status:** Done
 
-**What was evaluated:** Prove the RAG pipeline works end-to-end — transcribed video content is stored in ChromaDB and retrievable via semantic search. No agent yet, just direct vector DB queries.
+RAG pipeline end-to-end: transcribed video content stored in ChromaDB and retrievable via semantic search. Direct vector DB queries, no agent.
 
-**Evidence — CLI demo:**
+**CLI demo:**
 
 ```bash
-# 1. Activate environment
 source .venv/bin/activate
-
-# 2. Build the vector index (first time, or after adding new videos)
-python backend/scripts/rag_test.py --rebuild
-
-# 3. Run interactive Q&A
-python backend/scripts/rag_test.py
+python backend/scripts/rag_test.py --rebuild   # build index (first time)
+python backend/scripts/rag_test.py              # interactive Q&A
 ```
 
-**Demo questions (pre-verified, Spanish):**
+**Pre-verified questions:**
 
 | Question | Expected result |
 |----------|----------------|
-| "De que trata el video?" | Returns top-3 chunks with similarity scores, titles, and timestamps. Chunks contain coherent Spanish paragraphs about the video topic. |
-| "Que dice sobre migracion?" | Returns chunks specifically about migration, with `[MM:SS]` timestamps. Similarity scores above 0.7 for relevant matches. |
+| "De que trata el video?" | Top-3 chunks with similarity scores, titles, and timestamps |
+| "Que dice sobre migracion?" | Chunks about migration with `[MM:SS]` timestamps, similarity > 0.7 |
 
 **Evidence files:**
 - `backend/scripts/rag_test.py` — interactive RAG query script
-- `backend/scripts/extract_sample.py` — sequential data extraction (proves data roundtrip)
-- `notes/rag_test_questions.md` — pre-verified questions for the demo
+- `backend/scripts/extract_sample.py` — sequential data extraction (data roundtrip)
+- `notes/rag_test_questions.md` — pre-verified demo questions
 
 ### Checkpoint 3 — Sat 27 Jun: Agent, Tools, and Memory
 
-**Status:** Ready for demo
+**Status:** Ready
 
-**What will be evaluated:**
-- **Agent:** Cero — conversational agent with native tool calling (`create_tool_calling_agent` + Gemini 2.5 Flash)
-- **Tools:** 3 tools — `list_videos` (metadata disambiguation), `get_video_info` (video detail), `search_transcripts` (semantic search, global or scoped to one video)
-- **Memory type:** `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` — why this over deprecated `ConversationBufferMemory`, per-session isolation, session cleanup
-- **Disambiguation:** agent uses `list_videos` to help the user pick a video BEFORE searching — does not blindly search all transcripts
-- **Scoped search:** `search_transcripts` with `video_id` limits results to chunks from one video via ChromaDB `where` metadata filter
+Conversational agent (Cero) with 3 tools, disambiguation, scoped semantic search, and session-based memory.
 
-**Evidence — CLI demo:**
+**Evaluated competencies:**
+- Native tool calling via Gemini 2.5 Flash (`create_tool_calling_agent`)
+- 3 tools: `list_videos` (metadata filter), `get_video_info` (detail), `search_transcripts` (scoped or global)
+- Memory: `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` (replaces deprecated `ConversationBufferMemory`)
+- Disambiguation: agent resolves ambiguity via `list_videos` before semantic search
+- Scoped search: `search_transcripts` with `video_id` uses ChromaDB `where` metadata filter
+
+**Demo:**
 
 ```bash
-# 1. Activate environment
 source .venv/bin/activate
-
-# 2. Run the agent
 python backend/scripts/agent_cli.py
 ```
 
-**Demo conversation — Round 1: Disambiguation and metadata (Spanish):**
+**Round 1 — Metadata and disambiguation:**
 
 ```
 Pregunta> Que videos tienes?
-[Agent calls list_videos → returns numbered list of 10 videos with title, year,
- channel (Plataforma Cero), and speakers when the description contains names]
+[list_videos → 10 videos with title, year, channel, speakers when available]
 
 Pregunta> Que videos son de 2024?
-[Agent calls list_videos year=2024 → returns 1 video: Presentacion FILMIG 2024]
+[list_videos year=2024 → 1 video: Presentacion FILMIG 2024]
 
 Pregunta> Dame informacion del video Escrituras Otras
-[Agent calls get_video_info video_id="VJqe2h0U1Fs" → returns title, description,
- year, channel, speakers: "Lucia Mbomio Rubio, Safia El Aaddam, Desirée Bela-Lobedde"]
+[get_video_info → channel: Plataforma Cero, speakers: Lucia Mbomio Rubio,
+ Safia El Aaddam, Desirée Bela-Lobedde]
 ```
 
-**Demo conversation — Round 2: Scoped semantic search (Spanish):**
+**Round 2 — Scoped semantic search:**
 
 ```
 Pregunta> Que dice Safia El Aaddam en Escrituras Otras?
-[Agent calls search_transcripts query="Safia El Aaddam" video_id="VJqe2h0U1Fs"
- → returns chunks ONLY from that video with timestamps and bulleted summary]
+[search_transcripts video_id="VJqe2h0U1Fs" → chunks only from that video,
+ bulleted summary with timestamps]
 
 Pregunta> De que trata el conversatorio sobre produccion cultural migrante?
-[Agent identifies CTmWjuQcvHY, calls get_video_info or scoped search_transcripts
- → returns topic summary with participants: Vivi Alfonsin, Moha Gerehou, Dagmary Olívar,
- Silvia Ramirez]
+[identifies CTmWjuQcvHY → participants: Vivi Alfonsin, Moha Gerehou,
+ Dagmary Olívar, Silvia Ramirez. Topic summary with sources.]
 ```
 
-**Demo conversation — Round 3: Memory (Spanish):**
+**Round 3 — Memory:**
 
 ```
 Pregunta> Cual es el canal de los videos?
-[Agent: "Todos los videos son del canal Plataforma Cero"]
+[Plataforma Cero — from channel field]
 
 Pregunta> y cuantos videos tienen ponentes?
-[Agent uses memory from previous context → "4 de 10 videos tienen ponentes
- identificados: Escrituras Otras (3), conversatorio palestina (2), ..."]
+[memory from previous context → 4 of 10 videos have identified speakers]
 ```
 
-**Pre-verified demo questions:**
+**Pre-verified questions:**
 
-| Question | Tests | Expected behavior |
-|----------|-------|-------------------|
-| "Que videos tienes?" | `list_videos` | Numbered list of 10 videos with year and channel |
-| "Que videos son de 2024?" | `list_videos` year filter | 1 video: "Presentacion FILMIG 2024" |
-| "Dame informacion del video Escrituras Otras" | `get_video_info` | Metadata + speakers: Lucia Mbomio, Safia El Aaddam, Desirée Bela-Lobedde |
-| "Que dice Safia El Aaddam en Escrituras Otras?" | `search_transcripts` scoped | Chunks only from VJqe2h0U1Fs, bulleted summary with timestamps |
-| "De que trata el conversatorio sobre produccion cultural migrante?" | Disambiguation + scoped search | Identifies CTmWjuQcvHY, lists participants, summarizes topic |
-| "Como describen la experiencia migrante en La Cara B?" | `search_transcripts` scoped | Chunks from Jc1xJ4V4xU4, bullet points with timestamps |
-| "Que es FILMIG?" | `get_video_info` | Definition from Presentacion FILMIG 2024 description |
-| "De que va el de Palestina?" | `get_video_info` + disambiguation | Identifies myxPJCDedOE, lists Nadia Jabr and Mohamad Bitari |
-| "y en que minuto mencionaron eso?" | Memory | Follow-up references previous answer context |
-
-**What to show the instructor:**
-1. Agent has 3 tools — not just semantic search. Metadata tools (`list_videos`, `get_video_info`) read from JSON files to avoid unnecessary embedding API calls
-2. Disambiguation flow: ambiguous queries trigger `list_videos` before any semantic search
-3. Scoped search: `search_transcripts` with `video_id` uses ChromaDB `where` metadata filtering — results are precise, no cross-video noise
-4. Channel vs. speakers distinction: `channel` is always "Plataforma Cero" (from yt-dlp metadata); `speakers` only appears when the description has structured participant names (5 extraction patterns)
-5. Follow-up questions work because `RunnableWithMessageHistory` retains previous context
-6. Session cleanup on exit (memory is per-session, not persistent)
-7. Code walkthrough: where tools are defined (`tools.py`), where memory is configured (`agent.py`), why `RunnableWithMessageHistory` was chosen over `ConversationBufferMemory` (deprecated in [LangChain 0.3.1](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/))
+| Question | Tool tested | Expected |
+|----------|------------|----------|
+| "Que videos tienes?" | `list_videos` | 10 videos, numbered list, years, channel |
+| "Que videos son de 2024?" | `list_videos` year filter | 1 result: "Presentacion FILMIG 2024" |
+| "Dame informacion del video Escrituras Otras" | `get_video_info` | Metadata + 3 speakers |
+| "Que dice Safia El Aaddam en Escrituras Otras?" | `search_transcripts` scoped | Chunks from VJqe2h0U1Fs only, bulleted, timestamps |
+| "De que trata el conversatorio sobre produccion cultural migrante?" | Disambiguation + scoped search | CTmWjuQcvHY, 4 participants, topic summary |
+| "Como describen la experiencia migrante en La Cara B?" | `search_transcripts` scoped | Chunks from Jc1xJ4V4xU4, bulleted, timestamps |
+| "Que es FILMIG?" | `get_video_info` | Definition from description |
+| "De que va el de Palestina?" | Disambiguation + `get_video_info` | myxPJCDedOE, Nadia Jabr + Mohamad Bitari |
+| "y en que minuto mencionaron eso?" | Memory | Follow-up references prior answer |
 
 **Evidence files:**
-- `backend/agents/agent.py` — Cero agent with native tool calling + per-session message history + system prompt (query reformulation, list formatting, channel/speakers)
-- `backend/agents/tools.py` — 3 tools: `list_videos`, `get_video_info`, `search_transcripts` (scoped) + speaker extraction (`_extract_speakers_from_description`, `_normalize_math_bold`)
-- `backend/core/vector_store.py` — ChromaDB `search()` with optional `video_id` where filter + `get_unique_videos()`
-- `backend/scripts/agent_cli.py` — interactive CLI with session management
-- `tests/test_agent.py` — 28 tests: tool, agent, memory, disambiguation, scoped search, prompt assertions, E2E
-- `tests/test_speaker_extraction.py` — 11 tests: 5 description patterns, unicode normalization, channel fallback
 
-**Architecture decisions justifying this design:**
-- [Native Tool Calling over ReAct](#native-tool-calling-over-react-text-parsing) — Gemini 2.5 Flash natively returns structured `tool_call` objects
-- [Message History over ConversationBufferMemory](#message-history-over-conversationbuffermemory) — `RunnableWithMessageHistory` is the [LangChain 0.3.1 replacement](https://python.langchain.com/docs/versions/migrating_memory/conversation_buffer_memory/) for deprecated memory classes
-- [ChromaDB `where` metadata filtering](https://docs.trychroma.com/usage-guide#filtering-by-metadata) — scoped search uses ChromaDB's native metadata filter, not post-processing
-- [Strategy Pattern](#phase-1--video-ingestion-transcription) — metadata extraction from JSON files uses the same `VideoData` contract as the ingestion pipeline, keeping the architecture consistent
+| File | Role |
+|------|------|
+| `backend/agents/agent.py` | Agent + system prompt (reformulation, lists, channel/speakers) |
+| `backend/agents/tools.py` | 3 tools + speaker extraction (5 patterns, math-bold normalization) |
+| `backend/core/vector_store.py` | Scoped search via ChromaDB `where` filter + `get_unique_videos()` |
+| `backend/scripts/agent_cli.py` | Interactive CLI with session lifecycle |
+| `tests/test_agent.py` | 28 tests: tools, memory, disambiguation, scoped search, E2E |
+| `tests/test_speaker_extraction.py` | 11 tests: 5 description patterns, normalization, fallback |
+
+**Design justification:**
+- [Native Tool Calling](#native-tool-calling-over-react-text-parsing) — Gemini 2.5 Flash structured `tool_call` objects, zero parsing failures
+- [Message History](#message-history-over-conversationbuffermemory) — `RunnableWithMessageHistory` replaces deprecated `ConversationBufferMemory`
+- [ChromaDB metadata filtering](https://docs.trychroma.com/usage-guide#filtering-by-metadata) — native `where` filter, no post-processing
+- [Strategy Pattern](#phase-1--video-ingestion-transcription) — JSON metadata uses same `VideoData` contract as ingestion
 
 ### Checkpoint 4 — Sat 4 Jul: TBD
 
 **Status:** Pending
 
-**What will be evaluated:** Criteria not yet defined by Ironhack.
+Criteria not yet defined by Ironhack.
 
-**What is ready regardless:**
+**Ready:**
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
 - Chat widget (Vite + TypeScript, blue bubble UI)
 - LangSmith tracing (auto-tracing via env vars)
 - Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
-- 149 tests (146 passing, 3 pre-existing BGE-M3 failures in UV env)
+- 149 tests passing (3 pre-existing BGE-M3 failures in UV env)
