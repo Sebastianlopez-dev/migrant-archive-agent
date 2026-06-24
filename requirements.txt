@@ -144,3 +144,4 @@ langchain-classic==1.0.8
 langchain-core==1.4.8
 langchain-google-genai==4.2.5
 filetype==1.2.0
+fastapi==0.115.12
