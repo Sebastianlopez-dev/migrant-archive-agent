@@ -13,7 +13,7 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 |------|-------|-------|--------|
 | 1 | 1–2 | Ingestion + Processing — dual transcription, chunking, embeddings, ChromaDB | Done |
 | 2 | 3–4 | Agents + Testing — LangChain agent with tools/memory, test suite | Done |
-| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | Pending |
+| 3 | 5–6 | Evaluation + API — LangSmith, FastAPI REST wrapper | In progress |
 | 4 | 7–8 | Frontend + Deploy — Web Speech API voice input, presentation | Pending |
 
 ---
@@ -815,6 +815,117 @@ uv run python -m pytest tests/test_agent.py -v
 ```
 
 14 tests: tool, agent, memory, CLI, and E2E (requires GEMINI_API_KEY).
+
+---
+
+## End-to-End Usage Guide
+
+This section walks through the full pipeline: from raw YouTube videos to asking questions through a chat widget.
+
+### Prerequisites
+
+```bash
+source .venv/bin/activate
+cp .env.example .env   # add your GEMINI_API_KEY
+```
+
+### Step 0 — Ingest videos (transcription)
+
+Download and transcribe YouTube videos. Repeat for each video.
+
+```bash
+python backend/core/ingestion_audio.py --url "VIDEO_URL" --lang es
+```
+
+Output: `data/raw/whisper/{video_id}.json` (one JSON per video with transcript + metadata).
+
+**Current state:** 10 JSON files with full YouTube info and transcriptions.
+
+### Step 1 — Build the vector index (embeddings)
+
+Chunk transcript text, generate Gemini embeddings, and store in ChromaDB. Run once after adding new videos.
+
+```bash
+python backend/scripts/rag_test.py --rebuild
+```
+
+This finds all `.json` files in `data/raw/whisper/`, chunks them, embeds via Gemini, and persists to `data/chroma/`.
+
+**Current state:** index built with at least one video. Run `--rebuild` after adding the remaining videos.
+
+### Step 2 — Query (simple RAG, no memory)
+
+Search ChromaDB directly. No agent, no memory — just semantic search.
+
+```bash
+python backend/scripts/rag_test.py
+```
+
+Type a question in Spanish. Returns top-k most similar transcript chunks.
+
+```
+Query> Que se dice sobre la migracion?
+  #1  similarity: 0.8234 | 12.5-18.3 | La migracion es un fenomeno...
+  #2  similarity: 0.7891 | 45.0-52.1 | Las fronteras han cambiado...
+```
+
+### Step 3 — Query with memory (agent CLI)
+
+Same ChromaDB, but with conversation context. The agent remembers previous turns.
+
+```bash
+python backend/scripts/agent_cli.py
+```
+
+```
+Bienvenido a Cero. Escribe 'quit' o 'salir' para salir.
+Pregunta> Que dice el video sobre migracion?
+[answer with sources]
+
+Pregunta> Y en que minuto lo menciono?
+[answer using memory — knows which video/topic without repeating]
+```
+
+### Step 4 — Query through the web widget
+
+Start the API and frontend, then open the browser.
+
+**Terminal 1 — API:**
+```bash
+uv run uvicorn backend.api.main:app --reload --port 8000
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd frontend && pnpm install && pnpm dev
+```
+
+Open `http://localhost:5173`. Click the blue bubble (bottom-right). The chat panel opens. Type a question.
+
+### Quick verification checklist
+
+- [ ] Step 0: `data/raw/whisper/` contains 10 `.json` files
+- [ ] Step 1: `data/chroma/` exists and is populated (run `--rebuild` if not)
+- [ ] Step 2: `rag_test.py` returns relevant chunks for a Spanish query
+- [ ] Step 3: `agent_cli.py` answers and remembers context across turns
+- [ ] Step 4: API returns 200 on `POST /api/ask`, widget renders and sends messages
+
+### Environment variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GEMINI_API_KEY` | Yes | — | Google Gemini API key |
+| `GEMINI_MODEL` | No | `gemini-2.5-flash` | LLM model for the agent |
+| `CHROMA_PERSIST_DIR` | No | `data/chroma` | ChromaDB storage path |
+| `ALLOWED_ORIGINS` | No | `http://localhost:5173` | CORS origins for the API |
+
+### Troubleshooting
+
+**Gemini 429 (RESOURCE_EXHAUSTED):** free tier RPM limit exceeded. Wait 60 seconds or upgrade at [Google AI Studio](https://aistudio.google.com/apikey).
+
+**ModuleNotFoundError on import:** run commands from the `migrant-archive/` root with the venv activated.
+
+**ChromaDB collection mismatch:** delete `data/chroma/` and re-run `--rebuild` if you switch embedding providers.
 
 ---
 
