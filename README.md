@@ -38,110 +38,6 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ---
 
-## Saturday Checkpoints
-
-Weekly presentations to Ironhack instructors. Each checkpoint evaluates specific competencies.
-
-### Checkpoint 1 — Sat 13 Jun: Project Plan
-
-**Status:** Done
-
-**What was evaluated:** Present the complete 4-week development plan — architecture, timeline, technology choices, and strategy before writing any code.
-
-**Evidence:**
-- `notes/proyect_description/plan-1.md` — full plan with architecture decisions, tech stack, timeline
-- `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — Ironhack business case and deliverable requirements
-
-### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
-
-**Status:** Done
-
-**What was evaluated:** Prove the RAG pipeline works end-to-end — transcribed video content is stored in ChromaDB and retrievable via semantic search. No agent yet, just direct vector DB queries.
-
-**Evidence — CLI demo:**
-
-```bash
-# 1. Activate environment
-source .venv/bin/activate
-
-# 2. Build the vector index (first time, or after adding new videos)
-python backend/scripts/rag_test.py --rebuild
-
-# 3. Run interactive Q&A
-python backend/scripts/rag_test.py
-```
-
-**Demo questions (pre-verified, Spanish):**
-
-| Question | Expected result |
-|----------|----------------|
-| "De que trata el video?" | Returns top-3 chunks with similarity scores, titles, and timestamps. Chunks contain coherent Spanish paragraphs about the video topic. |
-| "Que dice sobre migracion?" | Returns chunks specifically about migration, with `[MM:SS]` timestamps. Similarity scores above 0.7 for relevant matches. |
-
-**Evidence files:**
-- `backend/scripts/rag_test.py` — interactive RAG query script
-- `backend/scripts/extract_sample.py` — sequential data extraction (proves data roundtrip)
-- `notes/rag_test_questions.md` — pre-verified questions for the demo
-
-### Checkpoint 3 — Sat 27 Jun: Agent, Tool, and Memory
-
-**Status:** Pending
-
-**What will be evaluated:**
-- **Agent:** Cero — conversational agent with native tool calling (`create_tool_calling_agent` + Gemini 2.5 Flash)
-- **Tool:** `search_transcripts` — semantic search over ChromaDB, returns formatted chunks with video_id, title, and timestamps
-- **Memory type:** `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` — why this over deprecated `ConversationBufferMemory`, per-session isolation, session cleanup
-
-**Evidence — CLI demo:**
-
-```bash
-# 1. Activate environment
-source .venv/bin/activate
-
-# 2. Run the agent
-python backend/scripts/agent_cli.py
-```
-
-**Demo conversation (Spanish):**
-
-```
-Pregunta> De que trata el video?
-[Agent responds with cited transcript chunks, including video titles and timestamps]
-
-Pregunta> y en que minuto mencionaron eso?
-[Agent uses memory to reference the previous answer — proves session context works]
-
-Pregunta> salir
-[Session history is cleared]
-```
-
-**What to show the instructor:**
-1. Agent answers are grounded in real transcript chunks (not hallucinated)
-2. Follow-up questions work because memory retains previous context
-3. Session cleanup on exit (memory is per-session, not persistent)
-4. Code walkthrough: where memory is defined (`agent.py`), why `RunnableWithMessageHistory` was chosen over `ConversationBufferMemory` (deprecated in LangChain 0.3.1), how `search_transcripts` formats results (`tools.py`)
-
-**Evidence files:**
-- `backend/agents/agent.py` — Cero agent with native tool calling + per-session message history
-- `backend/agents/tools.py` — `search_transcripts` tool with formatted output
-- `backend/scripts/agent_cli.py` — interactive CLI with session management
-- `tests/test_agent.py` — 16 tests: tool, agent, memory isolation, session cleanup, CLI, E2E
-
-### Checkpoint 4 — Sat 4 Jul: TBD
-
-**Status:** Pending
-
-**What will be evaluated:** Criteria not yet defined by Ironhack.
-
-**What is ready regardless:**
-- FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
-- Chat widget (Vite + TypeScript, blue bubble UI)
-- LangSmith tracing (auto-tracing via env vars)
-- Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
-- 121/125 tests passing
-
----
-
 ## Pipeline Architecture
 
 ```
@@ -1242,3 +1138,108 @@ python -m pytest tests/ -v
 | Frontend | 9 | `test_frontend.py` | Vite build, widget class structure, DOM bootstrap, styling |
 | Observability | 3 | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
+
+
+---
+
+## Saturday Checkpoints
+
+Weekly presentations to Ironhack instructors. Each checkpoint evaluates specific competencies.
+
+### Checkpoint 1 — Sat 13 Jun: Project Plan
+
+**Status:** Done
+
+**What was evaluated:** Present the complete 4-week development plan — architecture, timeline, technology choices, and strategy before writing any code.
+
+**Evidence:**
+- `notes/proyect_description/plan-1.md` — full plan with architecture decisions, tech stack, timeline
+- `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — Ironhack business case and deliverable requirements
+
+### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
+
+**Status:** Done
+
+**What was evaluated:** Prove the RAG pipeline works end-to-end — transcribed video content is stored in ChromaDB and retrievable via semantic search. No agent yet, just direct vector DB queries.
+
+**Evidence — CLI demo:**
+
+```bash
+# 1. Activate environment
+source .venv/bin/activate
+
+# 2. Build the vector index (first time, or after adding new videos)
+python backend/scripts/rag_test.py --rebuild
+
+# 3. Run interactive Q&A
+python backend/scripts/rag_test.py
+```
+
+**Demo questions (pre-verified, Spanish):**
+
+| Question | Expected result |
+|----------|----------------|
+| "De que trata el video?" | Returns top-3 chunks with similarity scores, titles, and timestamps. Chunks contain coherent Spanish paragraphs about the video topic. |
+| "Que dice sobre migracion?" | Returns chunks specifically about migration, with `[MM:SS]` timestamps. Similarity scores above 0.7 for relevant matches. |
+
+**Evidence files:**
+- `backend/scripts/rag_test.py` — interactive RAG query script
+- `backend/scripts/extract_sample.py` — sequential data extraction (proves data roundtrip)
+- `notes/rag_test_questions.md` — pre-verified questions for the demo
+
+### Checkpoint 3 — Sat 27 Jun: Agent, Tool, and Memory
+
+**Status:** Pending
+
+**What will be evaluated:**
+- **Agent:** Cero — conversational agent with native tool calling (`create_tool_calling_agent` + Gemini 2.5 Flash)
+- **Tool:** `search_transcripts` — semantic search over ChromaDB, returns formatted chunks with video_id, title, and timestamps
+- **Memory type:** `RunnableWithMessageHistory` + `InMemoryChatMessageHistory` — why this over deprecated `ConversationBufferMemory`, per-session isolation, session cleanup
+
+**Evidence — CLI demo:**
+
+```bash
+# 1. Activate environment
+source .venv/bin/activate
+
+# 2. Run the agent
+python backend/scripts/agent_cli.py
+```
+
+**Demo conversation (Spanish):**
+
+```
+Pregunta> De que trata el video?
+[Agent responds with cited transcript chunks, including video titles and timestamps]
+
+Pregunta> y en que minuto mencionaron eso?
+[Agent uses memory to reference the previous answer — proves session context works]
+
+Pregunta> salir
+[Session history is cleared]
+```
+
+**What to show the instructor:**
+1. Agent answers are grounded in real transcript chunks (not hallucinated)
+2. Follow-up questions work because memory retains previous context
+3. Session cleanup on exit (memory is per-session, not persistent)
+4. Code walkthrough: where memory is defined (`agent.py`), why `RunnableWithMessageHistory` was chosen over `ConversationBufferMemory` (deprecated in LangChain 0.3.1), how `search_transcripts` formats results (`tools.py`)
+
+**Evidence files:**
+- `backend/agents/agent.py` — Cero agent with native tool calling + per-session message history
+- `backend/agents/tools.py` — `search_transcripts` tool with formatted output
+- `backend/scripts/agent_cli.py` — interactive CLI with session management
+- `tests/test_agent.py` — 16 tests: tool, agent, memory isolation, session cleanup, CLI, E2E
+
+### Checkpoint 4 — Sat 4 Jul: TBD
+
+**Status:** Pending
+
+**What will be evaluated:** Criteria not yet defined by Ironhack.
+
+**What is ready regardless:**
+- FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
+- Chat widget (Vite + TypeScript, blue bubble UI)
+- LangSmith tracing (auto-tracing via env vars)
+- Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
+- 121/125 tests passing
