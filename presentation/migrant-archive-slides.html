@@ -230,12 +230,12 @@
     <span class="process-line"></span>
     <div class="process-step">
       <span class="process-num">S04</span>
-      <span class="process-label">Test</span>
+      <span class="process-label">Extract</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
       <span class="process-num">S05</span>
-      <span class="process-label">Extract</span>
+      <span class="process-label">Test</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
@@ -319,20 +319,20 @@
   </div>
 </section>
 
-<!-- ═══════ SLIDE 09 · S04–S05 RAG VALIDATION ═══════ -->
+<!-- ═══════ SLIDE 09 · S04–S05 VERIFY THEN QUERY ═══════ -->
 <section class="slide slide-content">
-  <p class="slide-label">S04–S05 · RAG validation</p>
-  <h2 class="t-title">Three query levels. From keyword to memory.</h2>
+  <p class="slide-label">S04–S05 · Verify then query</p>
+  <h2 class="t-title">First verify the data. Then query with memory.</h2>
   <div class="divider"></div>
   <div class="day-list" style="margin-top:8px;">
+    <div class="day-item"><span class="day-num">S04</span> extract_sample.py — verify chunks arrived intact</div>
     <div class="day-item"><span class="day-num">1</span> quick_search.py — fast keyword search, no API</div>
     <div class="day-item"><span class="day-num">2</span> rag_test.py — semantic search, no memory</div>
     <div class="day-item"><span class="day-num">3</span> rag_memory.py — semantic search + Buffer Window Memory (K=5)</div>
-    <div class="day-item"><span class="day-num">S05</span> extract_sample.py — first-5K chars JSON export from ChromaDB</div>
   </div>
   <p class="t-small" style="margin-top:24px; line-height:1.6;">
-    Memory without LLM: a Python list of past searches. Type <span style="color:var(--accent);">history</span> to read it.<br>
-    Same buffer as the agent (S06). Different reader: human vs LLM.
+    S04 validates integrity. S05 shows the progression: keyword → semantic → memory.<br>
+    Memory without LLM: a Python list. Same buffer as the agent (S06). Different reader.
   </p>
 </section>
 

@@ -44,11 +44,11 @@ FILMIG / Plataforma Cero (YouTube)
                   │
         ┌─────────┴─────────┐
         ▼                   ▼
-   ┌─ S04 ──────┐     ┌─ S05 ──────┐
-   │  RAG Test  │     │  Sample    │
-   │  Query     │     │  Extract   │
-   │  ChromaDB  │     │  5K chars  │
-   └──────┬─────┘     └──────┬─────┘
+    ┌─ S04 ──────────┐  ┌─ S05 ──────────┐
+    │  Sample        │  │  RAG Test +    │
+    │  Extract       │  │  Memory        │
+    │  5K chars      │  │  Query ChromaDB│
+    └──────┬─────────┘  └──────┬─────────┘
           │                  │
           └────────┬─────────┘
                    ▼
@@ -109,7 +109,7 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S04–S05 — RAG Test + Sample Extraction: 4 files · 1 test file</summary>
+<summary>S04–S05 — Sample Extraction + RAG Test: 4 files · 1 test file</summary>
 
 **Files:**
 [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
@@ -301,7 +301,7 @@ Try these questions once inside `rag_test.py` or `rag_memory.py`:
 python backend/scripts/extract_sample.py --source chroma
 ```
 
-Full details: [Scenario 3 — Reading / Querying Embeddings](#scenario-3--reading--querying-embeddings) and [S04 — RAG Test Script](#s04--rag-test-script).
+Full details: [Scenario 3 — Reading / Querying Embeddings](#scenario-3--reading--querying-embeddings) and [S05 — RAG Test + Memory](#s05--rag-test--memory).
 
 </details>
 
@@ -965,9 +965,30 @@ ChromaDB was chosen because it requires no API keys, no external services, and n
 
 
 <details>
-<summary>S04 — RAG Test Script</summary>
+<summary>S04 — Sample Extraction</summary>
 
-### S04 — RAG Test Script
+### S04 — Sample Extraction
+
+> **Source:** [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
+
+Sequentially reads the first 5,000 characters from ChromaDB and raw JSON files to verify the data pipeline roundtripped correctly.
+
+**Why dual-backend extraction:** ChromaDB stores chunked, embedded text. JSON stores raw transcripts. Reading both and comparing confirms that chunking preserved the original content, Spanish characters survived embedding, and metadata (title, timestamps) remained attached to each chunk.
+
+**Key behavior:**
+- `--source chroma` extracts from ChromaDB sequentially (not semantically — just reads chunks in order)
+- `--source json` extracts from raw JSON files
+- `--chars N` sets the character limit (default: 5000)
+
+**Tests:** `test_extract_sample.py` — verifies truncation, dual-backend reads, and character preservation.
+
+</details>
+
+
+<details>
+<summary>S05 — RAG Test + Memory</summary>
+
+### S05 — RAG Test + Memory
 
 > **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/rag_memory.py`](backend/scripts/rag_memory.py)
 
@@ -1016,31 +1037,6 @@ python backend/scripts/rag_memory.py --verbose   # full pipeline trace (timing, 
 The `--verbose` flag shows every step: embedding time (Gemini API), search time (ChromaDB), and buffer state — growing from 1/5 to 5/5, then dropping the oldest entry with `action: pop "q1" + append new`.
 
 > **Why this matters:** `rag_memory.py` and `agent_cli.py` (S06) store the same kind of data — a list of past interactions. The difference is who consumes it: the human reads `history` output in `rag_memory.py`; the LLM reads `chat_history` as prompt context in `agent_cli.py`. Same buffer, different reader. This demonstrates that conversation memory is a data structure problem, not an AI problem. See [`notes/memory_types.md`](notes/memory_types.md) for the full taxonomy.
-
-**`extract_sample.py` — Sequential extraction**
-
-Reads chunks in order from ChromaDB and JSON to verify data roundtripped correctly. See [S05 — Sample Extraction](#s05--sample-extraction).
-
-</details>
-
-
-<details>
-<summary>S05 — Sample Extraction</summary>
-
-### S05 — Sample Extraction
-
-> **Source:** [`backend/scripts/extract_sample.py`](backend/scripts/extract_sample.py)
-
-Sequentially reads the first 5,000 characters from ChromaDB and raw JSON files to verify the data pipeline roundtripped correctly.
-
-**Why dual-backend extraction:** ChromaDB stores chunked, embedded text. JSON stores raw transcripts. Reading both and comparing confirms that chunking preserved the original content, Spanish characters survived embedding, and metadata (title, timestamps) remained attached to each chunk.
-
-**Key behavior:**
-- `--source chroma` extracts from ChromaDB sequentially (not semantically — just reads chunks in order)
-- `--source json` extracts from raw JSON files
-- `--chars N` sets the character limit (default: 5000)
-
-**Tests:** `test_extract_sample.py` — verifies truncation, dual-backend reads, and character preservation.
 
 </details>
 
