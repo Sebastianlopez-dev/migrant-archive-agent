@@ -261,24 +261,24 @@
   <h2 class="t-title">Three transcription strategies. One shared contract.</h2>
   <div class="divider"></div>
   <div class="tag-row">
-    <span class="tag accent-tag">A — Colab GPU (recommended)</span>
+    <span class="tag">A — Colab GPU (recommended)</span>
     <span class="tag">B — faster-whisper local</span>
     <span class="tag">C — YouTube captions</span>
   </div>
   <p class="t-body" style="margin-top:24px;">VideoData dataclass — the pipeline never knows which strategy ran.</p>
 </section>
 
-<!-- ═══════ SLIDE 05 · S01 STRATEGY COMPARISON ═══════ -->
+<!-- ═══════ SLIDE 05 · S01 COLAB WORKFLOW ═══════ -->
 <section class="slide slide-content">
-  <p class="slide-label">S01 · Strategy comparison</p>
-  <h2 class="t-title">A vs B vs C — quality, speed, cost.</h2>
+  <p class="slide-label">S01 · Colab workflow</p>
+  <h2 class="t-title">Transcribe on Colab's free GPU.</h2>
   <div class="divider"></div>
   <div class="day-list" style="margin-top:8px;">
-    <div class="day-item"><span class="day-num">A</span> Colab GPU recommended · large-v3 · 5/5 · ~15 s/video</div>
-    <div class="day-item"><span class="day-num">B</span> faster-whisper local CPU · 4/5 · ~2 min/video</div>
-    <div class="day-item"><span class="day-num">C</span> YouTube captions · 2/5 · instant · no punctuation</div>
+    <div class="day-item"><span class="day-num">Notebook</span> notebooks/transcribe_video_colab.ipynb</div>
+    <div class="day-item"><span class="day-num">Upload</span> ingestion.py · ingestion_colab.py · ingestion_audio.py · cookies · video links</div>
+    <div class="day-item"><span class="day-num">Output</span> data/raw/whisper/{video_id}.json</div>
   </div>
-  <p class="t-small" style="margin-top:24px;">All three strategies: $0 cost · same VideoData output contract.</p>
+  <p class="t-small" style="margin-top:24px;">One JSON per video — transcript + metadata.</p>
 </section>
 
 <!-- ═══════ SLIDE 06 · S02 CHUNKING ═══════ -->
@@ -288,7 +288,7 @@
   <div class="divider"></div>
   <p class="t-body">Captures ~4–5 min of speech — one complete idea. 20% overlap bridges ideas across chunk boundaries.</p>
   <div class="tag-row" style="margin-top:24px;">
-    <span class="tag accent-tag">title + description + [MM:SS]</span>
+    <span class="tag">title + description + [MM:SS]</span>
     <span class="tag">enriched text per chunk</span>
     <span class="tag">~12 chunks / 1-hour video</span>
   </div>
@@ -300,8 +300,8 @@
   <h2 class="t-title">Dependency inversion. Two providers.</h2>
   <div class="divider"></div>
   <div class="tag-row">
-    <span class="tag accent-tag">Gemini text-embedding-004 — 3 072d · #1 MTEB 71.5%</span>
-    <span class="tag">BGE-M3 local — 1 024d</span>
+    <span class="tag">gemini-embedding-001 — 3072d</span>
+    <span class="tag">BGE-M3 local — 1024d</span>
   </div>
   <p class="t-body" style="margin-top:24px;">One abstract contract. Two implementations. Zero coupling.</p>
 </section>
@@ -313,7 +313,7 @@
   <div class="divider"></div>
   <p class="t-body">Persistent local storage. Semantic search. Metadata filters by video, speaker, and timestamp.</p>
   <div class="tag-row" style="margin-top:24px;">
-    <span class="tag accent-tag">ChromaDB</span>
+    <span class="tag">ChromaDB</span>
     <span class="tag">zero-config</span>
     <span class="tag">local</span>
   </div>
@@ -325,6 +325,7 @@
   <h2 class="t-title">Test queries + sample extraction scripts.</h2>
   <div class="divider"></div>
   <div class="day-list" style="margin-top:8px;">
+    <div class="day-item"><span class="day-num">S04</span> quick_search.py — fast keyword search, no API</div>
     <div class="day-item"><span class="day-num">S04</span> rag_test.py — interactive semantic search against ChromaDB</div>
     <div class="day-item"><span class="day-num">S05</span> extract_sample.py — first-5K chars JSON export from ChromaDB</div>
   </div>
@@ -336,7 +337,7 @@
   <h2 class="t-title">Cero — Spanish RAG agent with memory.</h2>
   <div class="divider"></div>
   <div class="tag-row">
-    <span class="tag accent-tag">Gemini 2.5 Flash</span>
+    <span class="tag">Gemini 2.5 Flash</span>
     <span class="tag">Spanish system prompt</span>
     <span class="tag">per-session memory</span>
     <span class="tag">disambiguation</span>
@@ -349,21 +350,20 @@
   <h2 class="t-title">Three tools. Zero hallucination surface.</h2>
   <div class="divider"></div>
   <div class="tag-row">
-    <span class="tag accent-tag">list_videos</span>
-    <span class="tag accent-tag">get_video_info</span>
-    <span class="tag accent-tag">search_transcripts</span>
+    <span class="tag">list_videos</span>
+    <span class="tag">get_video_info</span>
+    <span class="tag">search_transcripts</span>
   </div>
 </section>
 
 <!-- ═══════ SLIDE 12 · S06 ARCHITECTURE DECISION ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">S06 · Architecture decision</p>
-  <span class="big-icon"><svg viewBox="0 0 72 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="40" height="14" rx="4"/><rect x="12" y="24" width="40" height="14" rx="4"/><rect x="20" y="44" width="40" height="14" rx="4"/></svg></span>
   <h2 class="t-title">Native tool calling eliminated ~30% failure rate.</h2>
   <div class="divider"></div>
   <div class="tag-row">
     <span class="tag">ReAct (deprecated)</span>
-    <span class="tag accent-tag">Native tool calling</span>
+    <span class="tag">Native tool calling</span>
   </div>
 </section>
 
@@ -423,23 +423,7 @@
   <p class="t-body" style="margin-top:32px;">Vanilla TypeScript, zero runtime deps. Blue bubble, slide-out panel, clickable source links.</p>
 </section>
 
-<!-- ═══════ SLIDE 15 · S08 STATUS ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">S08 · Status</p>
-  <h2 class="t-title">Where we are.</h2>
-  <div class="divider"></div>
-  <div class="day-list" style="margin-top:8px;">
-    <div class="day-item"><span class="day-num">Done</span> S01 — Video ingestion (3 strategies)</div>
-    <div class="day-item"><span class="day-num">Done</span> S02 — Chunking + embeddings (Gemini / BGE-M3)</div>
-    <div class="day-item"><span class="day-num">Done</span> S03–S05 — ChromaDB + RAG test + sample extraction</div>
-    <div class="day-item"><span class="day-num">Done</span> S06 — Cero agent (3 tools + memory)</div>
-    <div class="day-item"><span class="day-num">Done</span> S07 — LangSmith + FastAPI + chat widget</div>
-    <div class="day-item"><span class="day-num">Done</span> S08 — Presentation</div>
-    <div class="day-item"><span class="day-num" style="color:var(--muted);">Pending</span> Deploy to production · frontend polish · voice input</div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 16 · TEST SUITE ═══════ -->
+<!-- ═══════ SLIDE 15 · TEST SUITE ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Quality</p>
   <h2 class="t-title">149 passing. 7 layers.</h2>
@@ -473,30 +457,16 @@
   <p class="t-body" style="margin-top:32px;">39 = 28 agent + 11 speaker · 3 pre-existing BGE-M3 failures (UV env · torch&lt;2.6 / transformers CVE-2025-32434)</p>
 </section>
 
-<!-- ═══════ SLIDE 17 · S01 TOOLCHAIN ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">S01 · Toolchain</p>
-  <div class="tag-row">
-    <span class="tag accent-tag">yt-dlp</span>
-    <span class="tag">ffmpeg</span>
-    <span class="tag">faster-whisper</span>
-    <span class="tag">Colab GPU</span>
-    <span class="tag">uv</span>
-  </div>
-  <div class="divider"></div>
-  <p class="t-body">Audio download. Extraction. Transcription. Zero-cost pipeline.</p>
-</section>
-
-<!-- ═══════ SLIDE 18 · TECH STACK ═══════ -->
+<!-- ═══════ SLIDE 16 · TECH STACK ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Tech Stack</p>
   <div class="tag-row" style="flex-wrap:wrap; max-width:720px;">
-    <span class="tag accent-tag">FastAPI</span>
-    <span class="tag">ChromaDB</span>
-    <span class="tag">Gemini Embeddings</span>
-    <span class="tag">LangChain</span>
-    <span class="tag">LangSmith</span>
     <span class="tag">faster-whisper</span>
+    <span class="tag">Gemini Embeddings</span>
+    <span class="tag">ChromaDB</span>
+    <span class="tag">LangChain</span>
+    <span class="tag">FastAPI</span>
+    <span class="tag">LangSmith</span>
     <span class="tag">Vite + TypeScript</span>
     <span class="tag">pytest</span>
   </div>
@@ -504,20 +474,21 @@
   <p class="t-body">Agent: <strong style="color:var(--accent);">Cero</strong> — Spanish-language RAG with memory.</p>
 </section>
 
-<!-- ═══════ SLIDE 19 · DEMO ═══════ -->
+<!-- ═══════ SLIDE 17 · DEMO ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Demo</p>
   <h2 class="t-title">Run it locally</h2>
   <div class="divider"></div>
-  <div class="day-list" style="margin-top:24px;">
-    <div class="day-item"><span class="day-num">Terminal 1</span> uv run uvicorn backend.api.main:app --reload --port 8000</div>
-    <div class="day-item"><span class="day-num">Terminal 2</span> cd frontend && pnpm dev</div>
-    <div class="day-item"><span class="day-num">Browser</span> http://localhost:5173</div>
+  <!-- Replace this placeholder with the final-app screenshot or a <video> -->
+  <div style="flex:1; display:flex; align-items:center; justify-content:center; min-height:0; margin-top:16px;">
+    <div style="width:100%; max-width:1000px; aspect-ratio:16/9; max-height:100%; border:2px dashed rgba(255,255,255,0.18); border-radius:var(--radius); display:flex; align-items:center; justify-content:center;">
+      <span class="t-small">App screenshot / video</span>
+    </div>
   </div>
-  <p class="t-body" style="margin-top:24px;">Traces at smith.langchain.com</p>
+  <p class="t-cap" style="margin-top:24px; line-height:1.7;"><span class="t-accent">1</span>&nbsp; uv run uvicorn backend.api.main:app --reload --port 8000 &nbsp;&nbsp; <span class="t-accent">2</span>&nbsp; cd frontend &amp;&amp; pnpm dev &nbsp;&nbsp; <span class="t-accent">3</span>&nbsp; localhost:5173</p>
 </section>
 
-<!-- ═══════ SLIDE 20 · CLOSING ═══════ -->
+<!-- ═══════ SLIDE 18 · CLOSING ═══════ -->
 <section class="slide slide-closing">
   <h2 class="t-hero" style="margin-bottom:24px;">Thank you.</h2>
   <div class="divider" style="margin:0 auto 32px;"></div>
