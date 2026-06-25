@@ -625,6 +625,46 @@ class TestMemoryAccumulation:
 
 
 # ---------------------------------------------------------------------------
+# Phase 5b: Bounded history (sliding window)
+# ---------------------------------------------------------------------------
+
+
+class TestBoundedChatMessageHistory:
+    """Unit tests for BoundedChatMessageHistory sliding window."""
+
+    def test_trim_drops_oldest_when_buffer_exceeded(self):
+        from agent import BoundedChatMessageHistory
+        from langchain_core.messages import HumanMessage, AIMessage
+
+        history = BoundedChatMessageHistory(max_messages=4)
+
+        for i in range(3):  # 6 messages: Q1,A1,Q2,A2,Q3,A3
+            history.add_message(HumanMessage(content=f"Pregunta {i+1}"))
+            history.add_message(AIMessage(content=f"Respuesta {i+1}"))
+
+        assert len(history.messages) == 4
+        assert history.messages[0].content == "Pregunta 2"
+        assert history.messages[-1].content == "Respuesta 3"
+
+    def test_no_trim_when_under_limit(self):
+        from agent import BoundedChatMessageHistory
+        from langchain_core.messages import HumanMessage, AIMessage
+
+        history = BoundedChatMessageHistory(max_messages=10)
+
+        history.add_message(HumanMessage(content="Hola"))
+        history.add_message(AIMessage(content="Hola!"))
+
+        assert len(history.messages) == 2
+
+    def test_default_max_messages_is_ten(self):
+        from agent import BoundedChatMessageHistory
+
+        history = BoundedChatMessageHistory()
+        assert history._max_messages == 10
+
+
+# ---------------------------------------------------------------------------
 # Phase 6: CLI REPL
 # ---------------------------------------------------------------------------
 

@@ -124,16 +124,17 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S06 — LangChain Agent (Cero): 3 decisions · 3 files · 2 test files (39 tests)</summary>
+<summary>S06 — LangChain Agent (Cero): 4 decisions · 3 files · 2 test files (44 tests)</summary>
 
 **Decisions:**
 - Native tool calling over ReAct text parsing (eliminated ~30% failure rate on Spanish queries)
 - RunnableWithMessageHistory over deprecated ConversationBufferMemory
+- Bounded sliding window: `BoundedChatMessageHistory` drops oldest messages at `MAX_HISTORY_MESSAGES=10` (5 Q&A turns)
 - faster-whisper over WhisperX (NumPy/CUDA incompatibility on Colab)
 
 **Files:** [`agent.py`](backend/agents/agent.py) · [`tools.py`](backend/agents/tools.py) · [`agent_cli.py`](backend/scripts/agent_cli.py)
 
-**Tests:** `test_agent.py` (28 tests) · `test_speaker_extraction.py` (11 tests)
+**Tests:** `test_agent.py` (32 tests) · `test_speaker_extraction.py` (12 tests)
 
 </details>
 
@@ -315,6 +316,8 @@ Same ChromaDB, but with conversation context. The agent remembers previous turns
 ```bash
 python backend/scripts/agent_cli.py
 ```
+
+Type `history` to see the last 5 Q&A pairs in the buffer.
 
 Try these questions to exercise each tool:
 
@@ -1099,7 +1102,7 @@ Short user questions are rewritten into descriptive English before embedding to 
 
 #### Memory
 
-The agent keeps full conversation history per `session_id` via `InMemoryChatMessageHistory` — follow-up questions work without repeating context.
+The agent keeps the last 5 conversation turns per `session_id` via `BoundedChatMessageHistory` (a subclass of `InMemoryChatMessageHistory` that silently drops the oldest messages when the buffer exceeds `MAX_HISTORY_MESSAGES=10`). Follow-up questions work without repeating context.
 
 ```
 Pregunta> Que dice Safia El Aaddam sobre racismo?
@@ -1109,7 +1112,7 @@ Pregunta> Y que libros ha escrito?
 Agent: [remembers "Safia El Aaddam"] "Ha escrito Hija de inmigrantes..."
 ```
 
-Each session is isolated — two users won't mix contexts. Memory clears on CLI exit or `DELETE /api/session/{id}`.
+Type `history` in the CLI to inspect the current message buffer. Each session is isolated — two users won't mix contexts. Memory clears on CLI exit or `DELETE /api/session/{id}`.
 
 #### How to use
 
@@ -1117,6 +1120,8 @@ Each session is isolated — two users won't mix contexts. Memory clears on CLI 
 source .venv/bin/activate
 python backend/scripts/agent_cli.py
 ```
+
+Type `history` to inspect the current message buffer and verify the sliding window.
 
 > **Pick your LLM:** defaults to `gemini-2.5-flash`. Change via `GEMINI_MODEL` in `.env`.
 
@@ -1126,7 +1131,7 @@ python backend/scripts/agent_cli.py
 uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 ```
 
-39 tests: 28 agent (tools, memory, disambiguation, scoped search, E2E) + 11 speaker extraction.
+44 tests: 32 agent (tools, memory, bounded history, disambiguation, scoped search, E2E) + 12 speaker extraction.
 
 </details>
 

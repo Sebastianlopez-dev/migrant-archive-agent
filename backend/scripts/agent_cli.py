@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agent import clear_session, create_agent
+from agent import clear_session, create_agent, get_session_history
 
 CLI_SESSION_ID = "cli-session"
 
@@ -36,7 +36,7 @@ def main() -> None:
     agent = create_agent(verbose=True)
 
     print("Bienvenido a Cero, tu asistente sobre testimonios migratorios.")
-    print("Escribe 'quit' o 'salir' para salir.")
+    print("Escribe 'quit' o 'salir' para salir. Escribe 'history' para ver el historial.")
     print("─" * 60)
 
     try:
@@ -53,6 +53,19 @@ def main() -> None:
             if query.lower() in ("quit", "salir", "q"):
                 print("Adiós.")
                 break
+
+            if query.lower() == "history":
+                hist = get_session_history(CLI_SESSION_ID)
+                if not hist.messages:
+                    print("No hay historial todavia.")
+                else:
+                    print()
+                    for msg in hist.messages:
+                        role = "Tu" if msg.type == "human" else "Cero"
+                        print(f"[{role}] {msg.content}")
+                        print()
+                print("─" * 60)
+                continue
 
             result = agent.invoke(
                 {"input": query},

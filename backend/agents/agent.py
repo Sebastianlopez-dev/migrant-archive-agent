@@ -19,6 +19,7 @@ sys.path.insert(0, str(_BACKEND_DIR / "core"))
 
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.chat_history import InMemoryChatMessageHistory
+from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -45,19 +46,47 @@ SYSTEM_PROMPT = (
     "provided in the 'speakers' field."
 )
 
+# Maximum number of messages to keep in the sliding window.
+# 10 messages = 5 complete Q&A exchanges (user + assistant).
+MAX_HISTORY_MESSAGES: int = 10
+
+
+class BoundedChatMessageHistory(InMemoryChatMessageHistory):
+    """Chat history that keeps only the last `max_messages` messages.
+
+    When the buffer exceeds `max_messages`, the oldest messages are dropped
+    silently — a sliding window. Inherits all other behaviour from
+    InMemoryChatMessageHistory.
+    """
+
+    def __init__(self, max_messages: int = 10) -> None:
+        super().__init__()
+        self._max_messages = max_messages
+
+    def add_message(self, message: BaseMessage) -> None:
+        super().add_message(message)
+        self._trim()
+
+    def _trim(self) -> None:
+        if len(self.messages) > self._max_messages:
+            self.messages = self.messages[-self._max_messages:]
+
+
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
 DEFAULT_VIDEO_DATA_DIR = Path(os.getenv("VIDEO_DATA_DIR", "data/raw/whisper"))
 
 # Per-session message history store. In production this can be swapped for a
 # Redis/SQL backend without changing the agent factory interface.
-_sessions: dict[str, InMemoryChatMessageHistory] = {}
+_sessions: dict[str, BoundedChatMessageHistory] = {}
 
 
-def get_session_history(session_id: str) -> InMemoryChatMessageHistory:
+def get_session_history(session_id: str) -> BoundedChatMessageHistory:
     """Return (creating if needed) the chat history for a session."""
     if session_id not in _sessions:
-        _sessions[session_id] = InMemoryChatMessageHistory()
+        _sessions[session_id] = BoundedChatMessageHistory(
+            max_messages=MAX_HISTORY_MESSAGES
+        )
     return _sessions[session_id]
 
 
