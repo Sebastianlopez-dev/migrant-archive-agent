@@ -328,6 +328,8 @@ Try these questions to exercise each tool:
 | `Que dice Safia El Aaddam sobre racismo?` | `search_transcripts` — scoped semantic search |
 | `Y que libros ha escrito?` | Memory — follow-up on Safia El Aaddam from previous answer |
 | `Resume los argumentos principales del video sobre produccion cultural migrante` | `search_transcripts` — synthesis from chunks |
+| `Que videos son de 2024?` | `list_videos` — year filter from ChromaDB |
+| `Busca testimonios de Plataforma Cero sobre migracion` | `search_transcripts` — channel + semantic filter |
 | `En que se diferencia el video de 2024 del de 2025 sobre FILMIG?` | `list_videos` + `search_transcripts` — cross-video comparison |
 | `Cuantos de esos videos tienen ponentes?` | Memory — follow-up after `list_videos` |
 
@@ -1133,7 +1135,7 @@ Type `history` to inspect the current message buffer and verify the sliding wind
 uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 ```
 
-44 tests: 32 agent (tools, memory, bounded history, disambiguation, scoped search, E2E) + 12 speaker extraction.
+51 tests: 39 agent (tools, filters, memory, bounded history, disambiguation, scoped search, E2E) + 12 speaker extraction.
 
 </details>
 
