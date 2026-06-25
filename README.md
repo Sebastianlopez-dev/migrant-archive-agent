@@ -958,9 +958,11 @@ ChromaDB was chosen because it requires no API keys, no external services, and n
 
 **How it works:**
 
-- Collection `migrant_archive` stores documents with embeddings (3072d Gemini or 1024d BGE-M3) and metadata (video_id, title, chunk_index, start_time, end_time)
+- Collection `migrant_archive` stores documents with embeddings (3072d Gemini or 1024d BGE-M3) and metadata (video_id, title, chunk_index, start_time, end_time, channel, year)
 - `store.search(query_embedding, top_k=3)` returns nearest neighbors by cosine distance
-- `store.search(query_embedding, top_k=5, where={"video_id": "VJqe2h0U1Fs"})` scopes results to a single video using ChromaDB's metadata `where` filter — this powers the agent's scoped search
+- `store.search(query_embedding, top_k=5, video_id="VJqe2h0U1Fs")` scopes results to a single video
+- `store.search(query_embedding, top_k=5, year=2024, channel="Plataforma Cero")` combines semantic search with compound metadata filters via ChromaDB's `$and` / `$or` operators
+- `store.get_video_metadata("video_id")` returns catalog fields (title, year, channel, chunk_count) from the first chunk, enabling tools to read video metadata without touching JSON files
 
 **Tests:** `test_vector_store.py` (CRUD + relevance) · `test_pipeline_e2e.py` (full pipeline with real video)
 
@@ -1063,9 +1065,9 @@ The **Cero** agent answers questions in Spanish using transcripts stored in Chro
 
 ```
 User → agent_cli.py → Tool Calling Agent (LangChain)
-                         ├── list_videos (JSON files)
-                         ├── get_video_info (JSON files)
-                         ├── search_transcripts (ChromaDB)
+                         ├── list_videos (ChromaDB + JSON fallback)
+                         ├── get_video_info (ChromaDB + JSON fallback)
+                         ├── search_transcripts (ChromaDB, year/channel filters)
                          ├── Gemini 2.5 Flash (LLM)
                          └── RunnableWithMessageHistory + InMemoryChatMessageHistory
 ```
@@ -1074,12 +1076,12 @@ User → agent_cli.py → Tool Calling Agent (LangChain)
 
 | Tool | Parameters | Searches in | Purpose |
 |------|-----------|-------------|---------|
-| `list_videos` | `year=None`, `speaker=None` | `data/raw/whisper/*.json` | List/filter videos by metadata — no embeddings, no API cost |
-| `get_video_info` | `video_id` | `data/raw/whisper/*.json` | Single video: title, description, year, channel, speakers |
-| `search_transcripts` | `query`, `video_id=None`, `top_k=5` | ChromaDB vector store | Semantic search — scoped to a video when `video_id` is set |
+| `list_videos` | `year=None`, `speaker=None`, `channel=None` | ChromaDB metadata + JSON fallback | List/filter videos — channel/year from store, speakers from JSON |
+| `get_video_info` | `video_id` | ChromaDB metadata + JSON fallback | Single video: title, year, channel from store; description, speakers from JSON |
+| `search_transcripts` | `query`, `video_id=None`, `year=None`, `channel=None`, `top_k=5` | ChromaDB vector store | Semantic search with optional year/channel compound filters |
 
-- **JSON files**: structured metadata from ingestion. `list_videos` and `get_video_info` read these directly — fast, zero API cost.
-- **ChromaDB**: chunked text with embeddings. `search_transcripts` queries this for content questions — the only tool with API cost.
+- **ChromaDB**: primary data source for channel, year, chunk counts, and semantic search. All three tools read catalog metadata from the vector store.
+- **JSON files**: fallback for rich text fields (description, full_text) and speaker extraction. `list_videos` and `get_video_info` only hit disk when the store lacks the requested field.
 
 **Speaker extraction** (`backend/agents/tools.py`): handles 5 description patterns (`Participantes:`, `Nos acompanan:`, `convoca a:`, `Modera:`, title fallback). Unicode math-bold characters normalized to ASCII.
 
