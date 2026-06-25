@@ -125,8 +125,7 @@
   }
   .process-num {
     display:flex; align-items:center; justify-content:center;
-    width:56px; height:56px; border-radius:50%;
-    border:2.5px solid var(--accent);
+    width:56px; height:56px;
     font-size:var(--fs-sub); font-weight:700; color:var(--accent);
     line-height:1;
   }
@@ -205,248 +204,173 @@
   <h2 class="t-title">A RAG chatbot for YouTube video Q&amp;A</h2>
   <div class="divider"></div>
   <p class="t-body">Ask questions. Get answers. Grounded in real video transcripts.</p>
+  <p class="t-small" style="margin-top:16px;">Cero · Spanish-language · FILMIG / Plataforma Cero channel.</p>
 </section>
 
-<!-- ═══════ SLIDE 03 · DEVELOPMENT PROCESS ═══════ -->
+<!-- ═══════ SLIDE 03 · PIPELINE ═══════ -->
 <section class="slide slide-content">
-  <p class="slide-label">Methodology</p>
-  <h2 class="t-title">Layered architecture</h2>
+  <p class="slide-label">Pipeline</p>
+  <h2 class="t-title">S01–S08 · End-to-end pipeline</h2>
   <div class="divider"></div>
-  <div class="process-flow">
+  <div class="process-flow process-flow--plain">
     <div class="process-step">
-      <span class="process-num">1</span>
-      <span class="process-label">Explore</span>
+      <span class="process-num">S01</span>
+      <span class="process-label">Ingest</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num">2</span>
-      <span class="process-label">Decide</span>
+      <span class="process-num">S02</span>
+      <span class="process-label">Embed</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num">3</span>
-      <span class="process-label">Build</span>
+      <span class="process-num">S03</span>
+      <span class="process-label">Store</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num">4</span>
+      <span class="process-num">S04</span>
       <span class="process-label">Test</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num">5</span>
-      <span class="process-label">Document</span>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 04 · ROADMAP WEEK 1 ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Roadmap · Week 1</p>
-  <div class="two-col" style="align-items:center;">
-    <span class="big-number">1</span>
-    <div>
-      <h2 class="t-title">Ingestion &amp; Processing</h2>
-      <div class="day-list">
-        <div class="day-item"><span class="day-num">Step 1</span> Dual transcription — captions + faster-whisper + Colab</div>
-        <div class="day-item"><span class="day-num">Step 2</span> Processor + embeddings + ChromaDB vector store</div>
-      </div>
-      <div class="tag-row" style="margin-top:24px;">
-        <span class="tag accent-tag">Checkpoint: vector DB Q&amp;A</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 05 · ROADMAP WEEK 2 ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Roadmap · Week 2</p>
-  <div class="two-col" style="align-items:center;">
-    <span class="big-number">2</span>
-    <div>
-      <h2 class="t-title">Agents &amp; Testing</h2>
-      <div class="day-list">
-        <div class="day-item"><span class="day-num">Step 3</span> Native tool calling (migrated from ReAct)</div>
-        <div class="day-item"><span class="day-num">Step 4</span> Per-session memory + 16 agent tests</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 06 · ROADMAP WEEK 3 ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Roadmap · Week 3</p>
-  <div class="two-col" style="align-items:center;">
-    <span class="big-number">3</span>
-    <div>
-      <h2 class="t-title">API &amp; Observability</h2>
-      <div class="day-list">
-        <div class="day-item"><span class="day-num">Step 5</span> FastAPI REST API (POST /api/ask, DELETE /api/session)</div>
-        <div class="day-item"><span class="day-num">Step 6</span> Chat widget — Vite + TypeScript, blue bubble</div>
-        <div class="day-item"><span class="day-num">Step 7</span> LangSmith auto-tracing — zero code changes</div>
-      </div>
-      <div class="tag-row" style="margin-top:24px;">
-        <span class="tag accent-tag">Status: Complete</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 07 · ROADMAP WEEK 4 ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Roadmap · Week 4</p>
-  <div class="two-col" style="align-items:center;">
-    <span class="big-number">4</span>
-    <div>
-      <h2 class="t-title">Deploy &amp; Polish</h2>
-      <div class="day-list">
-        <div class="day-item"><span class="day-num">Current</span> Presentation slides</div>
-        <div class="day-item"><span class="day-num">Next</span> Deploy to production</div>
-        <div class="day-item"><span class="day-num">Next</span> Frontend polish</div>
-        <div class="day-item"><span class="day-num">Last</span> Web Speech API voice input</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 08 · ARCHITECTURE — DUAL STRATEGY ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Architecture Decision</p>
-  <span class="big-icon"><svg viewBox="0 0 80 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="30" height="26" rx="5"/><rect x="48" y="36" width="30" height="26" rx="5"/><path d="M32 15 C42 15, 42 49, 48 49"/><polyline points="44,45 48,49 44,53"/></svg></span>
-  <h2 class="t-title">Two transcription strategies.<br>One shared contract.</h2>
-  <div class="divider"></div>
-  <p class="t-body">VideoData dataclass — the pipeline never knows which strategy ran.</p>
-</section>
-
-<!-- ═══════ SLIDE 09 · STRATEGY A ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Strategy A</p>
-  <div class="two-col" style="align-items:center;">
-    <span class="vs-badge badge-a">A</span>
-    <div>
-      <h2 class="t-title">YouTube Captions</h2>
-      <div class="tag-row">
-        <span class="tag accent-tag">$0 cost</span>
-        <span class="tag">Instant</span>
-        <span class="tag">No punctuation</span>
-      </div>
-      <p class="t-body" style="margin-top:16px;">Free and fast. Used as fallback only.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 10 · STRATEGY B ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Strategy B</p>
-  <div class="two-col" style="align-items:center;">
-    <span class="vs-badge badge-b">B</span>
-    <div>
-      <h2 class="t-title">faster-whisper · Local Transcription</h2>
-      <div class="tag-row">
-        <span class="tag accent-tag">$0 cost</span>
-        <span class="tag">High quality</span>
-        <span class="tag">4× real-time</span>
-      </div>
-      <p class="t-body" style="margin-top:16px;">large-v3 model via CTranslate2. 70× speedup on GPU. No API costs.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════ SLIDE 11 · STRATEGY COMPARISON ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">The Difference</p>
-  <div class="stat-row">
-    <div class="stat">
-      <span class="stat-val t-accent">+22%</span>
-      <span class="stat-label">more text extracted</span>
-    </div>
-    <div class="stat">
-      <span class="stat-val" style="color:var(--text);">✓</span>
-      <span class="stat-label">proper punctuation</span>
-    </div>
-    <div class="stat">
-      <span class="stat-val" style="color:var(--text);">0</span>
-      <span class="stat-label">garbled segments</span>
-    </div>
-  </div>
-  <p class="t-body" style="margin-top:32px;">Whisper output is directly usable for RAG. Captions need heavy post-processing.</p>
-</section>
-
-<!-- ═══════ SLIDE 12 · DEPENDENCY INVERSION ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">Architecture Decision</p>
-  <span class="big-icon"><svg viewBox="0 0 72 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="40" height="14" rx="4"/><rect x="12" y="24" width="40" height="14" rx="4"/><rect x="20" y="44" width="40" height="14" rx="4"/></svg></span>
-  <h2 class="t-title">Dependency Inversion for Embeddings</h2>
-  <div class="divider"></div>
-  <div class="tag-row">
-    <span class="tag accent-tag">Gemini API</span>
-    <span class="tag">BGE-M3 local</span>
-    <span class="tag">OpenAI (optional)</span>
-  </div>
-  <p class="t-body" style="margin-top:16px;">One abstract contract. Three implementations. Zero coupling.</p>
-</section>
-
-<!-- ═══════ SLIDE 13 · S06 AGENT ═══════ -->
-<section class="slide slide-content">
-  <p class="slide-label">S06 · Agent</p>
-  <h2 class="t-title">Cero — Tool-calling agent with memory</h2>
-  <div class="divider"></div>
-  <div class="process-flow" style="margin-top:32px;">
-    <div class="process-step">
-      <span class="process-num" style="border-color:var(--text); color:var(--text);">U</span>
-      <span class="process-label">User</span>
+      <span class="process-num">S05</span>
+      <span class="process-label">Extract</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num">A</span>
+      <span class="process-num">S06</span>
       <span class="process-label">Agent</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num" style="border-color:var(--text); color:var(--text);">T</span>
-      <span class="process-label">Tool</span>
+      <span class="process-num">S07</span>
+      <span class="process-label">API</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
-      <span class="process-num" style="border-color:var(--text); color:var(--text);">DB</span>
-      <span class="process-label">ChromaDB</span>
+      <span class="process-num">S08</span>
+      <span class="process-label">Deploy</span>
     </div>
-  </div>
-  <div class="tag-row" style="margin-top:40px;">
-    <span class="tag accent-tag">Gemini 2.5 Flash</span>
-    <span class="tag">search_transcripts</span>
-    <span class="tag">RunnableWithMessageHistory</span>
-    <span class="tag">Spanish system prompt</span>
   </div>
 </section>
 
-<!-- ═══════ SLIDE 14 · S07 API + WIDGET ═══════ -->
+<!-- ═══════ SLIDE 04 · S01 INGESTION ═══════ -->
 <section class="slide slide-content">
-  <p class="slide-label">S07 · API + Widget</p>
-  <h2 class="t-title">FastAPI REST + embeddable chat widget</h2>
+  <p class="slide-label">S01 · Ingestion</p>
+  <h2 class="t-title">Three transcription strategies. One shared contract.</h2>
   <div class="divider"></div>
-  <div class="stat-row" style="margin-top:24px;">
-    <div class="stat">
-      <span class="stat-val">POST</span>
-      <span class="stat-label">/api/ask</span>
-    </div>
-    <div class="stat">
-      <span class="stat-val">DELETE</span>
-      <span class="stat-label">/api/session/{id}</span>
-    </div>
+  <div class="tag-row">
+    <span class="tag accent-tag">A — Colab GPU (recommended)</span>
+    <span class="tag">B — faster-whisper local</span>
+    <span class="tag">C — YouTube captions</span>
   </div>
-  <div class="tag-row" style="margin-top:32px;">
-    <span class="tag accent-tag">Vanilla TypeScript</span>
-    <span class="tag">Zero runtime deps</span>
-    <span class="tag">Vite proxy</span>
-    <span class="tag">Blue bubble UI</span>
+  <p class="t-body" style="margin-top:24px;">VideoData dataclass — the pipeline never knows which strategy ran.</p>
+</section>
+
+<!-- ═══════ SLIDE 05 · S01 STRATEGY COMPARISON ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S01 · Strategy comparison</p>
+  <h2 class="t-title">A vs B vs C — quality, speed, cost.</h2>
+  <div class="divider"></div>
+  <div class="day-list" style="margin-top:8px;">
+    <div class="day-item"><span class="day-num">A</span> Colab GPU recommended · large-v3 · 5/5 · ~15 s/video</div>
+    <div class="day-item"><span class="day-num">B</span> faster-whisper local CPU · 4/5 · ~2 min/video</div>
+    <div class="day-item"><span class="day-num">C</span> YouTube captions · 2/5 · instant · no punctuation</div>
+  </div>
+  <p class="t-small" style="margin-top:24px;">All three strategies: $0 cost · same VideoData output contract.</p>
+</section>
+
+<!-- ═══════ SLIDE 06 · S02 CHUNKING ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S02 · Chunking</p>
+  <h2 class="t-title">1 000 token chunks · 200 token overlap.</h2>
+  <div class="divider"></div>
+  <p class="t-body">Captures ~4–5 min of speech — one complete idea. 20% overlap bridges ideas across chunk boundaries.</p>
+  <div class="tag-row" style="margin-top:24px;">
+    <span class="tag accent-tag">title + description + [MM:SS]</span>
+    <span class="tag">enriched text per chunk</span>
+    <span class="tag">~12 chunks / 1-hour video</span>
   </div>
 </section>
 
-<!-- ═══════ SLIDE 15 · LANGSMITH ═══════ -->
+<!-- ═══════ SLIDE 07 · S02 EMBEDDING PROVIDERS ═══════ -->
 <section class="slide slide-content">
-  <p class="slide-label">Observability</p>
-  <h2 class="t-title">LangSmith — Auto-tracing, zero code</h2>
+  <p class="slide-label">S02 · Embedding providers</p>
+  <h2 class="t-title">Dependency inversion. Two providers.</h2>
+  <div class="divider"></div>
+  <div class="tag-row">
+    <span class="tag accent-tag">Gemini text-embedding-004 — 3 072d · #1 MTEB 71.5%</span>
+    <span class="tag">BGE-M3 local — 1 024d</span>
+  </div>
+  <p class="t-body" style="margin-top:24px;">One abstract contract. Two implementations. Zero coupling.</p>
+</section>
+
+<!-- ═══════ SLIDE 08 · S03 CHROMADB ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S03 · Vector store</p>
+  <h2 class="t-title">ChromaDB — zero-config, no API key.</h2>
+  <div class="divider"></div>
+  <p class="t-body">Persistent local storage. Semantic search. Metadata filters by video, speaker, and timestamp.</p>
+  <div class="tag-row" style="margin-top:24px;">
+    <span class="tag accent-tag">ChromaDB</span>
+    <span class="tag">zero-config</span>
+    <span class="tag">local</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 09 · S04–S05 RAG VALIDATION ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S04–S05 · RAG validation</p>
+  <h2 class="t-title">Test queries + sample extraction scripts.</h2>
+  <div class="divider"></div>
+  <div class="day-list" style="margin-top:8px;">
+    <div class="day-item"><span class="day-num">S04</span> rag_test.py — interactive semantic search against ChromaDB</div>
+    <div class="day-item"><span class="day-num">S05</span> extract_sample.py — first-5K chars JSON export from ChromaDB</div>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 10 · S06 AGENT ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S06 · Agent</p>
+  <h2 class="t-title">Cero — Spanish RAG agent with memory.</h2>
+  <div class="divider"></div>
+  <div class="tag-row">
+    <span class="tag accent-tag">Gemini 2.5 Flash</span>
+    <span class="tag">Spanish system prompt</span>
+    <span class="tag">per-session memory</span>
+    <span class="tag">disambiguation</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 11 · S06 TOOLS ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S06 · Tools</p>
+  <h2 class="t-title">Three tools. Zero hallucination surface.</h2>
+  <div class="divider"></div>
+  <div class="tag-row">
+    <span class="tag accent-tag">list_videos</span>
+    <span class="tag accent-tag">get_video_info</span>
+    <span class="tag accent-tag">search_transcripts</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 12 · S06 ARCHITECTURE DECISION ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S06 · Architecture decision</p>
+  <span class="big-icon"><svg viewBox="0 0 72 64" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="40" height="14" rx="4"/><rect x="12" y="24" width="40" height="14" rx="4"/><rect x="20" y="44" width="40" height="14" rx="4"/></svg></span>
+  <h2 class="t-title">Native tool calling eliminated ~30% failure rate.</h2>
+  <div class="divider"></div>
+  <div class="tag-row">
+    <span class="tag">ReAct (deprecated)</span>
+    <span class="tag accent-tag">Native tool calling</span>
+  </div>
+</section>
+
+<!-- ═══════ SLIDE 13 · S07 OBSERVABILITY ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S07 · Observability</p>
+  <h2 class="t-title">LangSmith — auto-tracing, zero code.</h2>
   <div class="divider"></div>
   <div class="process-flow" style="margin-top:32px;">
     <div class="process-step">
@@ -475,15 +399,50 @@
     </div>
     <div class="stat">
       <span class="stat-val" style="color:var(--text);">✓</span>
-      <span class="stat-label">test-safety guard</span>
+      <span class="stat-label">env-var</span>
     </div>
+  </div>
+  <p class="t-small" style="margin-top:24px;">LANGSMITH_API_KEY + LANGSMITH_TRACING=true</p>
+</section>
+
+<!-- ═══════ SLIDE 14 · S07 API + WIDGET ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S07 · API + Widget</p>
+  <h2 class="t-title">FastAPI REST + embeddable chat widget</h2>
+  <div class="divider"></div>
+  <div class="stat-row" style="margin-top:24px;">
+    <div class="stat">
+      <span class="stat-val">POST</span>
+      <span class="stat-label">/api/ask</span>
+    </div>
+    <div class="stat">
+      <span class="stat-val">DELETE</span>
+      <span class="stat-label">/api/session/{id}</span>
+    </div>
+  </div>
+  <p class="t-body" style="margin-top:32px;">Vanilla TypeScript, zero runtime deps. Blue bubble, slide-out panel, clickable source links.</p>
+</section>
+
+<!-- ═══════ SLIDE 15 · S08 STATUS ═══════ -->
+<section class="slide slide-content">
+  <p class="slide-label">S08 · Status</p>
+  <h2 class="t-title">Where we are.</h2>
+  <div class="divider"></div>
+  <div class="day-list" style="margin-top:8px;">
+    <div class="day-item"><span class="day-num">Done</span> S01 — Video ingestion (3 strategies)</div>
+    <div class="day-item"><span class="day-num">Done</span> S02 — Chunking + embeddings (Gemini / BGE-M3)</div>
+    <div class="day-item"><span class="day-num">Done</span> S03–S05 — ChromaDB + RAG test + sample extraction</div>
+    <div class="day-item"><span class="day-num">Done</span> S06 — Cero agent (3 tools + memory)</div>
+    <div class="day-item"><span class="day-num">Done</span> S07 — LangSmith + FastAPI + chat widget</div>
+    <div class="day-item"><span class="day-num">Done</span> S08 — Presentation</div>
+    <div class="day-item"><span class="day-num" style="color:var(--muted);">Pending</span> Deploy to production · frontend polish · voice input</div>
   </div>
 </section>
 
 <!-- ═══════ SLIDE 16 · TEST SUITE ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Quality</p>
-  <h2 class="t-title">125 tests. 121 pass.</h2>
+  <h2 class="t-title">149 passing. 7 layers.</h2>
   <div class="divider"></div>
   <div class="stat-row" style="margin-top:24px;">
     <div class="stat">
@@ -495,8 +454,8 @@
       <span class="stat-label">integration</span>
     </div>
     <div class="stat">
-      <span class="stat-val t-accent">16</span>
-      <span class="stat-label">agent</span>
+      <span class="stat-val t-accent">39</span>
+      <span class="stat-label t-accent">agent+speaker</span>
     </div>
     <div class="stat">
       <span class="stat-val t-accent">9</span>
@@ -504,23 +463,24 @@
     </div>
     <div class="stat">
       <span class="stat-val t-accent">3</span>
-      <span class="stat-label">LangSmith</span>
+      <span class="stat-label">observability</span>
     </div>
     <div class="stat">
       <span class="stat-val t-accent">2</span>
       <span class="stat-label">E2E</span>
     </div>
   </div>
-  <p class="t-body" style="margin-top:32px;">4 skips: 3 BGE-M3 in UV env, 1 E2E without API key.</p>
+  <p class="t-body" style="margin-top:32px;">39 = 28 agent + 11 speaker · 3 pre-existing BGE-M3 failures (UV env · torch&lt;2.6 / transformers CVE-2025-32434)</p>
 </section>
 
-<!-- ═══════ SLIDE 17 · TOOLCHAIN ═══════ -->
+<!-- ═══════ SLIDE 17 · S01 TOOLCHAIN ═══════ -->
 <section class="slide slide-content">
-  <p class="slide-label">Ingestion Toolchain</p>
+  <p class="slide-label">S01 · Toolchain</p>
   <div class="tag-row">
     <span class="tag accent-tag">yt-dlp</span>
     <span class="tag">ffmpeg</span>
     <span class="tag">faster-whisper</span>
+    <span class="tag">Colab GPU</span>
     <span class="tag">uv</span>
   </div>
   <div class="divider"></div>
