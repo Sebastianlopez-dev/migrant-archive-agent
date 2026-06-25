@@ -110,6 +110,49 @@ class TestChunking:
             assert "start_time" in chunk.metadata
             assert "end_time" in chunk.metadata
 
+    def test_chunk_metadata_includes_channel_and_year(self):
+        """Each chunk carries channel and year from VideoData.metadata."""
+        from processor import Processor
+        from test_embedding import FakeEmbeddingProvider
+
+        provider = FakeEmbeddingProvider()
+        processor = Processor(provider, chunk_size=100, overlap=20)
+        vd = make_videodata(
+            "test " * 60,
+            video_id="abc123",
+            title="Mi Video",
+        )
+        vd.metadata["channel"] = "Canal 1"
+        vd.metadata["upload_date"] = "20240515"
+        chunks = processor.chunk(vd)
+
+        assert chunks
+        for chunk in chunks:
+            assert chunk.metadata["channel"] == "Canal 1"
+            assert chunk.metadata["year"] == 2024
+
+    @pytest.mark.parametrize("metadata,expected_channel,expected_year", [
+        ({}, "unknown", None),
+        ({"uploader": "Plataforma Cero", "upload_date": "20231201"}, "Plataforma Cero", 2023),
+    ])
+    def test_chunk_metadata_falls_back_when_keys_missing(
+        self, metadata, expected_channel, expected_year
+    ):
+        """Channel/uploader and year fall back gracefully when metadata is sparse."""
+        from processor import Processor
+        from test_embedding import FakeEmbeddingProvider
+
+        provider = FakeEmbeddingProvider()
+        processor = Processor(provider, chunk_size=100, overlap=20)
+        vd = make_videodata("test " * 60)
+        vd.metadata = metadata
+        chunks = processor.chunk(vd)
+
+        assert chunks
+        for chunk in chunks:
+            assert chunk.metadata["channel"] == expected_channel
+            assert chunk.metadata["year"] == expected_year
+
     def test_chunk_indexes_are_sequential(self):
         """Chunk indexes go 0, 1, 2, ..."""
         from processor import Processor

@@ -36,6 +36,8 @@ SYSTEM_PROMPT = (
     "If a query is vague or a bare proper name (e.g. 'Lina'), use list_videos "
     "or get_video_info to disambiguate, or rewrite the query into a descriptive "
     "English sentence of at least 3-5 words before calling search_transcripts. "
+    "search_transcripts supports optional year and channel filters when the user "
+    "wants to narrow results by upload year or source channel. "
     "When presenting multiple results, steps, or examples, always use a numbered "
     "or bulleted list. Always respond in Spanish, cite the video and time range "
     "when possible, and do not invent information. "

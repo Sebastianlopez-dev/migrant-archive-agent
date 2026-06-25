@@ -72,6 +72,9 @@ class VectorStore:
         query_embedding: list[float],
         top_k: int = 5,
         video_id: str | None = None,
+        year: int | None = None,
+        channel: str | None = None,
+        filters: dict | None = None,
     ) -> list[dict]:
         """Semantic search for documents similar to query_embedding.
 
@@ -79,6 +82,9 @@ class VectorStore:
             query_embedding: Embedding vector of the search query.
             top_k: Maximum number of results to return.
             video_id: If provided, restrict results to chunks from this video.
+            year: If provided, restrict results to this upload year.
+            channel: If provided, restrict results to this channel.
+            filters: Optional raw ChromaDB where clause (e.g. {"$or": [...]}).
 
         Returns:
             List of dicts with keys: id, document, metadata, distance.
@@ -88,8 +94,9 @@ class VectorStore:
             "n_results": top_k,
             "include": ["documents", "metadatas", "distances"],
         }
-        if video_id is not None:
-            query_kwargs["where"] = {"video_id": video_id}
+        where = self._build_where(video_id, year, channel, filters)
+        if where:
+            query_kwargs["where"] = where
 
         results = self._collection.query(**query_kwargs)
 
@@ -108,6 +115,35 @@ class VectorStore:
                 "distance": distances[i] if i < len(distances) else 0.0,
             })
         return output
+
+    def get_video_metadata(self, video_id: str) -> dict | None:
+        """Return catalog metadata for a single video from its chunks.
+
+        Reads the first matching chunk and derives chunk_count from the
+        collection. Missing optional fields default to None or 0.
+        """
+        if self._collection.count() == 0:
+            return None
+
+        results = self._collection.get(
+            where={"video_id": video_id},
+            include=["metadatas"],
+        )
+        metadatas = results.get("metadatas", [])
+        if not metadatas:
+            return None
+
+        first = metadatas[0]
+        chunk_count = len(metadatas)
+        return {
+            "video_id": video_id,
+            "title": first.get("title"),
+            "year": first.get("year"),
+            "channel": first.get("channel"),
+            "speaker": first.get("speaker"),
+            "duration": first.get("duration"),
+            "chunk_count": chunk_count,
+        }
 
     def get_unique_videos(self) -> list[dict]:
         """Return every video_id in the collection with its chunk count.
@@ -142,6 +178,34 @@ class VectorStore:
             }
             for vid, count in sorted(counts.items())
         ]
+
+    @staticmethod
+    def _build_where(
+        video_id: str | None = None,
+        year: int | None = None,
+        channel: str | None = None,
+        filters: dict | None = None,
+    ) -> dict | None:
+        """Build a ChromaDB where clause from simple filters and raw filters.
+
+        Simple equality filters are combined with any raw filters using $and.
+        """
+        conditions: list[dict] = []
+        if video_id is not None:
+            conditions.append({"video_id": video_id})
+        if year is not None:
+            conditions.append({"year": year})
+        if channel is not None:
+            conditions.append({"channel": channel})
+
+        if filters is not None:
+            conditions.append(filters)
+
+        if not conditions:
+            return None
+        if len(conditions) == 1:
+            return conditions[0]
+        return {"$and": conditions}
 
     def delete_collection(self) -> None:
         """Delete the entire collection (reset)."""

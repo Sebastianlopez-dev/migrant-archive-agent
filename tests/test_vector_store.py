@@ -179,6 +179,143 @@ class TestVectorStoreVideoScoping:
     ):
         assert store.get_unique_videos() == []
 
+    def test_get_video_metadata_returns_fields_from_first_chunk(
+        self, provider, store
+    ):
+        store.add(
+            ids=["v1_chunk_0", "v1_chunk_1"],
+            documents=["uno", "dos"],
+            metadatas=[
+                {
+                    "video_id": "v1",
+                    "title": "Test Video",
+                    "chunk_index": 0,
+                    "channel": "Canal 1",
+                    "year": 2024,
+                    "speaker": "Lina",
+                    "duration": 125,
+                },
+                {
+                    "video_id": "v1",
+                    "title": "Test Video",
+                    "chunk_index": 1,
+                    "channel": "Canal 1",
+                    "year": 2024,
+                    "speaker": "Lina",
+                    "duration": 125,
+                },
+            ],
+            embeddings=provider.embed(["uno", "dos"]),
+        )
+
+        metadata = store.get_video_metadata("v1")
+
+        assert metadata["video_id"] == "v1"
+        assert metadata["title"] == "Test Video"
+        assert metadata["year"] == 2024
+        assert metadata["channel"] == "Canal 1"
+        assert metadata["speaker"] == "Lina"
+        assert metadata["duration"] == 125
+        assert metadata["chunk_count"] == 2
+
+    def test_get_video_metadata_returns_none_for_missing_video(
+        self, provider, store
+    ):
+        assert store.get_video_metadata("missing") is None
+
+    def test_search_with_year_and_channel_filters(self, provider, store):
+        docs = ["Texto del canal 1 2024.", "Texto del canal 2 2024.", "Texto del canal 1 2023."]
+        store.add(
+            ids=["v1_chunk_0", "v2_chunk_0", "v3_chunk_0"],
+            documents=docs,
+            metadatas=[
+                {"video_id": "v1", "chunk_index": 0, "channel": "Canal 1", "year": 2024},
+                {"video_id": "v2", "chunk_index": 0, "channel": "Canal 2", "year": 2024},
+                {"video_id": "v3", "chunk_index": 0, "channel": "Canal 1", "year": 2023},
+            ],
+            embeddings=provider.embed(docs),
+        )
+
+        results = store.search(
+            provider.embed_query("texto"),
+            top_k=5,
+            year=2024,
+            channel="Canal 1",
+        )
+
+        assert len(results) == 1
+        assert results[0]["metadata"]["video_id"] == "v1"
+
+    def test_search_with_video_id_and_year_filters(self, provider, store):
+        docs = ["Texto 2024.", "Texto 2023."]
+        store.add(
+            ids=["v1_chunk_0", "v1_chunk_1"],
+            documents=docs,
+            metadatas=[
+                {"video_id": "v1", "chunk_index": 0, "channel": "Canal 1", "year": 2024},
+                {"video_id": "v1", "chunk_index": 1, "channel": "Canal 1", "year": 2023},
+            ],
+            embeddings=provider.embed(docs),
+        )
+
+        results = store.search(
+            provider.embed_query("texto"),
+            top_k=5,
+            video_id="v1",
+            year=2024,
+        )
+
+        assert len(results) == 1
+        assert results[0]["metadata"]["chunk_index"] == 0
+
+    def test_search_with_or_filter_on_speaker_or_channel(self, provider, store):
+        docs = ["Texto de Lina.", "Texto de Canal 2."]
+        store.add(
+            ids=["v1_chunk_0", "v2_chunk_0"],
+            documents=docs,
+            metadatas=[
+                {"video_id": "v1", "chunk_index": 0, "channel": "Canal 1", "year": 2024, "speaker": "Lina"},
+                {"video_id": "v2", "chunk_index": 0, "channel": "Canal 2", "year": 2024, "speaker": "Ana"},
+            ],
+            embeddings=provider.embed(docs),
+        )
+
+        results = store.search(
+            provider.embed_query("texto"),
+            top_k=5,
+            filters={"$or": [{"speaker": "Lina"}, {"channel": "Canal 2"}]},
+        )
+
+        assert len(results) == 2
+        video_ids = {r["metadata"]["video_id"] for r in results}
+        assert video_ids == {"v1", "v2"}
+
+
+class TestVectorStoreWhereBuilder:
+    """Direct tests for the static where-clause helper."""
+
+    def test_build_where_combines_simple_filters_with_and(self):
+        from vector_store import VectorStore
+        where = VectorStore._build_where(video_id="v1", year=2024, channel="Canal 1")
+        assert where == {
+            "$and": [
+                {"video_id": "v1"},
+                {"year": 2024},
+                {"channel": "Canal 1"},
+            ]
+        }
+
+    def test_build_where_merges_raw_filters_with_and(self):
+        from vector_store import VectorStore
+        raw = {"$or": [{"speaker": "Lina"}, {"channel": "Canal 2"}]}
+        where = VectorStore._build_where(video_id="v1", filters=raw)
+        assert where == {
+            "$and": [
+                {"video_id": "v1"},
+                {"$or": [{"speaker": "Lina"}, {"channel": "Canal 2"}]},
+            ]
+        }
+
 
 @pytest.mark.skipif(not has_gemini(), reason="GEMINI_API_KEY not set")
 class TestVectorStoreGemini:

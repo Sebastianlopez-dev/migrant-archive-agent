@@ -118,6 +118,8 @@ class Processor:
                     "chunk_index": chunk_index,
                     "start_time": start_time,
                     "end_time": end_time,
+                    "channel": _channel_from_metadata(video_data.metadata),
+                    "year": _year_from_metadata(video_data.metadata),
                 }
                 chunks.append(Chunk(text=chunk_text, metadata=metadata))
                 chunk_index += 1
@@ -158,6 +160,22 @@ class Processor:
         # Past the end — return last segment's end
         last = segments[-1]
         return last.get("start", 0.0) + last.get("duration", 0.0)
+
+
+def _channel_from_metadata(metadata: dict) -> str:
+    """Return channel name from yt-dlp-style metadata."""
+    return metadata.get("channel") or metadata.get("uploader") or "unknown"
+
+
+def _year_from_metadata(metadata: dict) -> int | None:
+    """Return upload year from yt-dlp-style metadata."""
+    upload_date = metadata.get("upload_date")
+    if upload_date and len(str(upload_date)) >= 4:
+        try:
+            return int(str(upload_date)[:4])
+        except ValueError:
+            return None
+    return None
 
 
 def _parse_timestamp(text: str, last: bool = False) -> float | None:

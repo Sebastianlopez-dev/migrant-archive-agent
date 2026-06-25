@@ -145,12 +145,16 @@ class TestSearchTranscriptsTool:
                 "chunk_index": 0,
                 "start_time": 0.0,
                 "end_time": 10.0,
+                "channel": "Canal 1",
+                "year": 2024,
             }, {
                 "video_id": "vB",
                 "title": "Video B",
                 "chunk_index": 0,
                 "start_time": 0.0,
                 "end_time": 10.0,
+                "channel": "Canal 2",
+                "year": 2023,
             }],
             embeddings=provider.embed(docs),
         )
@@ -160,6 +164,117 @@ class TestSearchTranscriptsTool:
 
         assert "Video A" in result
         assert "Video B" not in result
+
+    def test_search_with_year_filter(self, provider, store):
+        from tools import make_search_transcripts
+
+        store.delete_collection()
+        docs = ["Texto del 2024.", "Texto del 2023."]
+        store.add(
+            ids=["v1_chunk_0", "v2_chunk_0"],
+            documents=docs,
+            metadatas=[{
+                "video_id": "v1",
+                "title": "Video 2024",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 1",
+                "year": 2024,
+            }, {
+                "video_id": "v2",
+                "title": "Video 2023",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 1",
+                "year": 2023,
+            }],
+            embeddings=provider.embed(docs),
+        )
+
+        search = make_search_transcripts(provider, store, top_k=5)
+        result = search.invoke({"query": "texto", "year": 2024})
+
+        assert "Video 2024" in result
+        assert "Video 2023" not in result
+
+    def test_search_with_channel_filter(self, provider, store):
+        from tools import make_search_transcripts
+
+        store.delete_collection()
+        docs = ["Texto del Canal 1.", "Texto del Canal 2."]
+        store.add(
+            ids=["v1_chunk_0", "v2_chunk_0"],
+            documents=docs,
+            metadatas=[{
+                "video_id": "v1",
+                "title": "Video Canal 1",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 1",
+                "year": 2024,
+            }, {
+                "video_id": "v2",
+                "title": "Video Canal 2",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 2",
+                "year": 2024,
+            }],
+            embeddings=provider.embed(docs),
+        )
+
+        search = make_search_transcripts(provider, store, top_k=5)
+        result = search.invoke({"query": "texto", "channel": "Canal 1"})
+
+        assert "Video Canal 1" in result
+        assert "Video Canal 2" not in result
+
+    def test_search_with_combined_year_and_channel_filters(self, provider, store):
+        from tools import make_search_transcripts
+
+        store.delete_collection()
+        docs = ["Canal 1 2024.", "Canal 2 2024.", "Canal 1 2023."]
+        store.add(
+            ids=["v1_chunk_0", "v2_chunk_0", "v3_chunk_0"],
+            documents=docs,
+            metadatas=[{
+                "video_id": "v1",
+                "title": "Canal 1 2024",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 1",
+                "year": 2024,
+            }, {
+                "video_id": "v2",
+                "title": "Canal 2 2024",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 2",
+                "year": 2024,
+            }, {
+                "video_id": "v3",
+                "title": "Canal 1 2023",
+                "chunk_index": 0,
+                "start_time": 0.0,
+                "end_time": 10.0,
+                "channel": "Canal 1",
+                "year": 2023,
+            }],
+            embeddings=provider.embed(docs),
+        )
+
+        search = make_search_transcripts(provider, store, top_k=5)
+        result = search.invoke({"query": "Canal", "year": 2024, "channel": "Canal 1"})
+
+        assert "Canal 1 2024" in result
+        assert "Canal 2 2024" not in result
+        assert "Canal 1 2023" not in result
 
 
 # ---------------------------------------------------------------------------
@@ -180,20 +295,26 @@ class TestListVideosTool:
             ids=["v1_chunk_0", "v2_chunk_0", "v2_chunk_1"],
             documents=["uno", "dos", "tres"],
             metadatas=[
-                {"video_id": "v1", "title": "Video uno", "chunk_index": 0},
-                {"video_id": "v2", "title": "Video dos", "chunk_index": 0},
-                {"video_id": "v2", "title": "Video dos", "chunk_index": 1},
+                {"video_id": "v1", "title": "Video uno", "chunk_index": 0, "channel": "Canal Lina", "year": 2024},
+                {"video_id": "v2", "title": "Video dos", "chunk_index": 0, "channel": "Canal Ana", "year": 2023},
+                {"video_id": "v2", "title": "Video dos", "chunk_index": 1, "channel": "Canal Ana", "year": 2023},
             ],
             embeddings=provider.embed(["uno", "dos", "tres"]),
         )
 
         list_videos = make_list_videos(tmp_path, store)
         result = list_videos.invoke({})
+        parsed = json.loads(result)
 
-        assert "Video uno" in result
-        assert "Video dos" in result
-        assert "v1" in result
-        assert "v2" in result
+        assert len(parsed) == 2
+        assert parsed[0]["video_id"] == "v1"
+        assert parsed[0]["channel"] == "Canal Lina"
+        assert parsed[0]["year"] == 2024
+        assert parsed[0]["chunk_count"] == 1
+        assert parsed[1]["video_id"] == "v2"
+        assert parsed[1]["channel"] == "Canal Ana"
+        assert parsed[1]["year"] == 2023
+        assert parsed[1]["chunk_count"] == 2
 
     def test_list_videos_filters_by_year(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -211,17 +332,19 @@ class TestListVideosTool:
             ids=["v1_chunk_0", "v2_chunk_0"],
             documents=["a", "b"],
             metadatas=[
-                {"video_id": "v1", "title": "Video 2023", "chunk_index": 0},
-                {"video_id": "v2", "title": "Video 2024", "chunk_index": 0},
+                {"video_id": "v1", "title": "Video 2023", "chunk_index": 0, "channel": "Canal 1", "year": 2023},
+                {"video_id": "v2", "title": "Video 2024", "chunk_index": 0, "channel": "Canal 1", "year": 2024},
             ],
             embeddings=provider.embed(["a", "b"]),
         )
 
         list_videos = make_list_videos(tmp_path, store)
         result = list_videos.invoke({"year": 2024})
+        parsed = json.loads(result)
 
-        assert "Video 2024" in result
-        assert "Video 2023" not in result
+        assert len(parsed) == 1
+        assert parsed[0]["title"] == "Video 2024"
+        assert parsed[0]["year"] == 2024
 
     def test_list_videos_filters_by_speaker(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -239,17 +362,49 @@ class TestListVideosTool:
             ids=["v1_chunk_0", "v2_chunk_0"],
             documents=["a", "b"],
             metadatas=[
-                {"video_id": "v1", "title": "Video Lina", "chunk_index": 0},
-                {"video_id": "v2", "title": "Video Ana", "chunk_index": 0},
+                {"video_id": "v1", "title": "Video Lina", "chunk_index": 0, "channel": "Canal Lina", "year": 2024, "speaker": "Lina"},
+                {"video_id": "v2", "title": "Video Ana", "chunk_index": 0, "channel": "Canal Ana", "year": 2024, "speaker": "Ana"},
             ],
             embeddings=provider.embed(["a", "b"]),
         )
 
         list_videos = make_list_videos(tmp_path, store)
         result = list_videos.invoke({"speaker": "Lina"})
+        parsed = json.loads(result)
 
-        assert "Video Lina" in result
-        assert "Video Ana" not in result
+        assert len(parsed) == 1
+        assert parsed[0]["title"] == "Video Lina"
+        assert parsed[0]["speaker"] == "Lina"
+
+    def test_list_videos_filters_by_channel(self, provider, store, tmp_path):
+        from tools import make_list_videos
+
+        _save_video_data(
+            tmp_path,
+            _make_video_data("v1", "Video Canal 1", channel="Canal 1"),
+        )
+        _save_video_data(
+            tmp_path,
+            _make_video_data("v2", "Video Canal 2", channel="Canal 2"),
+        )
+        store.delete_collection()
+        store.add(
+            ids=["v1_chunk_0", "v2_chunk_0"],
+            documents=["a", "b"],
+            metadatas=[
+                {"video_id": "v1", "title": "Video Canal 1", "chunk_index": 0, "channel": "Canal 1", "year": 2024},
+                {"video_id": "v2", "title": "Video Canal 2", "chunk_index": 0, "channel": "Canal 2", "year": 2024},
+            ],
+            embeddings=provider.embed(["a", "b"]),
+        )
+
+        list_videos = make_list_videos(tmp_path, store)
+        result = list_videos.invoke({"channel": "Canal 1"})
+        parsed = json.loads(result)
+
+        assert len(parsed) == 1
+        assert parsed[0]["title"] == "Video Canal 1"
+        assert parsed[0]["channel"] == "Canal 1"
 
     def test_list_videos_combines_filters(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -267,17 +422,45 @@ class TestListVideosTool:
             ids=["v1_chunk_0", "v2_chunk_0"],
             documents=["a", "b"],
             metadatas=[
-                {"video_id": "v1", "title": "Lina 2023", "chunk_index": 0},
-                {"video_id": "v2", "title": "Lina 2024", "chunk_index": 0},
+                {"video_id": "v1", "title": "Lina 2023", "chunk_index": 0, "channel": "Canal Lina", "year": 2023, "speaker": "Lina"},
+                {"video_id": "v2", "title": "Lina 2024", "chunk_index": 0, "channel": "Canal Lina", "year": 2024, "speaker": "Lina"},
             ],
             embeddings=provider.embed(["a", "b"]),
         )
 
         list_videos = make_list_videos(tmp_path, store)
-        result = list_videos.invoke({"year": 2024, "speaker": "Lina"})
+        result = list_videos.invoke({"year": 2024, "speaker": "Lina", "channel": "Canal Lina"})
+        parsed = json.loads(result)
 
-        assert "Lina 2024" in result
-        assert "Lina 2023" not in result
+        assert len(parsed) == 1
+        assert parsed[0]["title"] == "Lina 2024"
+
+    def test_list_videos_uses_store_when_json_missing(self, provider, store, tmp_path):
+        from tools import make_list_videos
+
+        store.delete_collection()
+        store.add(
+            ids=["v1_chunk_0"],
+            documents=["a"],
+            metadatas=[{
+                "video_id": "v1",
+                "title": "Solo en store",
+                "chunk_index": 0,
+                "channel": "Canal Store",
+                "year": 2024,
+            }],
+            embeddings=provider.embed(["a"]),
+        )
+
+        list_videos = make_list_videos(tmp_path, store)
+        result = list_videos.invoke({})
+        parsed = json.loads(result)
+
+        assert len(parsed) == 1
+        assert parsed[0]["video_id"] == "v1"
+        assert parsed[0]["title"] == "Solo en store"
+        assert parsed[0]["channel"] == "Canal Store"
+        assert parsed[0]["year"] == 2024
 
 
 class TestGetVideoInfoTool:
@@ -303,22 +486,23 @@ class TestGetVideoInfoTool:
             ids=["v1_chunk_0", "v1_chunk_1"],
             documents=["a", "b"],
             metadatas=[
-                {"video_id": "v1", "title": "Título de prueba", "chunk_index": 0},
-                {"video_id": "v1", "title": "Título de prueba", "chunk_index": 1},
+                {"video_id": "v1", "title": "Título de prueba", "chunk_index": 0, "channel": "Canal Store", "year": 2024, "speaker": "Lina", "duration": 125},
+                {"video_id": "v1", "title": "Título de prueba", "chunk_index": 1, "channel": "Canal Store", "year": 2024, "speaker": "Lina", "duration": 125},
             ],
             embeddings=provider.embed(["a", "b"]),
         )
 
         get_info = make_get_video_info(tmp_path, store)
         result = get_info.invoke({"video_id": "v1"})
+        parsed = json.loads(result)
 
-        assert "Título de prueba" in result
-        assert "Descripción de prueba" in result
-        assert "2024" in result
-        assert "125" in result
-        assert "Lina" in result
-        assert "chunk_count" in result
-        assert "Texto completo" in result
+        assert parsed["title"] == "Título de prueba"
+        assert parsed["description"] == "Descripción de prueba"
+        assert parsed["year"] == 2024
+        assert parsed["duration"] == 125
+        assert parsed["channel"] == "Canal Store"
+        assert parsed["chunk_count"] == 2
+        assert parsed["summary"].startswith("Texto completo")
 
     def test_get_video_info_missing_video_returns_not_found(self, provider, store, tmp_path):
         from tools import make_get_video_info
@@ -327,6 +511,35 @@ class TestGetVideoInfoTool:
         result = get_info.invoke({"video_id": "missing"})
 
         assert "no encontrado" in result.lower() or "not found" in result.lower()
+
+    def test_get_video_info_uses_store_when_json_missing(self, provider, store, tmp_path):
+        from tools import make_get_video_info
+
+        store.delete_collection()
+        store.add(
+            ids=["v1_chunk_0"],
+            documents=["a"],
+            metadatas=[{
+                "video_id": "v1",
+                "title": "Solo en store",
+                "chunk_index": 0,
+                "channel": "Canal Store",
+                "year": 2024,
+                "duration": 60,
+            }],
+            embeddings=provider.embed(["a"]),
+        )
+
+        get_info = make_get_video_info(tmp_path, store)
+        result = get_info.invoke({"video_id": "v1"})
+        parsed = json.loads(result)
+
+        assert parsed["video_id"] == "v1"
+        assert parsed["title"] == "Solo en store"
+        assert parsed["year"] == 2024
+        assert parsed["channel"] == "Canal Store"
+        assert parsed["duration"] == 60
+        assert parsed["chunk_count"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +654,13 @@ class TestCreateAgent:
         assert "ponentes" in SYSTEM_PROMPT.lower()
         assert "re-parse" in SYSTEM_PROMPT.lower() or "reparse" in SYSTEM_PROMPT.lower()
         assert "list" in SYSTEM_PROMPT.lower()
+
+    def test_system_prompt_mentions_search_filters(self, provider, store):
+        from agent import SYSTEM_PROMPT
+
+        assert "year" in SYSTEM_PROMPT.lower()
+        assert "channel" in SYSTEM_PROMPT.lower()
+        assert "search_transcripts" in SYSTEM_PROMPT
 
     def test_create_agent_can_invoke_with_fake_llm(self, provider, store):
         from agent import create_agent

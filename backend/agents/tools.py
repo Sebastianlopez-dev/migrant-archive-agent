@@ -31,18 +31,31 @@ def make_search_transcripts(provider, store, top_k: int = 3):
     """
 
     @tool
-    def search_transcripts(query: str, video_id: str | None = None) -> str:
+    def search_transcripts(
+        query: str,
+        video_id: str | None = None,
+        year: int | None = None,
+        channel: str | None = None,
+    ) -> str:
         """Search archived video transcripts for a given query.
 
         Args:
             query: Search query.
             video_id: Optional video ID to restrict the search to.
+            year: Optional upload year to filter results.
+            channel: Optional channel name to filter results.
         """
         if store.count == 0:
             return "No hay transcripciones indexadas aún."
 
         embedding = provider.embed_query(query)
-        results = store.search(embedding, top_k=top_k, video_id=video_id)
+        results = store.search(
+            embedding,
+            top_k=top_k,
+            video_id=video_id,
+            year=year,
+            channel=channel,
+        )
 
         if not results:
             return "No se encontraron resultados relevantes."
@@ -258,8 +271,12 @@ def make_list_videos(video_data_dir: str | Path, store):
     data_dir = Path(video_data_dir)
 
     @tool
-    def list_videos(year: int | None = None, speaker: str | None = None) -> str:
-        """List indexed videos, optionally filtered by year or speaker.
+    def list_videos(
+        year: int | None = None,
+        speaker: str | None = None,
+        channel: str | None = None,
+    ) -> str:
+        """List indexed videos, optionally filtered by year, speaker, or channel.
 
         The *speaker* parameter matches against both the channel name and any
         speakers extracted from the video description.
@@ -274,24 +291,45 @@ def make_list_videos(video_data_dir: str | Path, store):
             title = entry.get("title", video_id)
             chunk_count = entry.get("chunk_count", 0)
 
-            video_year: int | None = None
-            video_channel = "unknown"
-            video_speakers = ""
+            # Prefer catalog metadata from the vector store.
+            store_meta = store.get_video_metadata(video_id) or {}
+            video_year = store_meta.get("year")
+            video_channel = store_meta.get("channel") or "unknown"
+            video_speakers = store_meta.get("speaker") or ""
+            duration = store_meta.get("duration")
+
+            # JSON fallback during transition: enrich title, year, channel,
+            # and speakers when the store metadata is incomplete.
             json_path = data_dir / f"{video_id}.json"
             if json_path.exists():
                 try:
                     video_data = VideoData.load_json(json_path)
                     title = video_data.title or title
-                    video_year = _year_from_metadata(video_data.metadata)
-                    video_channel, video_speakers = _get_channel_and_speakers(
-                        video_data.metadata,
-                        description=video_data.description,
-                        title=video_data.title,
-                    )
+                    if video_year is None:
+                        video_year = _year_from_metadata(video_data.metadata)
+                    if video_channel == "unknown":
+                        fallback_channel, fallback_speakers = _get_channel_and_speakers(
+                            video_data.metadata,
+                            description=video_data.description,
+                            title=video_data.title,
+                        )
+                        video_channel = fallback_channel
+                        if not video_speakers:
+                            video_speakers = fallback_speakers
+                    elif not video_speakers:
+                        _, video_speakers = _get_channel_and_speakers(
+                            video_data.metadata,
+                            description=video_data.description,
+                            title=video_data.title,
+                        )
+                    if duration is None:
+                        duration = video_data.metadata.get("duration")
                 except Exception:
                     pass
 
             if year is not None and video_year != year:
+                continue
+            if channel is not None and channel.lower() != video_channel.lower():
                 continue
             if speaker is not None:
                 speaker_lower = speaker.lower()
@@ -308,7 +346,9 @@ def make_list_videos(video_data_dir: str | Path, store):
                 "chunk_count": chunk_count,
             }
             if video_speakers:
-                entry_dict["speakers"] = video_speakers
+                entry_dict["speaker"] = video_speakers
+            if duration is not None:
+                entry_dict["duration"] = duration
             enriched.append(entry_dict)
 
         if not enriched:
@@ -334,36 +374,63 @@ def make_get_video_info(video_data_dir: str | Path, store):
     @tool
     def get_video_info(video_id: str) -> str:
         """Return metadata and a short summary for a single video."""
+        # Prefer vector-store metadata; JSON remains a fallback for description
+        # and speaker extraction during the transition.
+        store_meta = store.get_video_metadata(video_id)
+
         json_path = data_dir / f"{video_id}.json"
-        if not json_path.exists():
+        if store_meta is None and not json_path.exists():
             return f"Video '{video_id}' no encontrado."
 
-        try:
-            video_data = VideoData.load_json(json_path)
-        except Exception as exc:
-            return f"No se pudo leer el video '{video_id}': {exc}"
+        title = store_meta.get("title") if store_meta else None
+        year = store_meta.get("year") if store_meta else None
+        channel = store_meta.get("channel") if store_meta else None
+        speakers = store_meta.get("speaker") if store_meta else None
+        duration = store_meta.get("duration") if store_meta else None
+        chunk_count = store_meta.get("chunk_count", 0) if store_meta else 0
+        description = ""
+        summary = ""
 
-        chunk_count = 0
-        for entry in store.get_unique_videos():
-            if entry["video_id"] == video_id:
-                chunk_count = entry.get("chunk_count", 0)
-                break
+        if json_path.exists():
+            try:
+                video_data = VideoData.load_json(json_path)
+                title = title or video_data.title
+                description = video_data.description
+                if year is None:
+                    year = _year_from_metadata(video_data.metadata)
+                if channel is None:
+                    channel, fallback_speakers = _get_channel_and_speakers(
+                        video_data.metadata,
+                        description=video_data.description,
+                        title=video_data.title,
+                    )
+                    if not speakers:
+                        speakers = fallback_speakers
+                elif not speakers:
+                    _, speakers = _get_channel_and_speakers(
+                        video_data.metadata,
+                        description=video_data.description,
+                        title=video_data.title,
+                    )
+                if duration is None:
+                    duration = video_data.metadata.get("duration")
+                summary = video_data.full_text[:300]
+            except Exception as exc:
+                if store_meta is None:
+                    return f"No se pudo leer el video '{video_id}': {exc}"
 
-        channel, speakers = _get_channel_and_speakers(
-            video_data.metadata,
-            description=video_data.description,
-            title=video_data.title,
-        )
+        if not title:
+            return f"Video '{video_id}' no encontrado."
 
         info: dict[str, object] = {
-            "video_id": video_data.video_id,
-            "title": video_data.title,
-            "description": video_data.description,
-            "year": _year_from_metadata(video_data.metadata),
-            "duration": video_data.metadata.get("duration"),
-            "channel": channel,
+            "video_id": video_id,
+            "title": title,
+            "description": description,
+            "year": year,
+            "duration": duration,
+            "channel": channel or "unknown",
             "chunk_count": chunk_count,
-            "summary": video_data.full_text[:300],
+            "summary": summary,
         }
         if speakers:
             info["speakers"] = speakers
