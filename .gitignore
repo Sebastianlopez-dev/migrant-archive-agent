@@ -1,12 +1,20 @@
+# --- Dev tool dotfiles: catch-all (Claude, OpenCode, ATL, etc.) ---
 .*
+# --- Explicit exceptions: dotfiles that MUST be tracked ---
 !.env.example
-models/
-data/audio/
-data/chroma/
+
+# --- Python ---
 __pycache__/
 *.pyc
-AGENTS.md
-SOUL.md
-cookies.txt
+*.pyo
+
+# --- ML models (downloaded at runtime) ---
+models/
+
+# --- Generated data (rebuilt on demand) ---
+data/audio/
+data/chroma/
+
+# --- Frontend ---
 frontend/node_modules/
 frontend/dist/
