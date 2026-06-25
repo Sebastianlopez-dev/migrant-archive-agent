@@ -109,13 +109,17 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S04–S05 — RAG Test + Sample Extraction: 3 files · 1 test file</summary>
+<summary>S04–S05 — RAG Test + Sample Extraction: 4 files · 1 test file</summary>
 
-**Files:** [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
+**Files:**
+[`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
 [`rag_test.py`](backend/scripts/rag_test.py) — interactive semantic search
+[`rag_memory.py`](backend/scripts/rag_memory.py) — semantic search with Conversation Buffer Window Memory (K=5, no LLM for memory)
 [`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
 
 **Tests:** `test_extract_sample.py`
+
+**Memory progression:** `rag_test.py` (no memory) → `rag_memory.py` (buffer window, no LLM) → `agent_cli.py` (buffer, LLM reads history). Same data structure, different consumer.
 
 </details>
 
@@ -257,19 +261,34 @@ Full details: [S02 — Chunking and Embedding](#s02--chunking-and-embedding) and
 <details>
 <summary>Step 4 — Query (simple RAG, no memory)</summary>
 
-### Step 4 — Query (simple RAG, no memory)
+### Step 4 — Query (RAG, from no memory to query history)
 
-Search ChromaDB directly. No agent, no memory.
+Three levels of querying ChromaDB, from keyword to semantic to semantic with memory.
 
 ```bash
-# Fast keyword search (no API, no embeddings):
+# Level 1 — Fast keyword search (no API, no embeddings):
 python backend/scripts/quick_search.py "FilmiG"
 
-# Semantic search (embeddings, top-k similar chunks):
+# Level 2 — Semantic search (API embeddings, no memory):
 python backend/scripts/rag_test.py
+
+# Level 3 — Semantic search with query history (API embeddings, buffer window memory):
+python backend/scripts/rag_memory.py
+python backend/scripts/rag_memory.py --verbose    # full pipeline trace
 ```
 
-Try these questions once inside `rag_test.py`:
+| Script | Memory | API calls | Best for |
+|--------|--------|-----------|----------|
+| `quick_search.py` | None | 0 | Fast checks, no cost |
+| `rag_test.py` | None | Embedding only | Exploring the DB |
+| `rag_memory.py` | Conversation Buffer Window (K=5) | Embedding only | Comparing searches across queries |
+
+`rag_memory.py` keeps the last 5 searches in a Python list. Type `history` to see them.
+The `--verbose` flag shows the full pipeline: embedding time vs search time, vector dimensions, and buffer state with drop prediction.
+
+> **Memory without LLM:** `rag_memory.py` and `agent_cli.py` (Step 5) use the same underlying data structure — a list of past interactions. The difference is who reads it: the human (via `history`) vs the LLM (via prompt context).
+
+Try these questions once inside `rag_test.py` or `rag_memory.py`:
 
 | Question | What it tests |
 |----------|---------------|
@@ -282,7 +301,7 @@ Try these questions once inside `rag_test.py`:
 python backend/scripts/extract_sample.py --source chroma
 ```
 
-Full details: [Scenario 3 — Reading / Querying Embeddings](#scenario-3--reading--querying-embeddings).
+Full details: [Scenario 3 — Reading / Querying Embeddings](#scenario-3--reading--querying-embeddings) and [S04 — RAG Test Script](#s04--rag-test-script).
 
 </details>
 
@@ -392,6 +411,8 @@ migrant-archive/
 │   └── scripts/
 │       ├── agent_cli.py        ← Interactive agent CLI
 │       ├── rag_test.py         ← Interactive RAG pipeline test script
+│       ├── rag_memory.py       ← Semantic search with Conversation Buffer Window Memory (K=5)
+│       ├── quick_search.py     ← Keyword search (no API, no embeddings)
 │       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
 │
 ├── frontend/
@@ -443,6 +464,8 @@ migrant-archive/
     ├── agent-tools-discovery.md
     ├── faster-whisper-migration.md    ← Why faster-whisper over WhisperX
     ├── langsmith-tracing.md           ← Zero-code tracing: how LangSmith hooks into LangChain
+    ├── memory-to-agents.md            ← Migration: ConversationBufferMemory → RunnableWithMessageHistory
+    ├── memory_types.md                ← Taxonomy: 7 memory types in LLM applications
     ├── uv.md
     └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
 ```
@@ -946,9 +969,18 @@ ChromaDB was chosen because it requires no API keys, no external services, and n
 
 ### S04 — RAG Test Script
 
-> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py)
+> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/rag_memory.py`](backend/scripts/rag_memory.py)
 
-Three scripts to verify the pipeline at different levels, from no-API to full semantic search.
+Three scripts that progress from zero-cost keyword search to semantic search with conversation memory — all without an LLM for the memory layer.
+
+```
+quick_search.py  →  keyword, no API, no memory
+rag_test.py      →  semantic, API embeddings, no memory
+rag_memory.py    →  semantic, API embeddings, BUFFER WINDOW memory (K=5)
+                                                      ↓
+                                            S06: agent_cli.py
+                                            (same buffer, LLM reads it)
+```
 
 **`quick_search.py` — Fast keyword search (no API, no embeddings)**
 
@@ -971,6 +1003,19 @@ python backend/scripts/rag_test.py --rebuild   # build index
 python backend/scripts/rag_test.py              # interactive Q&A
 python backend/scripts/rag_test.py --top-k 5    # custom result count
 ```
+
+**`rag_memory.py` — Semantic search with Conversation Buffer Window Memory**
+
+120 lines. Adds a `History` class — a Python list of `SearchRecord` objects limited to `MAX_HISTORY=5`. Each search is saved with its query text, result count, and video IDs. Type `history` to see past searches. Zero LLM calls for the memory layer — only Gemini embeddings for search.
+
+```bash
+python backend/scripts/rag_memory.py             # interactive Q&A with history
+python backend/scripts/rag_memory.py --verbose   # full pipeline trace (timing, vectors, buffer state)
+```
+
+The `--verbose` flag shows every step: embedding time (Gemini API), search time (ChromaDB), and buffer state — growing from 1/5 to 5/5, then dropping the oldest entry with `action: pop "q1" + append new`.
+
+> **Why this matters:** `rag_memory.py` and `agent_cli.py` (S06) store the same kind of data — a list of past interactions. The difference is who consumes it: the human reads `history` output in `rag_memory.py`; the LLM reads `chat_history` as prompt context in `agent_cli.py`. Same buffer, different reader. This demonstrates that conversation memory is a data structure problem, not an AI problem. See [`notes/memory_types.md`](notes/memory_types.md) for the full taxonomy.
 
 **`extract_sample.py` — Sequential extraction**
 
