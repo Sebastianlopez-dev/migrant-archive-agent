@@ -24,7 +24,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agents.agent import clear_session, create_agent, get_session_history
+from agents.agent import (
+    MAX_HISTORY_MESSAGES,
+    clear_session,
+    create_agent,
+    get_session_history,
+)
 
 SESSION_ID = "cli-session"
 
@@ -33,14 +38,12 @@ def _show_history() -> None:
     """Print the current session's conversation history."""
     messages = get_session_history(SESSION_ID).messages
     if not messages:
-        print("No hay historial todavia.")
+        print("No history yet. Try later.")
         return
-    print()
     for msg in messages:
-        role = "Tu" if msg.type == "human" else "Cero"
-        print(f"[{role}] {msg.content}")
-        print()
-    print(f"({len(messages)} messages)")
+        role = "user" if msg.type == "human" else "Cero"
+        print(f"[{role}] {msg.content[:80]}...")
+    print(f"  ({len(messages)} messages, {MAX_HISTORY_MESSAGES} max)")
 
 
 def main() -> None:
@@ -61,18 +64,18 @@ def main() -> None:
                 config={"configurable": {"session_id": SESSION_ID}},
             )
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e}. Try again later.")
             sys.exit(1)
         print(result["output"])
         return
 
     # ── REPL mode ─────────────────────────────────────────────────
     print("=" * 50)
-    print("\nHi, I'm Cero - The Plataforma Cero's Youtube Q&A Agent.")
+    print("\nHi, I'm Cero \n- The Plataforma Cero's Youtube Q&A Agent.")
     print("=" * 50)
-    print("\nCommands: 'history' to check memory, 'q'/'quit'/'exit' to finish.")
+    print("\nHere some commands you can activate: \n'history' to check memory\n'q','quit','exit' to finish session.")
     print("=" * 50)
-    print("\nAsk me anything about the archived videos:\n")
+    print("\nAbove here you can insert a question for me")
 
     try:
         while True:
