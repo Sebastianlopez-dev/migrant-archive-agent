@@ -40,16 +40,23 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Embed a batch of texts via the Gemini API.
 
+        gemini-embedding-2 does NOT support batching in the genai SDK —
+        a list of strings is treated as one interleaved multimodal input.
+        Each text is embedded individually.
+
         Returns one 3072-dim vector per input string.
         """
         if not texts:
             return []
 
-        response = self._client.models.embed_content(
-            model=GEMINI_MODEL,
-            contents=texts,
-        )
-        return [embedding.values for embedding in response.embeddings]
+        embeddings: list[list[float]] = []
+        for text in texts:
+            response = self._client.models.embed_content(
+                model=GEMINI_MODEL,
+                contents=text,
+            )
+            embeddings.append(response.embeddings[0].values)
+        return embeddings
 
     def embed_query(self, text: str) -> list[float]:
         """Embed a single query string."""

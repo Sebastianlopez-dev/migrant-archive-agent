@@ -20,13 +20,17 @@ class TestGeminiEmbeddingProvider:
         mock_client = MagicMock()
         mock_genai.Client.return_value = mock_client
 
-        # Mock batch embedding response
-        mock_response = MagicMock()
-        mock_response.embeddings = [
-            MagicMock(values=[0.1, 0.2, 0.3]),
-            MagicMock(values=[0.4, 0.5, 0.6]),
-        ]
-        mock_client.models.embed_content.return_value = mock_response
+        # gemini-embedding-2 requires one call per text.
+        # side_effect returns one embedding per call.
+        def embed_side_effect(model, contents, **kwargs):
+            m = MagicMock()
+            if contents == "hello":
+                m.embeddings = [MagicMock(values=[0.1, 0.2, 0.3])]
+            else:
+                m.embeddings = [MagicMock(values=[0.4, 0.5, 0.6])]
+            return m
+
+        mock_client.models.embed_content.side_effect = embed_side_effect
 
         provider = GeminiEmbeddingProvider()
         result = provider.embed(["hello", "world"])
@@ -35,10 +39,11 @@ class TestGeminiEmbeddingProvider:
         assert result[0] == [0.1, 0.2, 0.3]
         assert result[1] == [0.4, 0.5, 0.6]
 
-        # Verify the API was called with correct model
-        mock_client.models.embed_content.assert_called_once()
-        call_args = mock_client.models.embed_content.call_args
-        assert call_args.kwargs["model"] == "models/gemini-embedding-2"
+        # Two calls — one per text with gemini-embedding-2
+        assert mock_client.models.embed_content.call_count == 2
+        first_call = mock_client.models.embed_content.call_args_list[0]
+        assert first_call.kwargs["model"] == "models/gemini-embedding-2"
+        assert first_call.kwargs["contents"] == "hello"
 
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     @patch("backend.core.embedding_gemini.genai")
