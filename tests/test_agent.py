@@ -964,7 +964,7 @@ class TestAgentE2E:
         from tools import make_search_transcripts
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-        embedding_function = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+        embedding_function = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2")
         store = Chroma(
             collection_name="e2e_test",
             embedding_function=embedding_function,

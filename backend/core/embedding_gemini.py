@@ -13,7 +13,7 @@ from google import genai
 from core.embedding import EmbeddingProvider
 
 
-GEMINI_MODEL = "models/gemini-embedding-001"
+GEMINI_MODEL = "models/gemini-embedding-2"
 GEMINI_DIMENSION = 3072
 
 

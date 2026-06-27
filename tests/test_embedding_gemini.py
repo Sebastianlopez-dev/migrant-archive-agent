@@ -38,7 +38,7 @@ class TestGeminiEmbeddingProvider:
         # Verify the API was called with correct model
         mock_client.models.embed_content.assert_called_once()
         call_args = mock_client.models.embed_content.call_args
-        assert call_args.kwargs["model"] == "models/gemini-embedding-001"
+        assert call_args.kwargs["model"] == "models/gemini-embedding-2"
 
     @patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"})
     @patch("backend.core.embedding_gemini.genai")
