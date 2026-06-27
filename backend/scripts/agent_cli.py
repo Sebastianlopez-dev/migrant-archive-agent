@@ -3,7 +3,7 @@
 
 Usage:
     python backend/scripts/agent_cli.py
-    python backend/scripts/agent_cli.py "pregunta"
+    python backend/scripts/agent_cli.py "question"
 
 Type 'quit' or 'salir' to exit. Type 'history' to see conversation history.
 """
@@ -47,7 +47,7 @@ def _show_history() -> None:
 
 
 def main() -> None:
-    """Run the interactive Spanish REPL or single-question mode."""
+    """Run the interactive REPL or single-question mode."""
     if not os.getenv("GEMINI_API_KEY"):
         print("ERROR: GEMINI_API_KEY not set. Copy .env.example to .env and fill it in.")
         sys.exit(1)
@@ -64,8 +64,10 @@ def main() -> None:
                 config={"configurable": {"session_id": SESSION_ID}},
             )
         except Exception as e:
-            print(f"Error: {e}. Try again later.")
+            print(f"Error: {e}")
             sys.exit(1)
+        finally:
+            clear_session(SESSION_ID)
         print(result["output"])
         return
 
