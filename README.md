@@ -11,8 +11,8 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 |------|-------|------|---------|
 | 1 | Ingestion + Processing | S01–S03 complete | — |
 | 2 | Agents + Testing | S04–S06 complete | — |
-| 3 | Observability + API | S07 pending | — |
-| 4 | Frontend + Deploy | Presentation | Deploy, polish, voice input |
+| 3 | Observability + API | S07 complete | — |
+| 4 | Frontend + Deploy | Presentation | Deploy, voice input |
 
 ---
 
@@ -32,7 +32,7 @@ FILMIG / Plataforma Cero (YouTube)
    ┌─ S02 ──────────────────────┐
     │  Chunking + Embedding      │
     │  1000tk/200ov · enriched   │
-    │  Gemini (3072d)            │
+    │  gemini-embedding-2 (3072d) │
    └──────────────┬──────────────┘
                   │
                   ▼
@@ -64,11 +64,12 @@ FILMIG / Plataforma Cero (YouTube)
                    │  embeddable widget          │
                   └────────────┬────────────────┘
                                ▼
-                      ┌─ S08 ──────────────┐
-                      │  Frontend + Deploy │
-                      │  Presentation      │
-                      │  Polish · Voice    │
-                      └────────────────────┘
+                       ┌─ S08 ──────────────┐
+                       │  Frontend + Deploy │
+                       │  Presentation      │
+                       │  Widget redesigned │
+                       │  Voice placeholder │
+                       └────────────────────┘
 ```
 
 <details>
@@ -139,12 +140,13 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S07 — LangSmith, API + Chat Widget: 1 decision · 6 files · 3 test files (29 tests)</summary>
+<summary>S07 — LangSmith, API + Chat Widget: 1 decision · 10 files · 3 test files (55 frontend tests)</summary>
 
 **Decisions:**
 - LangSmith zero-code tracing (env-var auto-detection, no application code required)
+- YouTube links generated in backend (deterministic, no HTML injection)
 
-**Files:** [`main.py`](backend/api/main.py) · [`models.py`](backend/api/models.py) · [`dependencies.py`](backend/api/dependencies.py) · [`chat.py`](backend/api/routes/chat.py) · [`chat-widget.ts`](frontend/src/chat-widget.ts) · [`main.ts`](frontend/src/main.ts)
+**Files:** [`main.py`](backend/api/main.py) · [`models.py`](backend/api/models.py) · [`dependencies.py`](backend/api/dependencies.py) · [`chat.py`](backend/api/routes/chat.py) · [`chat-widget.ts`](frontend/src/chat-widget.ts) · [`api-client.ts`](frontend/src/api-client.ts) · [`fab.ts`](frontend/src/fab.ts) · [`panel.ts`](frontend/src/panel.ts) · [`zero-state.ts`](frontend/src/zero-state.ts) · [`input-bar.ts`](frontend/src/input-bar.ts) · [`message-list.ts`](frontend/src/message-list.ts) · [`main.ts`](frontend/src/main.ts)
 
 **Tests:** `test_api.py` · `test_frontend.py` · `test_langsmith.py`
 
@@ -156,9 +158,9 @@ FILMIG / Plataforma Cero (YouTube)
 **Decisions:**
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
 
-**Completed:** [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 20-slide HTML deck
+**Completed:** [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 20-slide HTML deck · Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice/model placeholders, dark theme, responsive, keyboard navigation, ARIA accessibility.
 
-**Pending:** frontend polish (accessibility, loading states) · deploy to production · voice input (Web Speech API)
+**Pending:** deploy to production · voice input (Web Speech API)
 
 </details>
 
@@ -423,10 +425,18 @@ migrant-archive/
 │   ├── index.html              ← Widget mount point
 │   ├── package.json            ← pnpm dependencies
 │   ├── vite.config.ts          ← Vite + API proxy config
+│   ├── public/
+│   │   └── cerito-avatar.svg   ← Agent avatar for FAB and panel header
 │   └── src/
 │       ├── main.ts             ← Widget bootstrap
-│       ├── chat-widget.ts      ← Chat widget logic
-│       └── styles.css          ← Widget styles
+│       ├── api-client.ts       ← Typed fetch wrapper for POST /api/ask
+│       ├── fab.ts              ← Floating action button (FAB)
+│       ├── panel.ts            ← Side panel shell (30% width)
+│       ├── zero-state.ts       ← Greeting + 3 suggestion cards
+│       ├── input-bar.ts        ← Bottom input toolbar with send/mic/model
+│       ├── message-list.ts     ← Conversation rendering + source citations
+│       ├── chat-widget.ts      ← Orchestrator wiring all modules together
+│       └── styles.css          ← Dark theme CSS custom properties
 │
 ├── tests/
 │   ├── conftest.py             ← Shared pytest fixtures + LangSmith guard
@@ -615,7 +625,9 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 > **Source:** [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py)
 
-Uses `gemini-embedding-001` — Google's #1 multilingual model. Free tier covers the entire project.
+Uses `gemini-embedding-2` — Google's #1 multilingual embedding model (MTEB 69.9). 8,192 token context window, multimodal-ready.
+
+> **Batch limitation:** `gemini-embedding-2` does NOT support batching in the genai SDK. Each text is embedded individually via `embed_content`. For large-scale indexing, use the [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch) instead.
 
 **Requires:** UV environment + `GEMINI_API_KEY` in `.env`.
 
@@ -919,7 +931,7 @@ ChromaDB was chosen because it requires no API keys, no external services, and n
 
 **How it works:**
 
-- Collection `migrant_archive` stores documents with 3072d Gemini embeddings and metadata (video_id, title, chunk_index, start_time, end_time, channel, year)
+- Collection `migrant_archive` stores documents with 3072d `gemini-embedding-2` vectors and metadata (video_id, title, chunk_index, start_time, end_time, channel, year)
 - `store.search(query_embedding, top_k=3)` returns nearest neighbors by cosine distance
 - `store.search(query_embedding, top_k=5, video_id="VJqe2h0U1Fs")` scopes results to a single video
 - `store.search(query_embedding, top_k=5, year=2024, channel="Plataforma Cero")` combines semantic search with compound metadata filters via ChromaDB's `$and` / `$or` operators
@@ -1170,7 +1182,7 @@ uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 cd frontend && pnpm install && pnpm dev
 ```
 
-Open `http://localhost:5173`. Blue bubble bottom-right — click to open.
+Open `http://localhost:5173`. Cero avatar floating bottom-right — click to open the side panel. Zero-state shows a greeting and three clickable suggestion cards. Type a question or click a suggestion. Agent responses include clickable YouTube links inline. Dark theme, responsive (full-width below 640px). Keyboard accessible (Escape to close, Enter to send, Tab navigation).
 
 </details>
 
