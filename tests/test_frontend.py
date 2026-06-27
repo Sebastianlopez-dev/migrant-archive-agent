@@ -66,8 +66,11 @@ def test_styles_css_uses_brand_custom_properties():
 
 
 def test_styles_css_has_no_animations():
-    """styles.css must not contain transitions, keyframes, or animations."""
-    css_lower = _read_text("src/styles.css").lower()
+    """styles.css must not contain transitions, keyframes, or animations outside reduced-motion."""
+    import re
+    css = _read_text("src/styles.css")
+    css_no_reduced = re.sub(r"@media\s*\(prefers-reduced-motion[^}]*\}", "", css, flags=re.DOTALL)
+    css_lower = css_no_reduced.lower()
     assert "transition" not in css_lower, "CSS transitions are not allowed"
     assert "@keyframes" not in css_lower, "CSS keyframes are not allowed"
     assert "animation" not in css_lower, "CSS animations are not allowed"
@@ -273,10 +276,10 @@ def test_panel_creates_dialog_with_header_content_footer():
     assert "role" in source
     assert "dialog" in source
     assert "aria-label" in source
-    assert "Chat con Cerito" in source
+    assert "Chat con Cero" in source
     assert "chat-panel-header" in source
     assert "chat-panel-title" in source
-    assert "Cerito" in source
+    assert "Cero" in source
     assert "chat-panel-close" in source
     assert "chat-panel-content" in source
     assert "chat-panel-footer" in source
@@ -525,7 +528,7 @@ def test_chat_widget_a11y_attributes():
     assert "role" in panel
     assert "dialog" in panel
     assert "aria-label" in panel
-    assert "Chat con Cerito" in panel
+    assert "Chat con Cero" in panel
     assert "role" in message_list
     assert "log" in message_list
     assert "aria-live" in message_list
@@ -593,13 +596,16 @@ def test_pnpm_build_produces_dist_bundle():
 @pytest.mark.slow
 @pytest.mark.skipif(not _FRONTEND_DIR.exists(), reason="frontend directory not created yet")
 def test_built_css_has_no_animations():
-    """The emitted CSS bundle must not contain transitions, keyframes, or animations."""
+    """The emitted CSS bundle must not contain transitions, keyframes, or animations outside reduced-motion."""
+    import re
     dist_css = _FRONTEND_DIR / "dist" / "assets"
     css_files = list(dist_css.glob("*.css"))
     if not css_files:
         pytest.skip("no CSS bundle emitted yet")
 
-    css = css_files[0].read_text(encoding="utf-8").lower()
+    css_raw = css_files[0].read_text(encoding="utf-8")
+    css_no_reduced = re.sub(r"@media\s*\(prefers-reduced-motion[^}]*\}", "", css_raw, flags=re.DOTALL)
+    css = css_no_reduced.lower()
     assert "transition" not in css, "built CSS must not contain transitions"
     assert "@keyframes" not in css, "built CSS must not contain keyframes"
     assert "animation" not in css, "built CSS must not contain animations"

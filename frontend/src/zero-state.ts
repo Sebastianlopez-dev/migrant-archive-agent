@@ -55,14 +55,12 @@ export function createZeroState(onSuggestionClick: (question: string) => void): 
 
   const suggestions = document.createElement('div');
   suggestions.className = 'chat-suggestions';
-  suggestions.setAttribute('role', 'list');
   suggestions.setAttribute('aria-label', 'Sugerencias de preguntas');
 
   for (const suggestion of SUGGESTIONS) {
     const card = document.createElement('button');
     card.className = 'chat-suggestion';
     card.type = 'button';
-    card.setAttribute('role', 'listitem');
 
     const icon = document.createElement('span');
     icon.className = 'chat-suggestion-icon';

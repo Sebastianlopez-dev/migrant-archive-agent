@@ -28,7 +28,7 @@ export function createPanel(onClose: () => void): PanelSlots {
   panel.id = 'chat-panel';
   panel.className = 'chat-panel';
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', 'Chat con Cerito');
+  panel.setAttribute('aria-label', 'Chat con Cero');
 
   const header = document.createElement('header');
   header.className = 'chat-panel-header';
@@ -43,7 +43,7 @@ export function createPanel(onClose: () => void): PanelSlots {
   titleAvatar.height = 28;
 
   const titleText = document.createElement('h2');
-  titleText.textContent = 'Cerito';
+  titleText.textContent = 'Cero';
 
   title.appendChild(titleAvatar);
   title.appendChild(titleText);

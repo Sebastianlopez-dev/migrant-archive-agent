@@ -461,6 +461,17 @@
   color: var(--gray-500);
 }
 
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .chat-widget *,
+  .chat-widget *::before,
+  .chat-widget *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .chat-panel {

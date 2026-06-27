@@ -17,13 +17,13 @@ export function createFab(onClick: () => void): HTMLButtonElement {
   const button = document.createElement('button');
   button.className = 'chat-fab';
   button.type = 'button';
-  button.setAttribute('aria-label', 'Abrir chat con Cerito');
+  button.setAttribute('aria-label', 'Abrir chat con Cero');
   button.setAttribute('aria-controls', 'chat-panel');
   button.setAttribute('aria-expanded', 'false');
 
   const avatar = document.createElement('img');
   avatar.src = '/cerito-avatar.svg';
-  avatar.alt = 'Cerito';
+  avatar.alt = 'Cero';
   avatar.width = 42;
   avatar.height = 42;
 
