@@ -12,6 +12,10 @@ export interface InputBarApi {
   setQuestion: (question: string) => void;
   /** Clear the input field. */
   clear: () => void;
+  /** Focus the input field. */
+  focus: () => void;
+  /** Enable or disable the input and send button. */
+  setLoading: (isLoading: boolean) => void;
 }
 
 const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
@@ -85,6 +89,15 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     input.rows = 1;
   }
 
+  function focus(): void {
+    input.focus();
+  }
+
+  function setLoading(isLoading: boolean): void {
+    input.disabled = isLoading;
+    sendButton.disabled = isLoading;
+  }
+
   sendButton.addEventListener('click', submit);
 
   input.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -99,5 +112,5 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     input.rows = Math.min(5, Math.max(1, lines));
   });
 
-  return { element: root, setQuestion, clear };
+  return { element: root, setQuestion, clear, focus, setLoading };
 }

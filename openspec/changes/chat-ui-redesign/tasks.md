@@ -76,14 +76,14 @@ Chain strategy: pending
 
 ## Phase 4: Integration and Styles
 
-- [ ] **T007 — Refactor `frontend/src/chat-widget.ts` as orchestrator**
+- [x] **T007 — Refactor `frontend/src/chat-widget.ts` as orchestrator**
   - Import T001–T006 modules; manage `isOpen`, `hasStarted`, `isLoading`, `messages`, `sessionId`.
   - Wire open/close, suggestion send, message send, loading state, focus management.
   - Estimated lines: ~−160 net; ~460 diff
   - Acceptance: Widget opens/closes via FAB and close button; messages send; suggestions send.
   - Commit: `refactor(chat): rewrite chat-widget as module orchestrator`
 
-- [ ] **T008 — Rewrite `frontend/src/styles.css` for dark theme and layout**
+- [x] **T008 — Rewrite `frontend/src/styles.css` for dark theme and layout**
   - Dark palette with `--blue: #019ee3`; FAB/panel layout; zero-state; messages; input bar.
   - Panel width `30vw` bounded `320px–480px`; full width below `640px`.
   - Remove all `transition`, `@keyframes`, transform motion.
@@ -91,7 +91,7 @@ Chain strategy: pending
   - Acceptance: Build passes; no `transition` or `@keyframes` rules remain; responsive widths correct.
   - Commit: `feat(chat): apply dark theme and side-panel layout styles`
 
-- [ ] **T009 — Add keyboard navigation and focus management**
+- [x] **T009 — Add keyboard navigation and focus management**
   - Escape closes panel; focus input on open; restore focus to FAB on close; visible focus rings.
   - Verify all icon-only buttons have `aria-label`.
   - Estimated lines: +40
@@ -100,7 +100,7 @@ Chain strategy: pending
 
 ## Phase 5: Verification
 
-- [ ] **T010 — Verify build and backend contract**
+- [x] **T010 — Verify build and backend contract**
   - Run `cd frontend && pnpm install && pnpm build`.
   - Run `uv run python -m pytest tests/ -v`.
   - Estimated lines: 0–20

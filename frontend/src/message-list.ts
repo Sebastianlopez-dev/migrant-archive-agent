@@ -20,6 +20,8 @@ export interface MessageListApi {
   addAgentResponse: (response: AskResponse) => void;
   /** Show or hide the static loading indicator. */
   setLoading: (isLoading: boolean) => void;
+  /** Append an error-styled message bubble. */
+  addErrorMessage: (text: string) => void;
   /** Remove every rendered message. */
   clear: () => void;
 }
@@ -53,6 +55,12 @@ export function createMessageList(): MessageListApi {
 
   function addUserMessage(text: string): void {
     const bubble = appendBubble('msg-user');
+    bubble.textContent = text;
+    scrollToBottom();
+  }
+
+  function addErrorMessage(text: string): void {
+    const bubble = appendBubble('msg-error');
     bubble.textContent = text;
     scrollToBottom();
   }
@@ -149,7 +157,7 @@ export function createMessageList(): MessageListApi {
     loadingIndicator = null;
   }
 
-  return { element, addUserMessage, addAgentResponse, setLoading, clear };
+  return { element, addUserMessage, addAgentResponse, setLoading, addErrorMessage, clear };
 }
 
 function buildSourceUrl(videoId: string, startTime: string): string {

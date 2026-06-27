@@ -61,18 +61,81 @@ def test_styles_css_uses_brand_custom_properties():
     assert "--red: #c84c30" in css
     assert "--black: #000" in css
     assert "--white: #fff" in css
-    assert ".chat-bubble" in css
+    assert ".chat-fab" in css
     assert ".chat-panel" in css
-    assert "translateX" in css, "panel must use translateX for slide animation"
 
 
-def test_chat_widget_class_has_required_methods():
-    """chat-widget.ts must export a ChatWidget class with the expected API."""
+def test_styles_css_has_no_animations():
+    """styles.css must not contain transitions, keyframes, or animations."""
+    css_lower = _read_text("src/styles.css").lower()
+    assert "transition" not in css_lower, "CSS transitions are not allowed"
+    assert "@keyframes" not in css_lower, "CSS keyframes are not allowed"
+    assert "animation" not in css_lower, "CSS animations are not allowed"
+
+
+def test_styles_css_panel_width_is_responsive():
+    """Panel width must be 30vw bounded and full-width below 640px."""
+    css = _read_text("src/styles.css")
+    assert "30vw" in css
+    assert "min-width: 320px" in css or "min-width:320px" in css
+    assert "max-width: 480px" in css or "max-width:480px" in css
+    assert "(max-width: 640px)" in css or "(max-width:640px)" in css
+    assert "width: 100%" in css or "width:100%" in css
+
+
+def test_chat_widget_exports_class_and_imports_submodules():
+    """chat-widget.ts must export ChatWidget and import the new modules."""
     source = _read_text("src/chat-widget.ts")
     assert "export class ChatWidget" in source
-    for method in ("createBubble", "createPanel", "togglePanel", "sendMessage", "renderMessage"):
-        assert f"{method}(" in source, f"ChatWidget must implement {method}"
-    assert "fetch('/api/ask'" in source or 'fetch("/api/ask"' in source
+    assert "constructor(root: HTMLElement)" in source
+    for name in (
+        "createFab",
+        "createPanel",
+        "createZeroState",
+        "createInputBar",
+        "createMessageList",
+    ):
+        assert name in source, f"ChatWidget must import/use {name}"
+    assert "ask(" in source or "ask" in source
+    assert "crypto.randomUUID()" in source
+    assert "sessionId" in source
+
+
+def test_chat_widget_orchestrates_open_close_and_focus():
+    """ChatWidget must wire FAB open, close button, Escape, and focus."""
+    source = _read_text("src/chat-widget.ts")
+    assert "openPanel(" in source
+    assert "closePanel(" in source
+    assert "togglePanel(" in source
+    assert "Escape" in source
+    assert ".focus()" in source
+
+
+def test_chat_widget_sends_message_via_api_client():
+    """ChatWidget must call the api-client ask() wrapper, not fetch directly."""
+    source = _read_text("src/chat-widget.ts")
+    assert "fetch('/api/ask'" not in source
+    assert 'fetch("/api/ask"' not in source
+    assert "ask(this.sessionId" in source or "ask(sessionId" in source
+    assert "sendMessage(" in source
+
+
+def test_chat_widget_zero_state_suggestion_sends_question():
+    """Clicking a suggestion must populate the input and send the question."""
+    source = _read_text("src/chat-widget.ts")
+    assert "selectSuggestion(" in source
+    assert "setQuestion(" in source
+    assert "sendMessage(" in source
+
+
+def test_chat_widget_replaces_zero_state_with_message_list():
+    """Sending the first message must hide the zero-state and show messages."""
+    source = _read_text("src/chat-widget.ts")
+    assert "hasStarted" in source
+    assert "zeroState" in source
+    assert "messageList" in source
+    assert "removeChild" in source or ".remove(" in source
+    assert "appendChild" in source
 
 
 def test_main_ts_bootstraps_widget_on_dom_ready():
@@ -301,11 +364,11 @@ def test_input_bar_enter_triggers_send():
     assert "onSend(" in source
 
 
-def test_input_bar_exposes_set_question_and_clear():
-    """createInputBar must return setQuestion and clear helpers."""
+def test_input_bar_exposes_set_question_clear_focus_and_loading():
+    """createInputBar must return setQuestion, clear, focus, and setLoading helpers."""
     source = _read_text("src/input-bar.ts")
-    assert "setQuestion" in source
-    assert "clear" in source
+    for helper in ("setQuestion", "clear", "focus", "setLoading"):
+        assert helper in source, f"input bar API must expose {helper}"
     assert "return {" in source
 
 
@@ -344,7 +407,7 @@ def test_message_list_returns_element_and_api():
     source = _read_text("src/message-list.ts")
     assert "element" in source
     assert "return {" in source
-    for method in ("addUserMessage", "addAgentResponse", "setLoading", "clear"):
+    for method in ("addUserMessage", "addAgentResponse", "setLoading", "clear", "addErrorMessage"):
         assert method in source, f"message list API must expose {method}"
 
 
@@ -374,6 +437,13 @@ def test_message_list_add_agent_response_renders_answer_and_sources():
     assert "msg-agent" in source
     assert "msg-source" in source
     assert "addAgentResponse" in source
+
+
+def test_message_list_add_error_message_renders_error_bubble():
+    """addErrorMessage must append an error-styled bubble."""
+    source = _read_text("src/message-list.ts")
+    assert "addErrorMessage" in source
+    assert "msg-error" in source
 
 
 def test_message_list_source_card_shows_video_title_time_excerpt():
@@ -438,7 +508,52 @@ def test_message_list_does_not_duplicate_loading_indicator():
     assert "if (!loadingIndicator)" in source
 
 
-# ───────────────────────── Phase 7.5: Build verification ─────────────────────────
+# ───────────────────────── Phase 8.8: Integration / accessibility ─────────────────────────
+
+
+def test_chat_widget_a11y_attributes():
+    """The orchestrator and child modules must expose required ARIA attributes."""
+    widget = _read_text("src/chat-widget.ts")
+    fab = _read_text("src/fab.ts")
+    panel = _read_text("src/panel.ts")
+    message_list = _read_text("src/message-list.ts")
+    input_bar = _read_text("src/input-bar.ts")
+
+    assert "aria-controls" in fab
+    assert "chat-panel" in fab
+    assert "aria-expanded" in fab
+    assert "role" in panel
+    assert "dialog" in panel
+    assert "aria-label" in panel
+    assert "Chat con Cerito" in panel
+    assert "role" in message_list
+    assert "log" in message_list
+    assert "aria-live" in message_list
+    assert "polite" in message_list
+    assert "aria-label" in input_bar
+
+
+def test_chat_widget_focus_management_helpers():
+    """The orchestrator must call focus on the input when opening and on the FAB when closing."""
+    source = _read_text("src/chat-widget.ts")
+    assert "inputBar.focus()" in source
+    assert "fab.focus()" in source
+
+
+def test_input_bar_focus_and_loading_methods_exist():
+    """createInputBar must expose focus() and setLoading() for the orchestrator."""
+    source = _read_text("src/input-bar.ts")
+    assert "focus():" in source or "function focus" in source or "focus() {" in source
+    assert "setLoading(" in source
+
+
+def test_message_list_error_method_exists():
+    """createMessageList must expose addErrorMessage for the orchestrator."""
+    source = _read_text("src/message-list.ts")
+    assert "addErrorMessage" in source
+
+
+# ───────────────────────── Phase 8.9: Build verification ─────────────────────────
 
 
 @pytest.mark.slow
@@ -473,3 +588,18 @@ def test_pnpm_build_produces_dist_bundle():
     css_files = list(assets.glob("*.css"))
     assert js_files, "at least one JS bundle must be emitted"
     assert css_files, "at least one CSS bundle must be emitted"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(not _FRONTEND_DIR.exists(), reason="frontend directory not created yet")
+def test_built_css_has_no_animations():
+    """The emitted CSS bundle must not contain transitions, keyframes, or animations."""
+    dist_css = _FRONTEND_DIR / "dist" / "assets"
+    css_files = list(dist_css.glob("*.css"))
+    if not css_files:
+        pytest.skip("no CSS bundle emitted yet")
+
+    css = css_files[0].read_text(encoding="utf-8").lower()
+    assert "transition" not in css, "built CSS must not contain transitions"
+    assert "@keyframes" not in css, "built CSS must not contain keyframes"
+    assert "animation" not in css, "built CSS must not contain animations"
