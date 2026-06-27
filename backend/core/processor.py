@@ -120,6 +120,9 @@ class Processor:
                     "end_time": end_time,
                     "channel": _channel_from_metadata(video_data.metadata),
                     "year": _year_from_metadata(video_data.metadata),
+                    "speaker": _extract_speakers_from_description(
+                        video_data.description, video_data.title
+                    ),
                 }
                 chunks.append(Chunk(text=chunk_text, metadata=metadata))
                 chunk_index += 1
@@ -197,3 +200,158 @@ def _parse_timestamp(text: str, last: bool = False) -> float | None:
     minutes = int(match.group(2))
     seconds = int(match.group(3))
     return hours * 3600 + minutes * 60 + seconds
+
+
+# ---------------------------------------------------------------------------
+# Speaker extraction helpers
+# ---------------------------------------------------------------------------
+
+
+def _normalize_math_bold(text: str) -> str:
+    """Convert Mathematical Alphanumeric Symbols to plain ASCII.
+
+    Covers Mathematical Bold, Italic, and Sans-Serif Bold capitals and
+    small letters (U+1D400–U+1D7FF) so names like 𝐍𝐚𝐝𝐢𝐚 become readable.
+    """
+    result: list[str] = []
+    for char in text:
+        codepoint = ord(char)
+        if 0x1D400 <= codepoint <= 0x1D433:  # Mathematical Bold A-z
+            # 0x1D400 -> 'A', 0x1D41A -> 'a'
+            result.append(chr((codepoint - 0x1D400) % 26 + (65 if codepoint < 0x1D41A else 97)))
+        elif 0x1D434 <= codepoint <= 0x1D467:  # Mathematical Italic A-z
+            result.append(chr((codepoint - 0x1D434) % 26 + (65 if codepoint < 0x1D44E else 97)))
+        elif 0x1D5D4 <= codepoint <= 0x1D607:  # Mathematical Sans-Serif Bold A-z
+            result.append(chr((codepoint - 0x1D5D4) % 26 + (65 if codepoint < 0x1D5EE else 97)))
+        elif 0x1D608 <= codepoint <= 0x1D63B:  # Mathematical Sans-Serif Italic A-z
+            result.append(chr((codepoint - 0x1D608) % 26 + (65 if codepoint < 0x1D622 else 97)))
+        elif 0x1D63C <= codepoint <= 0x1D66F:  # Mathematical Sans-Serif Bold Italic A-z
+            result.append(chr((codepoint - 0x1D63C) % 26 + (65 if codepoint < 0x1D656 else 97)))
+        elif 0x1D6A8 <= codepoint <= 0x1D6E1:  # Mathematical Bold Greek
+            result.append(char)  # leave Greek as-is
+        else:
+            result.append(char)
+    return "".join(result)
+
+
+# Spanish stop words that should never start a person's name.
+_NAME_STOP_WORDS = frozenset({
+    "en", "un", "una", "el", "la", "los", "las", "de", "del", "que",
+    "por", "para", "como", "hacia", "nos", "se", "su", "con", "sin",
+    "este", "esta", "desde", "donde", "cuando", "también",
+})
+
+
+def _looks_like_name(text: str) -> bool:
+    """Return True when *text* looks like a person name (2-4 title-case words)."""
+    words = text.split()
+    if len(words) < 2 or len(words) > 4:
+        return False
+    if words[0].lower() in _NAME_STOP_WORDS:
+        return False
+    # Each word must start with an uppercase letter (or be a single
+    # uppercase initial like "V.").
+    for w in words:
+        if not w[0].isupper():
+            return False
+    return True
+
+
+def _extract_speakers_from_description(description: str, title: str = "") -> str:
+    """Extract participant names from a YouTube video description or title.
+
+    Returns a comma-separated string of names, or an empty string when no
+    identifiable pattern is found.
+    """
+    if not description and not title:
+        return ""
+
+    # Normalize mathematical bold/italic glyphs so plain-text regexes and
+    # emoji markers can coexist.
+    description = _normalize_math_bold(description)
+
+    # Pattern A: "Participantes:" section with 📌 markers.
+    if "📌" in description and "participantes" in description.lower():
+        names: list[str] = []
+        in_section = False
+        for line in description.splitlines():
+            lower = line.lower()
+            if "participantes" in lower:
+                in_section = True
+                continue
+            if in_section and line.strip().startswith("📌"):
+                raw = line.lstrip("📌").strip()
+                raw = raw.split("(@")[0]
+                raw = raw.split("–")[0]
+                raw = raw.split("—")[0]
+                name = raw.strip()
+                if name:
+                    names.append(name)
+        if names:
+            return ", ".join(names)
+
+    # Pattern B: "Nos acompañan:" section with 👉🏾 markers.
+    if "👉🏾" in description and "nos acompañan" in description.lower():
+        names = []
+        in_section = False
+        for line in description.splitlines():
+            lower = line.lower()
+            if "nos acompañan" in lower:
+                in_section = True
+                continue
+            if in_section and "👉🏾" in line:
+                raw = line.split("👉🏾", 1)[1].strip()
+                raw = raw.split(":")[0]
+                name = raw.strip()
+                if name:
+                    names.append(name)
+        if names:
+            return ", ".join(names)
+
+    # Pattern C: "convoca a:" comma-separated list.
+    convoca_match = re.search(
+        r"convoca a:\s*([^\n]+?)(?:\n|$)",
+        description,
+        flags=re.IGNORECASE,
+    )
+    if convoca_match:
+        raw_list = convoca_match.group(1)
+        parts = re.split(r",\s*|\s+y\s+", raw_list)
+        names = [
+            part.strip() for part in parts
+            if part.strip() and _looks_like_name(part.strip())
+        ]
+        if names:
+            return ", ".join(names)
+
+    # Pattern D: "Modera:" / "Moderadora:" marker.
+    modera_match = re.search(
+        r"(?:moderadora?|modera):\s*([^\n@]+)",
+        description,
+        flags=re.IGNORECASE,
+    )
+    if modera_match:
+        name = modera_match.group(1).strip()
+        if name:
+            return name
+
+    # Pattern E: title fallback, e.g. "... con X, Y y Z".
+    title = _normalize_math_bold(title)
+    title_match = re.search(
+        r"\bcon\s+([^|]+?)(?:\||$)",
+        title,
+        flags=re.IGNORECASE,
+    )
+    if title_match:
+        raw_list = title_match.group(1)
+        # Only treat it as a participant list when separators are present.
+        if "," in raw_list or " y " in raw_list or " and " in raw_list:
+            parts = re.split(r",\s*|\s+y\s+|\s+and\s+", raw_list)
+            names = [
+                part.strip() for part in parts
+                if part.strip() and _looks_like_name(part.strip())
+            ]
+            if names:
+                return ", ".join(names)
+
+    return ""

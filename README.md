@@ -109,17 +109,18 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S04–S05 — Sample Extraction + RAG Test: 4 files · 1 test file</summary>
+<summary>S04–S05 — Sample Extraction + RAG Test: 5 files · 1 test file</summary>
 
 **Files:**
 [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
 [`rag_test.py`](backend/scripts/rag_test.py) — interactive semantic search
 [`rag_memory.py`](backend/scripts/rag_memory.py) — semantic search with Conversation Buffer Window Memory (K=5, no LLM for memory)
+[`cero-01.py`](cero-01.py) — conversational RAG with LangChain (ConversationalRetrievalChain + memory + LLM answers)
 [`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
 
 **Tests:** `test_extract_sample.py`
 
-**Memory progression:** `rag_test.py` (no memory) → `rag_memory.py` (buffer window, no LLM) → `agent_cli.py` (buffer, LLM reads history). Same data structure, different consumer.
+**Memory progression:** `rag_test.py` (no memory) → `rag_memory.py` (buffer window, no LLM) → `cero-01.py` (buffer window, LLM answers) → `agent_cli.py` (buffer, LLM + tools). Same data structure, different consumer.
 
 </details>
 
@@ -262,9 +263,9 @@ Full details: [S02 — Chunking and Embedding](#s02--chunking-and-embedding) and
 <details>
 <summary>Step 4 — Query (simple RAG, no memory)</summary>
 
-### Step 4 — Query (RAG, from no memory to query history)
+### Step 4 — Query (RAG, from no memory to conversational)
 
-Three levels of querying ChromaDB, from keyword to semantic to semantic with memory.
+Four levels of querying ChromaDB, from keyword to semantic to conversational AI.
 
 ```bash
 # Level 1 — Fast keyword search (no API, no embeddings):
@@ -276,18 +277,21 @@ python backend/scripts/rag_test.py
 # Level 3 — Semantic search with query history (API embeddings, buffer window memory):
 python backend/scripts/rag_memory.py
 python backend/scripts/rag_memory.py --verbose    # full pipeline trace
+
+# Level 4 — Conversational RAG (API embeddings + LLM answers + memory):
+uv run python cero-01.py "¿cómo describen el dolor de migrar?"
+uv run python cero-01.py --verbose "¿qué sentimientos expresan las mujeres?"
+uv run python cero-01.py                         # REPL mode
 ```
 
-| Script | Memory | API calls | Best for |
-|--------|--------|-----------|----------|
-| `quick_search.py` | None | 0 | Fast checks, no cost |
-| `rag_test.py` | None | Embedding only | Exploring the DB |
-| `rag_memory.py` | Conversation Buffer Window (K=5) | Embedding only | Comparing searches across queries |
+| Script | Memory | LLM Answers | API calls | Best for |
+|--------|--------|:---:|-----------|----------|
+| `quick_search.py` | None | ❌ | 0 | Fast checks, no cost |
+| `rag_test.py` | None | ❌ | Embedding only | Exploring the DB |
+| `rag_memory.py` | Buffer Window (K=5) | ❌ | Embedding only | Comparing searches |
+| **`cero-01.py`** | **Buffer Window (K=5)** | **✅ Spanish** | **Embedding + Chat** | **Demo, conversational Q&A** |
 
-`rag_memory.py` keeps the last 5 searches in a Python list. Type `history` to see them.
-The `--verbose` flag shows the full pipeline: embedding time vs search time, vector dimensions, and buffer state with drop prediction.
-
-> **Memory without LLM:** `rag_memory.py` and `agent_cli.py` (Step 5) use the same underlying data structure — a list of past interactions. The difference is who reads it: the human (via `history`) vs the LLM (via prompt context).
+`cero-01.py` is a self-contained 124-line conversational RAG built entirely with LangChain (`ConversationalRetrievalChain`, `Chroma`, `GoogleGenerativeAIEmbeddings`, `ChatGoogleGenerativeAI`). It answers questions in Spanish using transcript chunks as context, remembers the last 5 conversation turns, and shows source documents with `--verbose`. Zero imports from `backend/core/`.
 
 Try these questions once inside `rag_test.py` or `rag_memory.py`:
 
@@ -419,6 +423,8 @@ migrant-archive/
 │       ├── rag_memory.py       ← Semantic search with Conversation Buffer Window Memory (K=5)
 │       ├── quick_search.py     ← Keyword search (no API, no embeddings)
 │       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
+│
+├── cero-01.py                  ← Conversational RAG with LangChain (self-contained, 124 lines)
 │
 ├── frontend/
 │   ├── index.html              ← Widget mount point
@@ -1005,9 +1011,10 @@ Three scripts that progress from zero-cost keyword search to semantic search wit
 quick_search.py  →  keyword, no API, no memory
 rag_test.py      →  semantic, API embeddings, no memory
 rag_memory.py    →  semantic, API embeddings, BUFFER WINDOW memory (K=5)
-                                                      ↓
-                                            S06: agent_cli.py
-                                            (same buffer, LLM reads it)
+cero-01.py       →  semantic, API embeddings + LLM answers, BUFFER WINDOW memory (K=5)
+                                                       ↓
+                                             S06: agent_cli.py
+                                             (same buffer, LLM reads it + tools)
 ```
 
 **`quick_search.py` — Fast keyword search (no API, no embeddings)**
@@ -1044,6 +1051,18 @@ python backend/scripts/rag_memory.py --verbose   # full pipeline trace (timing, 
 The `--verbose` flag shows every step: embedding time (Gemini API), search time (ChromaDB), and buffer state — growing from 1/5 to 5/5, then dropping the oldest entry with `action: pop "q1" + append new`.
 
 > **Why this matters:** `rag_memory.py` and `agent_cli.py` (S06) store the same kind of data — a list of past interactions. The difference is who consumes it: the human reads `history` output in `rag_memory.py`; the LLM reads `chat_history` as prompt context in `agent_cli.py`. Same buffer, different reader. This demonstrates that conversation memory is a data structure problem, not an AI problem. See [`notes/memory_types.md`](notes/memory_types.md) for the full taxonomy.
+
+**`cero-01.py` — Conversational RAG with LangChain**
+
+124 lines. The bridge between `rag_memory.py` (search only) and `agent_cli.py` (full agent with tools). Built entirely with LangChain: `ConversationalRetrievalChain` orchestrates retrieval + generation, `ConversationBufferWindowMemory` handles the sliding window, `Chroma` + `GoogleGenerativeAIEmbeddings` replace the manual vector store and embedding classes. Zero imports from `backend/core/`.
+
+```bash
+uv run python cero-01.py "¿cómo describen el dolor de migrar?"
+uv run python cero-01.py --verbose "¿qué sentimientos expresan?"  # shows source docs
+uv run python cero-01.py                         # REPL mode with history command
+```
+
+Key features: answers in Spanish with video/timestamp citations, remembers 5 conversation turns via sliding window buffer, returns source documents with `--verbose`, handles API errors gracefully. The `SYSTEM_PROMPT` is a standalone constant — editable without touching chain logic. See [`Cero-01-checklist.md`](Cero-01-checklist.md) for the full evolution from shebang to conversational AI.
 
 </details>
 

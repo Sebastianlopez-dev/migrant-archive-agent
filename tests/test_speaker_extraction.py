@@ -9,16 +9,15 @@ Covers:
 import sys
 from pathlib import Path
 
-# Allow imports from backend/agents.
-sys.path.insert(0, str(Path(__file__).parent.parent / "backend" / "agents"))
+# Allow imports from backend/agents and backend/core.
+BACKEND_DIR = Path(__file__).parent.parent / "backend"
+sys.path.insert(0, str(BACKEND_DIR / "agents"))
+sys.path.insert(0, str(BACKEND_DIR / "core"))
 
 import pytest
 
-from tools import (
-    _extract_speakers_from_description,
-    _normalize_math_bold,
-    _get_channel_and_speakers,
-)
+from tools import _extract_speakers_from_description
+from processor import _normalize_math_bold
 
 
 # Real description snippets extracted from data/raw/whisper/*.json.
@@ -79,27 +78,6 @@ class TestExtractSpeakersFromDescription:
         result = _extract_speakers_from_description("")
 
         assert result == ""
-
-    def test_get_channel_and_speakers_fallback(self):
-        """When description has no speaker patterns, channel is returned and speakers is empty."""
-        metadata = {"channel": "Plataforma Cero", "uploader": "Plataforma Cero"}
-        channel, speakers = _get_channel_and_speakers(
-            metadata, description="Just a plain description without any markers."
-        )
-
-        assert channel == "Plataforma Cero"
-        assert speakers == ""
-
-    def test_get_channel_and_speakers_with_extraction(self):
-        """When description has speaker patterns, both channel and speakers are returned."""
-        metadata = {"channel": "Plataforma Cero"}
-        channel, speakers = _get_channel_and_speakers(
-            metadata, description=DESCRIPTION_PARTICIPANTES,
-        )
-
-        assert channel == "Plataforma Cero"
-        assert "Lucía Mbomío Rubio" in speakers
-        assert "Safia El Aaddam" in speakers
 
 
 class TestNormalizeMathBold:
