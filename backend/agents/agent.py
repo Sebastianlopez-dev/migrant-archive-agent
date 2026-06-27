@@ -144,6 +144,7 @@ def create_agent(
         llm = ChatGoogleGenerativeAI(
             model=GEMINI_CHAT_MODEL,
             temperature=0.2,
+            model_kwargs={"tool_config": {"function_calling_config": {"mode": "ANY"}}},
         )
 
     if tools is None:
@@ -197,4 +198,5 @@ def create_agent(
         get_session_history,
         input_messages_key="input",
         history_messages_key="chat_history",
+        output_messages_key="output",
     )
