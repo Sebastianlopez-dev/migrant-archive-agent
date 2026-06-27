@@ -275,7 +275,7 @@
   <div class="divider"></div>
   <div class="day-list" style="margin-top:8px;">
     <div class="day-item"><span class="day-num">Notebook</span> notebooks/transcribe_video_colab.ipynb</div>
-    <div class="day-item"><span class="day-num">Upload</span> ingestion.py · ingestion_colab.py · ingestion_audio.py · cookies · video links</div>
+    <div class="day-item"><span class="day-num">Upload</span> backend/core/ingestion.py · backend/core/ingestion_colab.py · backend/core/ingestion_audio.py · cookies · video links</div>
     <div class="day-item"><span class="day-num">Output</span> data/raw/whisper/{video_id}.json</div>
   </div>
   <p class="t-small" style="margin-top:24px;">One JSON per video — transcript + metadata.</p>
@@ -297,13 +297,12 @@
 <!-- ═══════ SLIDE 07 · S02 EMBEDDING PROVIDERS ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">S02 · Embedding providers</p>
-  <h2 class="t-title">Dependency inversion. Two providers.</h2>
+  <h2 class="t-title">Dependency inversion. Gemini provider.</h2>
   <div class="divider"></div>
   <div class="tag-row">
     <span class="tag">gemini-embedding-001 — 3072d</span>
-    <span class="tag">BGE-M3 local — 1024d</span>
   </div>
-  <p class="t-body" style="margin-top:24px;">One abstract contract. Two implementations. Zero coupling.</p>
+  <p class="t-body" style="margin-top:24px;">One abstract contract. One active implementation. Dependency inversion still holds.</p>
 </section>
 
 <!-- ═══════ SLIDE 08 · S03 CHROMADB ═══════ -->
@@ -329,10 +328,11 @@
     <div class="day-item"><span class="day-num">1</span> quick_search.py — fast keyword search, no API</div>
     <div class="day-item"><span class="day-num">2</span> rag_test.py — semantic search, no memory</div>
     <div class="day-item"><span class="day-num">3</span> cero-01.py — conversational RAG + Buffer Window Memory (K=5)</div>
+    <div class="day-item"><span class="day-num">4</span> agent_cli.py — REPL with Chroma-based tools and memory</div>
   </div>
   <p class="t-small" style="margin-top:24px; line-height:1.6;">
-    S04 validates integrity. S05 shows the progression: keyword → semantic → memory.<br>
-    Memory without LLM: a Python list. Same buffer as the agent (S06). Different reader.
+    S04 validates integrity. S05–S06 shows the progression: keyword → semantic → memory → agent REPL.<br>
+    All transcript search is backed by ChromaDB; the agent uses the same store through tools.
   </p>
 </section>
 
@@ -347,6 +347,7 @@
     <span class="tag">5-turn buffer</span>
     <span class="tag">per-session memory</span>
     <span class="tag">disambiguation</span>
+    <span class="tag">agent_cli.py REPL</span>
   </div>
 </section>
 
@@ -359,6 +360,7 @@
     <span class="tag">list_videos</span>
     <span class="tag">get_video_info</span>
     <span class="tag">search_transcripts</span>
+    <span class="tag">ChromaDB-backed</span>
   </div>
 </section>
 
@@ -386,7 +388,7 @@
     <span class="process-line"></span>
     <div class="process-step">
       <span class="process-num">Tool</span>
-      <span class="process-label">search</span>
+      <span class="process-label">ChromaDB search</span>
     </div>
     <span class="process-line"></span>
     <div class="process-step">
@@ -404,7 +406,7 @@
       <span class="stat-label">code changes</span>
     </div>
     <div class="stat">
-      <span class="stat-val" style="color:var(--text);">✓</span>
+      <span class="stat-val" style="color:var(--text);">set</span>
       <span class="stat-label">env-var</span>
     </div>
   </div>
@@ -432,19 +434,19 @@
 <!-- ═══════ SLIDE 15 · TEST SUITE ═══════ -->
 <section class="slide slide-content">
   <p class="slide-label">Quality</p>
-  <h2 class="t-title">172 passing. 7 layers.</h2>
+  <h2 class="t-title">169 passing, 1 skipped.</h2>
   <div class="divider"></div>
   <div class="stat-row" style="margin-top:24px;">
     <div class="stat">
-      <span class="stat-val t-accent">40</span>
+      <span class="stat-val t-accent">31</span>
       <span class="stat-label">unit</span>
     </div>
     <div class="stat">
-      <span class="stat-val t-accent">55</span>
+      <span class="stat-val t-accent">80</span>
       <span class="stat-label">integration</span>
     </div>
     <div class="stat">
-      <span class="stat-val t-accent">51</span>
+      <span class="stat-val t-accent">44</span>
       <span class="stat-label t-accent">agent+speaker</span>
     </div>
     <div class="stat">
@@ -460,7 +462,7 @@
       <span class="stat-label">E2E</span>
     </div>
   </div>
-  <p class="t-body" style="margin-top:32px;">51 = 39 agent + 12 speaker · 3 pre-existing BGE-M3 failures (UV env · torch&lt;2.6 / transformers CVE-2025-32434)</p>
+  <p class="t-body" style="margin-top:32px;">170 collected · 169 passing · 1 skipped · 44 agent + speaker = 34 agent + 10 speaker</p>
 </section>
 
 <!-- ═══════ SLIDE 16 · TECH STACK ═══════ -->
