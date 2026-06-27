@@ -167,6 +167,73 @@ def test_api_client_types_compile():
     assert tsc.returncode == 0, tsc.stdout + tsc.stderr
 
 
+# ───────────────────────── Phase 8.5: Shell modules ─────────────────────────
+
+
+def test_fab_module_exists_and_exports_factory():
+    """fab.ts must exist and export a createFab factory."""
+    fab_path = _FRONTEND_DIR / "src" / "fab.ts"
+    assert fab_path.exists(), "fab.ts must be created"
+    source = fab_path.read_text(encoding="utf-8")
+    assert "export function createFab(" in source
+    assert "onClick" in source
+
+
+def test_fab_creates_button_with_avatar_and_aria():
+    """createFab must render a fixed button with avatar and toggle ARIA."""
+    source = _read_text("src/fab.ts")
+    assert "document.createElement('button')" in source or 'document.createElement("button")' in source
+    assert "aria-controls" in source
+    assert "chat-panel" in source
+    assert "aria-expanded" in source
+    assert "aria-label" in source
+    assert "/cerito-avatar.svg" in source
+    assert "addEventListener('click'" in source or 'addEventListener("click"' in source
+
+
+def test_panel_module_exists_and_exports_factory():
+    """panel.ts must exist and export a createPanel factory returning slots."""
+    panel_path = _FRONTEND_DIR / "src" / "panel.ts"
+    assert panel_path.exists(), "panel.ts must be created"
+    source = panel_path.read_text(encoding="utf-8")
+    assert "export function createPanel(" in source
+    assert "onClose" in source
+    assert "contentSlot" in source
+    assert "footerSlot" in source
+
+
+def test_panel_creates_dialog_with_header_content_footer():
+    """createPanel must render a dialog with header, content slot, and footer slot."""
+    source = _read_text("src/panel.ts")
+    assert "chat-panel" in source
+    assert "id" in source
+    assert "role" in source
+    assert "dialog" in source
+    assert "aria-label" in source
+    assert "Chat con Cerito" in source
+    assert "chat-panel-header" in source
+    assert "chat-panel-title" in source
+    assert "Cerito" in source
+    assert "chat-panel-close" in source
+    assert "chat-panel-content" in source
+    assert "chat-panel-footer" in source
+    assert "addEventListener('click'" in source or 'addEventListener("click"' in source
+
+
+def test_panel_close_button_has_aria_label():
+    """The panel close button must expose an accessible label."""
+    source = _read_text("src/panel.ts")
+    assert "aria-label" in source
+    assert "Cerrar chat" in source
+
+
+def test_panel_supports_escape_key():
+    """Pressing Escape inside the panel must trigger the close callback."""
+    source = _read_text("src/panel.ts")
+    assert "keydown" in source
+    assert "Escape" in source
+
+
 # ───────────────────────── Phase 7.5: Build verification ─────────────────────────
 
 

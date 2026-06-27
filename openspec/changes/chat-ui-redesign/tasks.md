@@ -37,14 +37,14 @@ Chain strategy: pending
 
 ## Phase 2: Shell Modules
 
-- [ ] **T002 — Create `frontend/src/fab.ts` floating action button module**
+- [x] **T002 — Create `frontend/src/fab.ts` floating action button module**
   - Render fixed button with avatar, `aria-controls="chat-panel"`, `aria-expanded`, `aria-label`.
   - Accept click callback; hide/show controlled by orchestrator.
   - Estimated lines: +50
   - Acceptance: FAB renders, click callback fires, ARIA attributes correct.
   - Commit: `feat(chat): add floating action button module`
 
-- [ ] **T003 — Create `frontend/src/panel.ts` panel shell module**
+- [x] **T003 — Create `frontend/src/panel.ts` panel shell module**
   - Render `section#chat-panel` with `role="dialog"`, header, title avatar, close button.
   - Accept close callback and content container reference.
   - Estimated lines: +70
