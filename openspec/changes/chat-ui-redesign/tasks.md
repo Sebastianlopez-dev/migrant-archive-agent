@@ -53,14 +53,14 @@ Chain strategy: pending
 
 ## Phase 3: Content Modules
 
-- [ ] **T004 — Create `frontend/src/zero-state.ts` greeting and suggestions module**
+- [x] **T004 — Create `frontend/src/zero-state.ts` greeting and suggestions module**
   - Render greeting "Hola, soy Cerito", purpose text, and three suggestion buttons.
   - Use exact labels from spec; accept click callback.
   - Estimated lines: +80
   - Acceptance: All three suggestion cards visible with correct labels and click handlers.
   - Commit: `feat(chat): add zero-state greeting and suggestions`
 
-- [ ] **T005 — Create `frontend/src/input-bar.ts` bottom input module**
+- [x] **T005 — Create `frontend/src/input-bar.ts` bottom input module**
   - Render text input, send button, disabled microphone placeholder, model selector placeholder.
   - Handle Enter key and submit callback; microphone button does nothing.
   - Estimated lines: +100

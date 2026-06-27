@@ -234,6 +234,96 @@ def test_panel_supports_escape_key():
     assert "Escape" in source
 
 
+# ───────────────────────── Phase 8.6: Content modules ─────────────────────────
+
+
+def test_zero_state_module_exists_and_exports_factory():
+    """zero-state.ts must exist and export a createZeroState factory."""
+    zero_state_path = _FRONTEND_DIR / "src" / "zero-state.ts"
+    assert zero_state_path.exists(), "zero-state.ts must be created"
+    source = zero_state_path.read_text(encoding="utf-8")
+    assert "export function createZeroState(" in source
+    assert "onSuggestionClick" in source
+
+
+def test_zero_state_renders_greeting_and_suggestions():
+    """createZeroState must render a greeting and three suggestion buttons."""
+    source = _read_text("src/zero-state.ts")
+    assert "Hola, soy Cero" in source
+    assert "Preguntame sobre los videos de Plataforma Cero" in source
+    assert "¿Qué es FILMIG?" in source
+    assert "¿Qué videos puedo encontrar de Plataforma Cero?" in source
+    assert "¿Qué es mujeres del maíz?" in source
+    assert "chat-zero-state" in source
+    assert "chat-suggestion" in source
+    assert "addEventListener('click'" in source or 'addEventListener("click"' in source
+
+
+def test_zero_state_suggestion_click_calls_callback():
+    """Clicking a suggestion card must invoke onSuggestionClick with the question text."""
+    source = _read_text("src/zero-state.ts")
+    assert "onSuggestionClick(question)" in source or "onSuggestionClick(" in source
+    assert "button" in source
+
+
+def test_zero_state_suggestion_passes_exact_label():
+    """The callback must receive the suggestion label so it can be used as the question."""
+    source = _read_text("src/zero-state.ts")
+    assert "onSuggestionClick(suggestion.label)" in source or "onSuggestionClick(question)" in source
+
+
+def test_input_bar_module_exists_and_exports_factory():
+    """input-bar.ts must exist and export a createInputBar factory."""
+    input_bar_path = _FRONTEND_DIR / "src" / "input-bar.ts"
+    assert input_bar_path.exists(), "input-bar.ts must be created"
+    source = input_bar_path.read_text(encoding="utf-8")
+    assert "export function createInputBar(" in source
+    assert "onSend" in source
+
+
+def test_input_bar_renders_input_send_mic_and_model():
+    """createInputBar must render a text input, send button, mic placeholder, and model label."""
+    source = _read_text("src/input-bar.ts")
+    assert "chat-input-bar" in source
+    assert "chat-input" in source
+    assert "chat-send" in source
+    assert "aria-label" in source
+    assert "Enviar" in source or "send" in source.lower()
+    assert "mic" in source.lower() or "microphone" in source.lower() or "voz" in source.lower()
+    assert "model" in source.lower() or "gemini" in source.lower()
+
+
+def test_input_bar_enter_triggers_send():
+    """Pressing Enter inside the input must trigger the onSend callback."""
+    source = _read_text("src/input-bar.ts")
+    assert "keydown" in source
+    assert "Enter" in source
+    assert "onSend(" in source
+
+
+def test_input_bar_exposes_set_question_and_clear():
+    """createInputBar must return setQuestion and clear helpers."""
+    source = _read_text("src/input-bar.ts")
+    assert "setQuestion" in source
+    assert "clear" in source
+    assert "return {" in source
+
+
+def test_input_bar_shift_enter_allows_newline():
+    """Shift+Enter inside the textarea must insert a newline instead of sending."""
+    source = _read_text("src/input-bar.ts")
+    assert "textarea" in source
+    assert "shiftKey" in source
+    assert "event.preventDefault()" in source or "preventDefault()" in source
+
+
+def test_input_bar_mic_button_is_disabled_placeholder():
+    """The microphone button must be present but disabled."""
+    source = _read_text("src/input-bar.ts")
+    assert "disabled" in source
+    assert "mic" in source.lower() or "microphone" in source.lower() or "voz" in source.lower()
+
+
 # ───────────────────────── Phase 7.5: Build verification ─────────────────────────
 
 
