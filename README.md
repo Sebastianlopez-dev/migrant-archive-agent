@@ -11,7 +11,7 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 |------|-------|------|---------|
 | 1 | Ingestion + Processing | S01–S03 complete | — |
 | 2 | Agents + Testing | S04–S06 complete | — |
-| 3 | Observability + API | S07 complete | — |
+| 3 | Observability + API | S07 pending | — |
 | 4 | Frontend + Deploy | Presentation | Deploy, polish, voice input |
 
 ---
@@ -30,9 +30,9 @@ FILMIG / Plataforma Cero (YouTube)
                   │
                   ▼
    ┌─ S02 ──────────────────────┐
-   │  Chunking + Embedding      │
-   │  1000tk/200ov · enriched   │
-   │  Gemini (3072d) / BGE-M3   │
+    │  Chunking + Embedding      │
+    │  1000tk/200ov · enriched   │
+    │  Gemini (3072d)            │
    └──────────────┬──────────────┘
                   │
                   ▼
@@ -46,7 +46,7 @@ FILMIG / Plataforma Cero (YouTube)
         ▼                   ▼
     ┌─ S04 ──────────┐  ┌─ S05 ──────────┐
     │  Sample        │  │  RAG Test +    │
-    │  Extract       │  │  Memory        │
+    │  Extract       │  │  Rebuild       │
     │  5K chars      │  │  Query ChromaDB│
     └──────┬─────────┘  └──────┬─────────┘
           │                  │
@@ -93,9 +93,9 @@ FILMIG / Plataforma Cero (YouTube)
 - Enriched text: title + description + [MM:SS] timestamps per segment
 - Dependency Inversion: EmbeddingProvider abstract base class
 
-**Files:** [`embedding.py`](backend/core/embedding.py) · [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py) · [`embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
+**Files:** [`embedding.py`](backend/core/embedding.py) · [`processor.py`](backend/core/processor.py) · [`embedding_gemini.py`](backend/core/embedding_gemini.py)
 
-**Tests:** `test_embedding.py` · `test_embedding_gemini.py` · `test_embedding_bge_m3.py` · `test_processor.py`
+**Tests:** `test_embedding.py` · `test_embedding_gemini.py` · `test_processor.py`
 
 </details>
 
@@ -114,12 +114,12 @@ FILMIG / Plataforma Cero (YouTube)
 **Files:**
 [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
 [`rag_test.py`](backend/scripts/rag_test.py) — interactive semantic search
-[`cero-01.py`](cero-01.py) — conversational RAG with LangChain (ConversationalRetrievalChain + memory + LLM answers)
+[`backend/scripts/cero-01.py`](backend/scripts/cero-01.py) — conversational RAG with LangChain (ConversationalRetrievalChain + memory + LLM answers)
 [`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
 
 **Tests:** `test_extract_sample.py`
 
-**Memory progression:** `rag_test.py` (no memory) → `cero-01.py` (buffer window, LLM answers) → `agent_cli.py` (buffer, LLM + tools). Same sliding-window idea, different consumer and capabilities.
+**Memory progression:** `quick_search.py` (no API, no memory) → `rag_test.py` (semantic, no memory) → `backend/scripts/cero-01.py` (buffer window, LLM answers) → `agent_cli.py` (buffer, LLM + tools). Same sliding-window idea, different consumer and capabilities.
 
 </details>
 
@@ -134,12 +134,12 @@ FILMIG / Plataforma Cero (YouTube)
 
 **Files:** [`agent.py`](backend/agents/agent.py) · [`tools.py`](backend/agents/tools.py) · [`agent_cli.py`](backend/scripts/agent_cli.py)
 
-**Tests:** `test_agent.py` (32 tests) · `test_speaker_extraction.py` (12 tests)
+**Tests:** `test_agent.py` (34 tests) · `test_speaker_extraction.py` (10 tests)
 
 </details>
 
 <details>
-<summary>S07 — LangSmith, API + Chat Widget: 1 decision · 6 files · 3 test files (25 tests)</summary>
+<summary>S07 — LangSmith, API + Chat Widget: 1 decision · 6 files · 3 test files (29 tests)</summary>
 
 **Decisions:**
 - LangSmith zero-code tracing (env-var auto-detection, no application code required)
@@ -176,16 +176,18 @@ From raw YouTube videos to the chat widget. Each step links to the detailed sect
 This project has two paths. Pick the one that fits your needs.
 
 | | UV (lightweight) | Conda (ML-ready) |
-|---|-------------------|-------------------|
-| **Best for** | Gemini API embeddings | BGE-M3 local embeddings |
-| **What you get** | Transcription + Gemini cloud embeddings | Transcription + Gemini + BGE-M3 local |
+|---|---|-------------------|-------------------|
+| **Best for** | Gemini API embeddings | Local ML toolchain |
+| **What you get** | Transcription + Gemini cloud embeddings | Transcription + Gemini cloud embeddings |
 | **Install size** | ~500 MB | ~4 GB (includes PyTorch) |
-| **GPU needed?** | No | No (CPU inference) |
-| **Internet required?** | Yes (for Gemini API) | Only for YouTube download |
-| **API keys?** | Gemini (free tier) | None for embeddings |
+| **GPU needed?** | No | No |
+| **Internet required?** | Yes (for Gemini API) | Yes (for Gemini API) |
+| **API keys?** | Gemini (free tier) | Gemini (free tier) |
+
+> **Embedding provider note:** Only Gemini embeddings are supported. BGE-M3 was removed.
 
 > **Don't know which to choose?**
-> Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total). You can add Conda later if you want local embeddings.
+> Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total).
 
 #### Option A: UV + Gemini (recommended)
 
@@ -204,7 +206,7 @@ cp .env.example .env   # then set GEMINI_API_KEY, LANGSMITH_API_KEY, LANGSMITH_P
 brew install ffmpeg     # macOS
 ```
 
-#### Option B: Conda + BGE-M3 (full local)
+#### Option B: Conda (ML-ready)
 
 ```bash
 # 1. Install Miniconda
@@ -214,11 +216,10 @@ curl -LsSf https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.s
 conda create -n migrant-archive python=3.12 -y && conda activate migrant-archive
 
 # 3. Install dependencies
-conda install pytorch transformers -c defaults -y
-pip install sentence-transformers chromadb google-genai pytest python-dotenv yt-dlp youtube-transcript-api faster-whisper
+pip install chromadb google-genai pytest python-dotenv yt-dlp youtube-transcript-api faster-whisper
 
-# 4. (Optional) Gemini + LangSmith API keys
-cp .env.example .env   # set GEMINI_API_KEY, LANGSMITH_API_KEY; BGE-M3 works without Gemini
+# 4. Add API keys
+cp .env.example .env   # set GEMINI_API_KEY, LANGSMITH_API_KEY
 ```
 
 </details>
@@ -274,20 +275,20 @@ python backend/scripts/quick_search.py "FilmiG"
 python backend/scripts/rag_test.py
 
 # Level 3 — Conversational RAG (API embeddings + LLM answers + memory):
-uv run python cero-01.py "¿cómo describen el dolor de migrar?"
-uv run python cero-01.py --verbose "¿qué sentimientos expresan las mujeres?"
-uv run python cero-01.py                         # REPL mode
+uv run python backend/scripts/cero-01.py "¿cómo describen el dolor de migrar?"
+uv run python backend/scripts/cero-01.py --verbose "¿qué sentimientos expresan las mujeres?"
+uv run python backend/scripts/cero-01.py           # REPL mode
 ```
 
 | Script | Memory | LLM Answers | API calls | Best for |
 |--------|--------|:---:|-----------|----------|
 | `quick_search.py` | None | ❌ | 0 | Fast checks, no cost |
 | `rag_test.py` | None | ❌ | Embedding only | Exploring the DB |
-| **`cero-01.py`** | **Buffer Window (K=5)** | **✅ Spanish** | **Embedding + Chat** | **Demo, conversational Q&A** |
+| **`backend/scripts/cero-01.py`** | **Buffer Window (K=5)** | **✅ Spanish** | **Embedding + Chat** | **Demo, conversational Q&A** |
 
-`cero-01.py` is a self-contained 124-line conversational RAG built entirely with LangChain (`ConversationalRetrievalChain`, `Chroma`, `GoogleGenerativeAIEmbeddings`, `ChatGoogleGenerativeAI`). It answers questions in Spanish using transcript chunks as context, remembers the last 5 conversation turns, and shows source documents with `--verbose`. Zero imports from `backend/core/`.
+`backend/scripts/cero-01.py` is a self-contained 124-line conversational RAG built entirely with LangChain (`ConversationalRetrievalChain`, `Chroma`, `GoogleGenerativeAIEmbeddings`, `ChatGoogleGenerativeAI`). It answers questions in Spanish using transcript chunks as context, remembers the last 5 conversation turns, and shows source documents with `--verbose`. Zero imports from `backend/core/`.
 
-Try these questions once inside `rag_test.py` or `cero-01.py`:
+Try these questions once inside `rag_test.py` or `backend/scripts/cero-01.py`:
 
 | Question | What it tests |
 |----------|---------------|
@@ -408,17 +409,15 @@ migrant-archive/
 │   │   ├── ingestion_colab.py      ← Strategy B GPU: Colab wrapper
 │   │   ├── embedding.py            ← EmbeddingProvider (abstract contract)
 │   │   ├── embedding_gemini.py     ← Gemini API implementation
-│   │   ├── embedding_bge_m3.py     ← BGE-M3 local implementation
 │   │   ├── processor.py            ← Chunking (1000tk/200ov) + embedding
 │   │   └── vector_store.py         ← ChromaDB persistence
-│   └── scripts/
-  │       ├── agent_cli.py        ← Interactive agent CLI
-  │       ├── rag_test.py         ← Interactive RAG pipeline test script
-  │       ├── rebuild_index.py    ← Rebuild ChromaDB index from whisper JSON files
-  │       ├── quick_search.py     ← Keyword search (no API, no embeddings)
-  │       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
-│
-├── cero-01.py                  ← Conversational RAG with LangChain (self-contained, 124 lines)
+    │   └── scripts/
+    │       ├── agent_cli.py        ← Interactive agent CLI
+    │       ├── cero-01.py          ← Conversational RAG with LangChain (self-contained, 124 lines)
+    │       ├── rag_test.py         ← Interactive RAG pipeline test script
+    │       ├── rebuild_index.py    ← Rebuild ChromaDB index from whisper JSON files
+    │       ├── quick_search.py     ← Keyword search (no API, no embeddings)
+    │       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
 │
 ├── frontend/
 │   ├── index.html              ← Widget mount point
@@ -437,7 +436,6 @@ migrant-archive/
 │   ├── test_frontend.py        ← Frontend build + widget structure
 │   ├── test_embedding.py       ← Contract tests (FakeEmbeddingProvider)
 │   ├── test_embedding_gemini.py ← Gemini provider tests
-│   ├── test_embedding_bge_m3.py ← BGE-M3 provider tests
 │   ├── test_processor.py       ← Chunking + orchestration tests
 │   ├── test_vector_store.py    ← ChromaDB CRUD + relevance tests
 │   ├── test_pipeline_e2e.py    ← Full pipeline with real video
@@ -472,7 +470,7 @@ migrant-archive/
     ├── memory-to-agents.md            ← Migration: ConversationBufferMemory → RunnableWithMessageHistory
     ├── memory_types.md                ← Taxonomy: 7 memory types in LLM applications
     ├── uv.md
-    └── rag_test_questions.md   ← Pre-verified questions for vector DB demo
+    └── test_questions.md       ← Pre-verified questions for vector DB demo
 ```
 
 </details>
@@ -613,23 +611,7 @@ Before embedding, text is split into overlapping chunks. These values were chose
 
 ---
 
-#### Embedding provider comparison
-
-> **Sources:** [`backend/core/embedding.py`](backend/core/embedding.py) (contract) · [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py) · [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
-
-| | Gemini (cloud) | BGE-M3 (local) |
-|---|---|---|
-| **Quality** | #1 MTEB Multilingual (71.5%) | Excellent Spanish |
-| **Dimension** | 3072 (Matryoshka-capable) | 1024 |
-| **Cost** | Free tier (~$0 for project) | $0 |
-| **Speed** | ~1s (API call) | ~2-5s (CPU inference) |
-| **Privacy** | Text sent to Google API | Everything stays on your machine |
-| **Environment** | UV or Conda | Conda (requires PyTorch) |
-| **Best for** | Production, demos, quick setup | Offline, sensitive data, interview portfolio |
-
----
-
-#### Option A: Gemini API Embeddings (default)
+#### Gemini API Embeddings (default)
 
 > **Source:** [`backend/core/embedding_gemini.py`](backend/core/embedding_gemini.py)
 
@@ -671,33 +653,12 @@ for r in results:
 
 ---
 
-#### Option B: BGE-M3 Local Embeddings
-
-> **Source:** [`backend/core/embedding_bge_m3.py`](backend/core/embedding_bge_m3.py)
-
-Runs entirely on your CPU. No API keys, no internet (after model download). Same interface as Gemini — swap one line to switch.
-
-**Requires:** Conda environment (PyTorch ≥ 2.4).
-
-```python
-from backend.core.embedding_bge_m3 import BGEM3EmbeddingProvider
-
-# Same code as Gemini — just swap the provider
-provider = BGEM3EmbeddingProvider()  # loads BAAI/bge-m3 on first call
-processor = Processor(provider)
-# ... rest is identical
-```
-
-The model downloads on first use (~2.2 GB, cached locally).
-
----
-
 #### Process all videos in batch
 
 ```python
 from pathlib import Path
 
-provider = GeminiEmbeddingProvider()  # or BGEM3EmbeddingProvider()
+provider = GeminiEmbeddingProvider()
 processor = Processor(provider)
 store = VectorStore(persist_dir="data/chroma")
 
@@ -768,7 +729,7 @@ Collection size: 20 chunks
 
 **Alternative — programmatic (full control):**
 
-If you need more control than the script offers (custom chunk size, BGE-M3 provider, captions instead of whisper):
+If you need more control than the script offers (custom chunk size, captions instead of whisper):
 
 ```python
 from pathlib import Path
@@ -855,7 +816,7 @@ rm -rf data/chroma/
 python backend/scripts/rebuild_index.py
 ```
 
-Manually deleting the directory before rebuilding guarantees a clean slate — useful if you suspect ChromaDB corruption or switched between embedding providers (Gemini 3072d vs BGE-M3 1024d are incompatible in the same collection).
+Manually deleting the directory before rebuilding guarantees a clean slate — useful if you suspect ChromaDB corruption or changed the embedding model.
 
 ---
 
@@ -958,7 +919,7 @@ ChromaDB was chosen because it requires no API keys, no external services, and n
 
 **How it works:**
 
-- Collection `migrant_archive` stores documents with embeddings (3072d Gemini or 1024d BGE-M3) and metadata (video_id, title, chunk_index, start_time, end_time, channel, year)
+- Collection `migrant_archive` stores documents with 3072d Gemini embeddings and metadata (video_id, title, chunk_index, start_time, end_time, channel, year)
 - `store.search(query_embedding, top_k=3)` returns nearest neighbors by cosine distance
 - `store.search(query_embedding, top_k=5, video_id="VJqe2h0U1Fs")` scopes results to a single video
 - `store.search(query_embedding, top_k=5, year=2024, channel="Plataforma Cero")` combines semantic search with compound metadata filters via ChromaDB's `$and` / `$or` operators
@@ -995,7 +956,7 @@ Sequentially reads the first 5,000 characters from ChromaDB and raw JSON files t
 
 ### S05 — RAG Test + Memory
 
-> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/rebuild_index.py`](backend/scripts/rebuild_index.py) · [`cero-01.py`](cero-01.py)
+> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/rebuild_index.py`](backend/scripts/rebuild_index.py) · [`backend/scripts/cero-01.py`](backend/scripts/cero-01.py)
 
 Three entry points that progress from zero-cost keyword search to semantic search to conversational RAG.
 
@@ -1003,7 +964,7 @@ Three entry points that progress from zero-cost keyword search to semantic searc
 quick_search.py    →  keyword, no API, no memory
 rag_test.py        →  semantic, API embeddings, no memory
 rebuild_index.py   →  (re)build the ChromaDB index from whisper JSONs
-cero-01.py         →  semantic, API embeddings + LLM answers, BUFFER WINDOW memory (K=5)
+backend/scripts/cero-01.py → semantic, API embeddings + LLM answers, BUFFER WINDOW memory (K=5)
                                                          ↓
                                                S06: agent_cli.py
                                                (same buffer, LLM reads it + tools)
@@ -1038,17 +999,17 @@ Standalone script that wipes the existing ChromaDB collection and rebuilds it fr
 python backend/scripts/rebuild_index.py
 ```
 
-**`cero-01.py` — Conversational RAG with LangChain**
+**`backend/scripts/cero-01.py` — Conversational RAG with LangChain**
 
 124 lines. The bridge between `rag_test.py` (search only) and `agent_cli.py` (full agent with tools). Built entirely with LangChain: `ConversationalRetrievalChain` orchestrates retrieval + generation, `ConversationBufferWindowMemory` handles the sliding window, `Chroma` + `GoogleGenerativeAIEmbeddings` replace the manual vector store and embedding classes. Zero imports from `backend/core/`.
 
 ```bash
-uv run python cero-01.py "¿cómo describen el dolor de migrar?"
-uv run python cero-01.py --verbose "¿qué sentimientos expresan?"  # shows source docs
-uv run python cero-01.py                         # REPL mode with history command
+uv run python backend/scripts/cero-01.py "¿cómo describen el dolor de migrar?"
+uv run python backend/scripts/cero-01.py --verbose "¿qué sentimientos expresan?"  # shows source docs
+uv run python backend/scripts/cero-01.py           # REPL mode with history command
 ```
 
-Key features: answers in Spanish with video/timestamp citations, remembers 5 conversation turns via sliding window buffer, returns source documents with `--verbose`, handles API errors gracefully. The `SYSTEM_PROMPT` is a standalone constant — editable without touching chain logic. See [`Cero-01-checklist.md`](Cero-01-checklist.md) for the full evolution from shebang to conversational AI.
+Key features: answers in Spanish with video/timestamp citations, remembers 5 conversation turns via sliding window buffer, returns source documents with `--verbose`, handles API errors gracefully. The `SYSTEM_PROMPT` is a standalone constant — editable without touching chain logic. See [`notes/Cero-01-checklist.md`](notes/Cero-01-checklist.md) for the full evolution from shebang to conversational AI.
 
 </details>
 
@@ -1140,7 +1101,7 @@ Type `history` to inspect the current message buffer and verify the sliding wind
 uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 ```
 
-51 tests: 39 agent (tools, filters, memory, bounded history, disambiguation, scoped search, E2E) + 12 speaker extraction.
+44 tests: 34 agent (tools, filters, memory, bounded history, disambiguation, scoped search, E2E) + 10 speaker extraction.
 
 </details>
 
@@ -1201,7 +1162,7 @@ Each source: `video_id`, `title`, `start_time`, `end_time`, `text`. Session defa
 uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 ```
 
-25 tests: models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, widget structure.
+29 tests: models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, widget structure.
 
 #### Start the chat widget
 
@@ -1244,7 +1205,7 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 
 ### Tests
 
-> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_embedding_bge_m3.py`](tests/test_embedding_bge_m3.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py)
+> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py)
 
 ```bash
 # UV environment
@@ -1256,14 +1217,14 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 149 passing. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key. 3 pre-existing BGE-M3 failures in UV environment (torch < 2.6 / transformers CVE-2025-32434).
+**Results:** 169 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
-| Unit | 40 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
-| Integration | 55 | `test_embedding_gemini.py`, `test_embedding_bge_m3.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes |
-| Agent | 28 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
-| Speaker | 11 | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
+| Unit | 54 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
+| Integration | 58 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
+| Agent | 34 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
+| Speaker | 10 | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
 | Frontend | 9 | `test_frontend.py` | Vite build, widget class structure, DOM bootstrap, styling |
 | Observability | 3 | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
@@ -1314,7 +1275,7 @@ python backend/scripts/rag_test.py              # interactive Q&A
 **Evidence files:**
 - `backend/scripts/rag_test.py` — interactive RAG query script
 - `backend/scripts/extract_sample.py` — sequential data extraction (data roundtrip)
-- `notes/rag_test_questions.md` — pre-verified demo questions
+- `notes/test_questions.md` — pre-verified demo questions
 
 **Sample extraction usage:**
 
@@ -1405,8 +1366,8 @@ Pregunta> y cuantos videos tienen ponentes?
 | `backend/agents/tools.py` | 3 tools + speaker extraction (5 patterns, math-bold normalization) |
 | `backend/core/vector_store.py` | Scoped search via ChromaDB `where` filter + `get_unique_videos()` |
 | `backend/scripts/agent_cli.py` | Interactive CLI with session lifecycle |
-| `tests/test_agent.py` | 28 tests: tools, memory, disambiguation, scoped search, E2E |
-| `tests/test_speaker_extraction.py` | 11 tests: 5 description patterns, normalization, fallback |
+| `tests/test_agent.py` | 34 tests: tools, memory, disambiguation, scoped search, E2E |
+| `tests/test_speaker_extraction.py` | 10 tests: 5 description patterns, normalization, fallback |
 
 **Design justification:**
 - [Native Tool Calling](#s06--conversational-agent-with-memory) — Gemini 2.5 Flash structured `tool_call` objects, zero parsing failures
@@ -1425,6 +1386,6 @@ Criteria not yet defined by Ironhack.
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
 - Chat widget (Vite + TypeScript, blue bubble UI)
 - Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
-- 149 tests passing (3 pre-existing BGE-M3 failures in UV env)
+- 169 passed, 1 skipped, 0 failed
 
 </details>
