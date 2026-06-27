@@ -86,10 +86,11 @@ def make_search_transcripts(store, top_k: int = 3):
 
             seen.add(vid)
 
-            header = f"{vid} | {title}"
+            header = title
             if speaker:
                 header += f" [{speaker}]"
             header += f" ({start}\u2013{end})"
+            header += f" | {vid}"
 
             blocks.append(f"[{i}] {header}\n{doc.page_content}")
 
@@ -158,7 +159,7 @@ def make_list_videos(store):
                     continue
 
             shown += 1
-            line = f"{shown}. {titles[vid]} ({vid})"
+            line = f"{shown}. {titles[vid]}"
             if entry_year:
                 line += f" ({entry_year})"
             if entry_channel != "unknown":
@@ -166,6 +167,9 @@ def make_list_videos(store):
             if entry_speaker:
                 line += f" [{entry_speaker}]"
             line += f" - {count} chunk(s)"
+            if durations.get(vid):
+                line += f" - {durations[vid]}s"
+            line += f" ({vid})"
             lines.append(line)
 
         if not lines:
@@ -204,7 +208,6 @@ def make_get_video_info(store):
         first = metadatas[0]
         first_doc = documents[0] if documents else ""
         lines: list[str] = [
-            f"ID: {video_id}",
             f"Title: {first.get('title') or 'N/A'}",
             f"Year: {first.get('year') or 'N/A'}",
             f"Channel: {first.get('channel') or 'unknown'}",
@@ -244,6 +247,7 @@ def make_get_video_info(store):
                 if snippet:
                     lines.append(f"Transcript: {snippet}...")
 
+        lines.append(f"ID: {video_id}")
         return "\n".join(lines)
 
     return get_video_info

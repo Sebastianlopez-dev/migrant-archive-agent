@@ -136,9 +136,9 @@ class _FakeAgent:
 @pytest.fixture
 def sample_observation():
     return (
-        "[1] v001 | Testimonio de María (12.5–18.3)\n"
+        "[1] Testimonio de María (12.5–18.3) | v001\n"
         "María describe su viaje.\n\n"
-        "[2] v002 | Testimonio de Juan [Juan Pérez] (20.0–25.0)\n"
+        "[2] Testimonio de Juan [Juan Pérez] (20.0–25.0) | v002\n"
         "Juan describe su viaje."
     )
 
@@ -351,8 +351,39 @@ def test_search_transcripts_observation_includes_video_id(provider, store):
     observation = search.invoke("testimonio")
 
     assert "v003" in observation
-    assert "|" in observation
+    assert "| v003" in observation  # ID at end: Title (...) | VIDEO_ID
     sources = parse_sources([(None, observation)])
     assert len(sources) == 1
     assert sources[0].video_id == "v003"
     assert sources[0].title == "Testimonio de Pedro"
+
+
+def test_parse_sources_strips_speaker_tag_from_title(provider, store):
+    """The regex must strip [Speaker] appended by tools.py from the title."""
+    from backend.api.routes.chat import parse_sources
+    from tools import make_search_transcripts
+
+    store.delete_collection()
+    store.add(
+        ids=["v004_chunk_0"],
+        documents=["Texto con speaker."],
+        metadatas=[{
+            "video_id": "v004",
+            "title": "Conversatorio FILMIG",
+            "speaker": "Nadia Jabr, Mohamad Bitari",
+            "chunk_index": 0,
+            "start_time": 10.0,
+            "end_time": 15.0,
+        }],
+        embeddings=provider.embed(["Texto con speaker."]),
+    )
+
+    search = make_search_transcripts(store, top_k=3)
+    observation = search.invoke("speaker")
+
+    # The tools.py header format is: VIDEO_ID | Title [Speaker] (start–end)
+    assert "Nadia Jabr" in observation
+    sources = parse_sources([(None, observation)])
+    assert len(sources) == 1
+    assert sources[0].title == "Conversatorio FILMIG"  # speaker stripped
+    assert sources[0].video_id == "v004"

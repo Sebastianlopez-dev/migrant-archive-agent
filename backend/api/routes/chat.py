@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-import sys
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.concurrency import run_in_threadpool
@@ -13,26 +11,22 @@ from starlette.concurrency import run_in_threadpool
 from backend.api.dependencies import get_agent
 from backend.api.models import AskRequest, AskResponse, SessionClearResponse, Source
 
-# Ensure backend/agents/ is on sys.path so the agent module is importable
-# without a pip-installed package (same pattern used in dependencies.py).
-_AGENTS_DIR = str(Path(__file__).resolve().parent.parent.parent / "agents")
-if _AGENTS_DIR not in sys.path:
-    sys.path.insert(0, _AGENTS_DIR)
-
+# dependencies.py already configures sys.path for backend/agents/ so bare
+# imports from the agent module work without repeating the path setup here.
 from agent import clear_session  # noqa: E402
 
 router = APIRouter()
 
 
 # Matches an observation block produced by the search_transcripts tool:
-#   [1] VIDEO_ID | Title (start–end)
+#   [1] Title [Speaker] (start–end) | VIDEO_ID
 #   Text content
 _SOURCE_BLOCK_RE = re.compile(
     r"\[(\d+)\]\s+"                # [1]
-    r"([^\n|]+?)\s*\|\s*"          # VIDEO_ID |
-    r"([^(\n]+?)\s*\("             # Title (
+    r"([^\n]+?)\s*\("              # Title [Speaker] (
     r"([^–)]+?)\s*–\s*"            # start –
-    r"([^)]+?)\)\n"                # end )
+    r"([^)]+?)\)\s*\|\s*"           # end ) |
+    r"([^\n]+?)\n"                  # VIDEO_ID
     r"(.*?)"                        # text body
     r"(?=\n\n\[|\Z)",
     re.DOTALL,
@@ -59,7 +53,7 @@ def parse_sources(intermediate_steps: list) -> list[Source]:
             continue
 
         for match in _SOURCE_BLOCK_RE.finditer(observation):
-            _, video_id, title, start_time, end_time, text = match.groups()
+            _, title, start_time, end_time, video_id, text = match.groups()
             # Strip trailing [Speaker] tag that tools.py appends to the header.
             title = re.sub(r"\s*\[[^\]]+\]$", "", title.strip())
             sources.append(
