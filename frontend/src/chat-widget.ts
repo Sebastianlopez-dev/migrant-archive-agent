@@ -13,6 +13,7 @@ export interface AskResponse {
 
 export class ChatWidget {
   private readonly root: HTMLElement;
+  private readonly sessionId: string;
   private panel: HTMLElement | null = null;
   private messages: HTMLElement | null = null;
   private input: HTMLInputElement | null = null;
@@ -21,6 +22,7 @@ export class ChatWidget {
 
   constructor(root: HTMLElement) {
     this.root = root;
+    this.sessionId = crypto.randomUUID();
     this.root.classList.add('chat-widget');
     this.createBubble();
     this.createPanel();
@@ -150,11 +152,15 @@ export class ChatWidget {
     this.setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60_000);
       const response = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, session_id: this.sessionId }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorBody = await response.text();

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 import sys
 from pathlib import Path
@@ -83,11 +84,19 @@ def parse_sources(intermediate_steps: list) -> list[Source]:
 async def ask(request: AskRequest, agent=Depends(get_agent)) -> AskResponse:
     """Answer a question using the migrant-archive agent."""
     try:
-        result = await run_in_threadpool(
-            agent.invoke,
-            {"input": request.question},
-            {"configurable": {"session_id": request.session_id}},
+        result = await asyncio.wait_for(
+            run_in_threadpool(
+                agent.invoke,
+                {"input": request.question},
+                {"configurable": {"session_id": request.session_id}},
+            ),
+            timeout=90.0,
         )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="The agent took too long to respond. Try again with a simpler question.",
+        ) from None
     except ValueError as exc:
         if "GEMINI_API_KEY" in str(exc):
             raise HTTPException(

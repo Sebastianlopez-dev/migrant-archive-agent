@@ -143,7 +143,7 @@ def create_agent(
     if llm is None:
         llm = ChatGoogleGenerativeAI(
             model=GEMINI_CHAT_MODEL,
-            temperature=0.2,
+            temperature=0.0,
             model_kwargs={"tool_config": {"function_calling_config": {"mode": "ANY"}}},
         )
 
@@ -171,7 +171,7 @@ def create_agent(
         agent=agent,
         tools=tools,
         verbose=verbose,
-        max_iterations=10,
+        max_iterations=5,
         return_intermediate_steps=True,
     )
 
