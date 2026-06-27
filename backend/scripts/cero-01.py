@@ -48,7 +48,7 @@ _ensure_api_key()
 
 _store = Chroma(
     collection_name=CHROMA_COLLECTION,
-    embedding_function=GoogleGenerativeAIEmbeddings(model="gemini-embedding-2"),
+    embedding_function=GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001"),
     persist_directory=CHROMA_DIR,
 )
 

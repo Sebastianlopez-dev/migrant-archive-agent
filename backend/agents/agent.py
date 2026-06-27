@@ -150,7 +150,7 @@ def create_agent(
     if tools is None:
         store = Chroma(
             collection_name="migrant_archive",
-            embedding_function=GoogleGenerativeAIEmbeddings(model="gemini-embedding-2"),
+            embedding_function=GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001"),
             persist_directory=DEFAULT_CHROMA_DIR,
         )
         tools = [
