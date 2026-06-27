@@ -387,3 +387,91 @@ def test_parse_sources_strips_speaker_tag_from_title(provider, store):
     assert len(sources) == 1
     assert sources[0].title == "Conversatorio FILMIG"  # speaker stripped
     assert sources[0].video_id == "v004"
+
+
+# ── linkify_answer ───────────────────────────────────────────────────────
+
+
+def test_linkify_answer_replaces_video_id_with_full_url_link():
+    """linkify_answer must turn a bare video_id into a clickable full-URL link."""
+    from backend.api.routes.chat import linkify_answer
+    from backend.api.models import Source
+
+    sources = [Source(
+        video_id="APgxfNssxGQ",
+        title="Test Video",
+        start_time="1",
+        end_time="143",
+        text="...",
+    )]
+    result = linkify_answer("Watch (APgxfNssxGQ) now", sources)
+    assert 'href="https://www.youtube.com/watch?v=APgxfNssxGQ&t=1"' in result
+    assert ">https://www.youtube.com/watch?v=APgxfNssxGQ&t=1<" in result
+    assert "&amp;" not in result  # the link HTML is raw, surrounding text is escaped
+
+
+def test_linkify_answer_handles_timestamp_suffix():
+    """linkify_answer must swallow an existing &t=N suffix after the video_id."""
+    from backend.api.routes.chat import linkify_answer
+    from backend.api.models import Source
+
+    sources = [Source(
+        video_id="mY1hw79ydY0",
+        title="Mujeres del Maiz",
+        start_time="470",
+        end_time="600",
+        text="...",
+    )]
+    result = linkify_answer("Ver (mY1hw79ydY0&t=470)", sources)
+    # The entire "mY1hw79ydY0&t=470" span should be replaced with one link.
+    assert result.count("<a ") == 1
+    assert ">https://www.youtube.com/watch?v=mY1hw79ydY0&t=470<" in result
+
+
+def test_linkify_answer_dedup_prevents_nested_links():
+    """Two sources sharing the same video_id must NOT produce nested <a> tags."""
+    from backend.api.routes.chat import linkify_answer
+    from backend.api.models import Source
+
+    sources = [
+        Source(video_id="APgxfNssxGQ", title="T1", start_time="1", end_time="143", text="..."),
+        Source(video_id="APgxfNssxGQ", title="T2", start_time="101", end_time="212", text="..."),
+    ]
+    result = linkify_answer("Video: (APgxfNssxGQ&t=1)", sources)
+    # Only one <a> tag — no nesting
+    assert result.count("<a ") == 1
+    assert "</a>" in result
+
+
+def test_linkify_answer_escapes_html_in_surrounding_text():
+    """linkify_answer must escape &lt;script&gt; and similar in the non-link text."""
+    from backend.api.routes.chat import linkify_answer
+    from backend.api.models import Source
+
+    sources = [Source(
+        video_id="X",
+        title="T",
+        start_time="0",
+        end_time="1",
+        text="...",
+    )]
+    result = linkify_answer('Say <script>alert(1)</script> (X)', sources)
+    assert "<script>" not in result
+    assert "&lt;script&gt;" in result
+    # The link for X should still be present
+    assert "<a " in result
+    assert "youtube.com" in result
+
+
+def test_build_youtube_url_no_timestamp():
+    """_build_youtube_url must omit &t= when seconds is 0."""
+    from backend.api.routes.chat import _build_youtube_url
+    url = _build_youtube_url("abc123", "0:00")
+    assert url == "https://www.youtube.com/watch?v=abc123"
+
+
+def test_build_youtube_url_with_timestamp():
+    """_build_youtube_url must append &t=seconds for non-zero start_time."""
+    from backend.api.routes.chat import _build_youtube_url
+    url = _build_youtube_url("abc123", "2:05")
+    assert url == "https://www.youtube.com/watch?v=abc123&t=125"

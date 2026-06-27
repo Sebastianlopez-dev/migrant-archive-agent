@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import html as _html
 import re
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +17,58 @@ from backend.api.models import AskRequest, AskResponse, SessionClearResponse, So
 from agent import clear_session  # noqa: E402
 
 router = APIRouter()
+
+
+def _build_youtube_url(video_id: str, start_time: str) -> str:
+    """Build a YouTube watch URL with an optional timestamp.
+
+    ``start_time`` may be ``"HH:MM:SS"``, ``"MM:SS"``, or bare seconds.
+    """
+    base = f"https://www.youtube.com/watch?v={video_id}"
+    seconds = _parse_time_to_seconds(start_time)
+    return f"{base}&t={seconds}" if seconds > 0 else base
+
+
+def _parse_time_to_seconds(time_str: str) -> int:
+    parts = time_str.strip().split(":")
+    try:
+        nums = [int(p) for p in parts]
+    except ValueError:
+        return 0
+    if len(nums) == 3:
+        return nums[0] * 3600 + nums[1] * 60 + nums[2]
+    if len(nums) == 2:
+        return nums[0] * 60 + nums[1]
+    return nums[0] if nums else 0
+
+
+def linkify_answer(answer: str, sources: list[Source]) -> str:
+    """Replace video-id references in the answer with clickable YouTube links.
+
+    The link text is the full URL so the user sees exactly where they are
+    going.  The surrounding text is HTML-escaped; only the generated
+    ``<a>`` tags are injected as raw HTML.
+    """
+    escaped = _html.escape(answer)
+    seen: set[str] = set()
+    for source in sources:
+        if source.video_id in seen:
+            continue
+        seen.add(source.video_id)
+        vid = re.escape(source.video_id)
+        url = _build_youtube_url(source.video_id, source.start_time)
+        link_html = (
+            f'<a href="{url}" target="_blank" '
+            f'rel="noopener noreferrer">{url}</a>'
+        )
+        # Match video_id (optionally followed by &amp;t=N) but NOT when
+        # it already sits inside an injected YouTube URL (watch?v= or /).
+        escaped = re.sub(
+            rf"(?<!v=)(?<!/)\b{vid}(?:&amp;t=\d+)?\b",
+            link_html,
+            escaped,
+        )
+    return escaped
 
 
 # Matches an observation block produced by the search_transcripts tool:
@@ -96,6 +149,7 @@ async def ask(request: AskRequest, agent=Depends(get_agent)) -> AskResponse:
 
     answer = result.get("output", "")
     sources = parse_sources(result.get("intermediate_steps", []))
+    answer = linkify_answer(answer, sources)
     return AskResponse(answer=answer, sources=sources)
 
 

@@ -434,12 +434,12 @@ def test_message_list_add_user_message_renders_user_bubble():
     assert "scrollHeight" in source
 
 
-def test_message_list_add_agent_response_renders_answer_and_sources():
-    """addAgentResponse must append an agent bubble and source cards."""
+def test_message_list_add_agent_response_renders_answer():
+    """addAgentResponse must append an agent bubble with the answer text."""
     source = _read_text("src/message-list.ts")
     assert "msg-agent" in source
-    assert "msg-source" in source
     assert "addAgentResponse" in source
+    assert "response.answer" in source
 
 
 def test_message_list_add_error_message_renders_error_bubble():
@@ -447,23 +447,6 @@ def test_message_list_add_error_message_renders_error_bubble():
     source = _read_text("src/message-list.ts")
     assert "addErrorMessage" in source
     assert "msg-error" in source
-
-
-def test_message_list_source_card_shows_video_title_time_excerpt():
-    """Source cards must display video_id, title, timestamps, and excerpt."""
-    source = _read_text("src/message-list.ts")
-    for field in ("video_id", "title", "start_time", "end_time", "text"):
-        assert field in source, f"source card must reference {field}"
-    assert "Video:" in source
-    assert "Time:" in source
-
-
-def test_message_list_builds_youtube_source_link_with_timestamp():
-    """Source titles must link to YouTube at the correct start time."""
-    source = _read_text("src/message-list.ts")
-    assert "youtube.com/watch" in source
-    assert "t=" in source
-    assert "start_time" in source
 
 
 def test_message_list_set_loading_shows_static_indicator():
@@ -488,12 +471,12 @@ def test_message_list_clear_removes_all_messages():
     assert "innerHTML" in source or "removeChild" in source
 
 
-def test_message_list_agent_response_without_sources_renders_answer_only():
-    """addAgentResponse must not render a sources block when sources are empty."""
+def test_message_list_agent_response_renders_answer_html():
+    """addAgentResponse must render the answer as HTML (links come from backend)."""
     source = _read_text("src/message-list.ts")
     assert "addAgentResponse" in source
-    assert "response.sources" in source
-    assert "length" in source
+    assert "innerHTML" in source
+    assert "response.answer" in source
 
 
 def test_message_list_clear_resets_loading_state():
