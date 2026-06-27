@@ -324,6 +324,120 @@ def test_input_bar_mic_button_is_disabled_placeholder():
     assert "mic" in source.lower() or "microphone" in source.lower() or "voz" in source.lower()
 
 
+# ───────────────────────── Phase 8.7: Message list module ─────────────────────────
+
+
+def test_message_list_module_exists_and_exports_factory():
+    """message-list.ts must exist and export a createMessageList factory."""
+    message_list_path = _FRONTEND_DIR / "src" / "message-list.ts"
+    assert message_list_path.exists(), "message-list.ts must be created"
+    source = message_list_path.read_text(encoding="utf-8")
+    assert "export function createMessageList(" in source
+    assert "addUserMessage" in source
+    assert "addAgentResponse" in source
+    assert "setLoading" in source
+    assert "clear" in source
+
+
+def test_message_list_returns_element_and_api():
+    """createMessageList must return the root element and the public API."""
+    source = _read_text("src/message-list.ts")
+    assert "element" in source
+    assert "return {" in source
+    for method in ("addUserMessage", "addAgentResponse", "setLoading", "clear"):
+        assert method in source, f"message list API must expose {method}"
+
+
+def test_message_list_container_is_accessible_scroll_log():
+    """The message container must be a polite live region and scrollable."""
+    source = _read_text("src/message-list.ts")
+    assert "chat-messages" in source
+    assert "role" in source
+    assert "log" in source
+    assert "aria-live" in source
+    assert "polite" in source
+    assert "overflowY" in source or "overflow-y" in source
+
+
+def test_message_list_add_user_message_renders_user_bubble():
+    """addUserMessage must append a user-styled bubble and scroll down."""
+    source = _read_text("src/message-list.ts")
+    assert "msg-user" in source
+    assert "addUserMessage" in source
+    assert "scrollTop" in source
+    assert "scrollHeight" in source
+
+
+def test_message_list_add_agent_response_renders_answer_and_sources():
+    """addAgentResponse must append an agent bubble and source cards."""
+    source = _read_text("src/message-list.ts")
+    assert "msg-agent" in source
+    assert "msg-source" in source
+    assert "addAgentResponse" in source
+
+
+def test_message_list_source_card_shows_video_title_time_excerpt():
+    """Source cards must display video_id, title, timestamps, and excerpt."""
+    source = _read_text("src/message-list.ts")
+    for field in ("video_id", "title", "start_time", "end_time", "text"):
+        assert field in source, f"source card must reference {field}"
+    assert "Video:" in source
+    assert "Time:" in source
+
+
+def test_message_list_builds_youtube_source_link_with_timestamp():
+    """Source titles must link to YouTube at the correct start time."""
+    source = _read_text("src/message-list.ts")
+    assert "youtube.com/watch" in source
+    assert "t=" in source
+    assert "start_time" in source
+
+
+def test_message_list_set_loading_shows_static_indicator():
+    """setLoading(true) must show the static thinking indicator."""
+    source = _read_text("src/message-list.ts")
+    assert "Cero está pensando..." in source
+    assert "msg-loading" in source
+    assert "setLoading" in source
+
+
+def test_message_list_set_loading_false_hides_indicator():
+    """setLoading(false) must remove the loading indicator from the list."""
+    source = _read_text("src/message-list.ts")
+    assert "setLoading" in source
+    assert "removeChild" in source or ".remove(" in source
+
+
+def test_message_list_clear_removes_all_messages():
+    """clear() must remove every rendered message."""
+    source = _read_text("src/message-list.ts")
+    assert "clear" in source
+    assert "innerHTML" in source or "removeChild" in source
+
+
+def test_message_list_agent_response_without_sources_renders_answer_only():
+    """addAgentResponse must not render a sources block when sources are empty."""
+    source = _read_text("src/message-list.ts")
+    assert "addAgentResponse" in source
+    assert "response.sources" in source
+    assert "length" in source
+
+
+def test_message_list_clear_resets_loading_state():
+    """clear() must also reset the loading indicator reference."""
+    source = _read_text("src/message-list.ts")
+    assert "clear" in source
+    assert "loadingIndicator" in source
+    assert "= null" in source
+
+
+def test_message_list_does_not_duplicate_loading_indicator():
+    """setLoading(true) must reuse an existing indicator instead of stacking copies."""
+    source = _read_text("src/message-list.ts")
+    assert "setLoading" in source
+    assert "if (!loadingIndicator)" in source
+
+
 # ───────────────────────── Phase 7.5: Build verification ─────────────────────────
 
 

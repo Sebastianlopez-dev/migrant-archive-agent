@@ -67,7 +67,7 @@ Chain strategy: pending
   - Acceptance: Input, send, voice placeholder render; Enter triggers submit; voice button is inert.
   - Commit: `feat(chat): add input bar with voice placeholder`
 
-- [ ] **T006 — Create `frontend/src/message-list.ts` conversation module**
+- [x] **T006 — Create `frontend/src/message-list.ts` conversation module**
   - Render user/agent/error bubbles, source citations, YouTube links, scroll-to-bottom.
   - Port escaping, source linkification, and time parsing from existing widget.
   - Estimated lines: +150
