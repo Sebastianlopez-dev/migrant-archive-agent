@@ -93,6 +93,80 @@ def test_avatar_svg_exists_and_is_valid_svg():
     assert "C" in svg or "circle" in svg.lower(), "Avatar should contain a 'C' or a smiley/circle placeholder"
 
 
+# ───────────────────────── Phase 8: API client module ─────────────────────────
+
+
+def test_api_client_module_exists_and_exports_required_types():
+    """api-client.ts must exist and export the shared types and ask wrapper."""
+    client_path = _FRONTEND_DIR / "src" / "api-client.ts"
+    assert client_path.exists(), "api-client.ts must be created"
+    source = client_path.read_text(encoding="utf-8")
+    assert "export interface Source" in source
+    assert "export interface AskResponse" in source
+    assert "export interface Message" in source
+    assert "export async function ask(" in source
+    assert "export async function askQuestion(" in source
+
+
+def test_api_client_ask_sends_session_id_and_question():
+    """ask() must POST /api/ask with both question and session_id."""
+    source = _read_text("src/api-client.ts")
+    assert "fetch('/api/ask'" in source or 'fetch("/api/ask"' in source
+    assert "session_id" in source, "request body must include session_id"
+    assert "question" in source, "request body must include question"
+
+
+def test_api_client_uses_abort_controller_timeout():
+    """ask() must guard the request with a 60 second AbortController timeout."""
+    source = _read_text("src/api-client.ts")
+    assert "new AbortController()" in source
+    assert "controller.abort()" in source
+    assert "60_000" in source or "60000" in source
+
+
+def test_api_client_maps_errors():
+    """ask() must map non-200 responses and network/abort failures to errors."""
+    source = _read_text("src/api-client.ts")
+    assert "response.ok" in source or "!response.ok" in source
+    assert "AbortError" in source
+    assert "throw" in source
+
+
+def test_api_client_error_class_exposes_status():
+    """ApiClientError must carry the HTTP status when available."""
+    source = _read_text("src/api-client.ts")
+    assert "export class ApiClientError" in source
+    assert "status" in source
+
+
+def test_api_client_ask_question_delegates_to_ask():
+    """askQuestion() must be a convenience wrapper around ask()."""
+    source = _read_text("src/api-client.ts")
+    assert "askQuestion" in source
+    assert "ask(" in source
+    assert "default" in source
+
+
+def test_api_client_types_compile():
+    """api-client.ts must compile without TypeScript errors."""
+    if not (_FRONTEND_DIR / "node_modules").exists():
+        install = subprocess.run(
+            ["pnpm", "install", "--ignore-scripts"],
+            cwd=_FRONTEND_DIR,
+            capture_output=True,
+            text=True,
+        )
+        assert install.returncode == 0, install.stderr
+
+    tsc = subprocess.run(
+        ["pnpm", "exec", "tsc", "--noEmit"],
+        cwd=_FRONTEND_DIR,
+        capture_output=True,
+        text=True,
+    )
+    assert tsc.returncode == 0, tsc.stdout + tsc.stderr
+
+
 # ───────────────────────── Phase 7.5: Build verification ─────────────────────────
 
 
