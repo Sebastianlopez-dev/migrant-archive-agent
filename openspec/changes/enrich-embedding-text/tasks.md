@@ -46,5 +46,5 @@ Chain strategy: stacked-to-main
 | 2.3 | [x] Update exact-text assertions in `tests/test_processor.py` to expect enriched prefix and timestamps | `tests/test_processor.py` | ±25 | 2.1 |
 | 2.4 | [x] Add fallback tests: legacy segments enrich, empty segments keep plain `full_text`, chunk metadata time range matches first/last markers | `tests/test_processor.py` | +40 | 2.1, 2.2 |
 | 2.5 | [x] Update README Phase 2 chunking docs to mention title/description/timestamp enrichment and legacy fallback | `README.md` | +15 | 2.1 |
-| 2.6 | [x] Run full `pytest tests/` and verify `rag_test.py --rebuild` indexes a sample legacy JSON with enriched chunks | — | — | 2.3, 2.4, 2.5 |
+| 2.6 | [x] Run full `pytest tests/` and verify `python backend/scripts/rebuild_index.py` indexes a sample legacy JSON with enriched chunks | — | — | 2.3, 2.4, 2.5 |
 | 2.7 | [ ] Merge PR #2 to `main` | — | — | 2.6 |

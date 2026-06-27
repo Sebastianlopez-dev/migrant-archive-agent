@@ -73,5 +73,5 @@ Adopt exploration recommendation: Approach 2, `VideoData.enriched_text()`.
 
 - [ ] `pytest` passes after updating exact-text assertions.
 - [ ] New ingestion produces JSONs with enriched `full_text`.
-- [ ] `rag_test.py --rebuild` indexes legacy JSONs using enriched text without re-ingestion.
+- [ ] `python backend/scripts/rebuild_index.py` indexes legacy JSONs using enriched text without re-ingestion.
 - [ ] Retrieved chunks include title/description context and `[MM:SS]` timestamps.

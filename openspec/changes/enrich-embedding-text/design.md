@@ -115,7 +115,7 @@ Hour-format decision is based on total video duration (`max(start + duration)` o
 | Unit | `_build_videodata()` persistence | Assert saved JSON `full_text` equals `enriched_text()` |
 | Integration | `Processor.chunk()` enrichment fallback | Legacy `VideoData` with segments produces chunks containing timestamps |
 | Integration | `Processor.chunk()` no-segments fallback | Empty `transcript_segments` uses plain `full_text` |
-| E2E | `rag_test.py --rebuild` | Rebuild index and verify retrieved chunks include title/description/timestamps |
+| E2E | `python backend/scripts/rebuild_index.py` | Rebuild index and verify retrieved chunks include title/description/timestamps |
 
 ## Migration / Rollout
 

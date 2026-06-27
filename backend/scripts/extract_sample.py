@@ -226,7 +226,7 @@ def main():
             print_chroma_result(chroma_result, char_limit)
         else:
             print(f"\n⚠️  ChromaDB is empty or doesn't exist at {CHROMA_DIR}")
-            print("   Build the index first: python backend/scripts/rag_test.py --rebuild\n")
+            print("   Build the index first: python backend/scripts/rebuild_index.py\n")
 
 
 if __name__ == "__main__":

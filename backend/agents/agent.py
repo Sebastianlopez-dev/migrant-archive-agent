@@ -8,45 +8,67 @@ via `RunnableWithMessageHistory` + `InMemoryChatMessageHistory`.
 from __future__ import annotations
 
 import os
-import sys
-from pathlib import Path
 
-# Allow imports from backend/ and backend/core/ when this module is imported
-# directly (e.g. from tests or scripts).
-_BACKEND_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_BACKEND_DIR))
-sys.path.insert(0, str(_BACKEND_DIR / "core"))
-
+from dotenv import load_dotenv
+from langchain_chroma import Chroma
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
 from tools import make_get_video_info, make_list_videos, make_search_transcripts
-from core.embedding_gemini import GeminiEmbeddingProvider
-from core.vector_store import VectorStore
 
 
-SYSTEM_PROMPT = (
-    "You are Cero, an assistant that answers questions in Spanish about archived "
-    "migrant testimonies. You have three tools: list_videos, get_video_info, "
-    "and search_transcripts. "
-    "If a query is vague or a bare proper name (e.g. 'Lina'), use list_videos "
-    "or get_video_info to disambiguate, or rewrite the query into a descriptive "
-    "English sentence of at least 3-5 words before calling search_transcripts. "
-    "search_transcripts supports optional year and channel filters when the user "
-    "wants to narrow results by upload year or source channel. "
-    "When presenting multiple results, steps, or examples, always use a numbered "
-    "or bulleted list. Always respond in Spanish, cite the video and time range "
-    "when possible, and do not invent information. "
-    "When a tool returns a 'channel' field, always include it (e.g. 'Canal: "
-    "Plataforma Cero'). When a tool returns a 'speakers' field, always list the "
-    "speakers as 'Ponentes:' in the response. Use the structured fields directly "
-    "— do not re-parse the description text to find names that are already "
-    "provided in the 'speakers' field."
-)
+load_dotenv()
+
+GEMINI_CHAT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+DEFAULT_CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
+
+SYSTEM_PROMPT = """\
+You are Cero, an assistant that answers questions about
+the videos in the Plataforma Cero's YouTube channel that contain
+archived migrant discussions and testimonies.
+
+You MUST always use your tools to find information before answering.
+Never answer from your own knowledge. Always respond in Spanish.
+
+Search strategy:
+- When the user asks about a topic, event, person, or concept (like FILMIG,
+  an author, a specific event), first use list_videos to find which videos
+  mention it, then use get_video_info for those videos. This gives you the
+  full picture before diving into transcript search.
+- After getting the video list and info, use search_transcripts scoped to
+  the most relevant video_id to find specific quotes and details.
+- If a broad search returns vague results, scope it to a specific video_id.
+- If a scoped search returns nothing, remove the video_id filter and try
+  broader keywords.
+
+Specific knowledge:
+- When asked about FILMIG, use get_video_info for this video first.
+  The video "Presentacion FILMIG 2024 (Feria Itinerante del Libro Migrante)"
+  (APgxfNssxGQ) contains the official definition and purpose of FILMIG.
+
+When to use tools:
+- list_videos: to discover what videos exist, find videos by year or speaker,
+  and see which videos have identified speakers/participants.
+- get_video_info: to get title, description, channel, year, speakers, and
+  chunk count for a specific video. Use the video_id from list_videos.
+- search_transcripts: to find what was SAID inside videos. Always call this
+  after identifying the relevant video. Supports video_id, year, and channel
+  filters for scoped searches.
+
+Formatting rules:
+- Do NOT use markdown (no **bold**, no *italics*, no bullet marks).
+- Use plain text with dashes for lists when needed.
+- When citing, include title and video ID.
+    Example: "Video: Mujeres del Maiz (mY1hw79ydY0), 07:50".
+- If the tools do not return enough information, say so honestly.
+- Keep responses concise and well organized.
+- End every response with a natural follow-up question that invites the
+  user to continue exploring the topic or related themes.
+"""
 
 # Maximum number of messages to keep in the sliding window.
 # 10 messages = 5 complete Q&A exchanges (user + assistant).
@@ -73,10 +95,6 @@ class BoundedChatMessageHistory(InMemoryChatMessageHistory):
         if len(self.messages) > self._max_messages:
             self.messages = self.messages[-self._max_messages:]
 
-
-DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-DEFAULT_CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
-DEFAULT_VIDEO_DATA_DIR = Path(os.getenv("VIDEO_DATA_DIR", "data/raw/whisper"))
 
 # Per-session message history store. In production this can be swapped for a
 # Redis/SQL backend without changing the agent factory interface.
@@ -124,17 +142,20 @@ def create_agent(
     """
     if llm is None:
         llm = ChatGoogleGenerativeAI(
-            model=DEFAULT_MODEL,
+            model=GEMINI_CHAT_MODEL,
             temperature=0.2,
         )
 
     if tools is None:
-        provider = GeminiEmbeddingProvider()
-        store = VectorStore(persist_dir=DEFAULT_CHROMA_DIR)
+        store = Chroma(
+            collection_name="migrant_archive",
+            embedding_function=GoogleGenerativeAIEmbeddings(model="gemini-embedding-2"),
+            persist_directory=DEFAULT_CHROMA_DIR,
+        )
         tools = [
-            make_list_videos(DEFAULT_VIDEO_DATA_DIR, store),
-            make_get_video_info(DEFAULT_VIDEO_DATA_DIR, store),
-            make_search_transcripts(provider, store, top_k=3),
+            make_list_videos(store),
+            make_get_video_info(store),
+            make_search_transcripts(store, top_k=3),
         ]
 
     prompt = ChatPromptTemplate.from_messages([

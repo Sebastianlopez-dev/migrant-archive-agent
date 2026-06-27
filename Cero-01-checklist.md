@@ -81,14 +81,14 @@ Current state of `cero-01.py` and what remains to replicate the full Cero agent 
 
 ## Comparison with project scripts
 
-| | cero-01 | rag_test | rag_memory | agent_cli |
-|---|---|---|---|---|
-| Lines | **114** | 168 | 227 | 82 |
-| ChromaDB search | ✅ | ✅ | ✅ | ✅ |
-| LLM answers | ✅ | ❌ | ❌ | ✅ |
-| Memory | ✅ | ❌ | ✅ | ✅ |
-| Tools (agent) | ❌ | ❌ | ❌ | ✅ |
-| Self-contained | ✅ | ❌ | ❌ | ❌ |
-| --verbose | ✅ | ❌ | ✅ | ❌ |
-| Source docs | ✅ | ✅ | ❌ | ❌ |
-| Rebuild index | ❌ | ✅ | ❌ | ❌ |
+| | cero-01 | rag_test | agent_cli |
+|---|---|---|---|
+| Lines | **114** | 168 | 82 |
+| ChromaDB search | ✅ | ✅ | ✅ |
+| LLM answers | ✅ | ❌ | ✅ |
+| Memory | ✅ | ❌ | ✅ |
+| Tools (agent) | ❌ | ❌ | ✅ |
+| Self-contained | ✅ | ❌ | ❌ |
+| --verbose | ✅ | ❌ | ❌ |
+| Source docs | ✅ | ✅ | ❌ |
+| Rebuild index | ❌ | ❌ | ❌ |

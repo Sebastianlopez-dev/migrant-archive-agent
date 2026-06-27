@@ -29,11 +29,11 @@ def provider():
 
 
 @pytest.fixture
-def store():
-    """Fresh in-memory ChromaDB collection."""
-    from backend.core.vector_store import VectorStore
+def store(provider, tmp_path):
+    """Fresh in-memory ChromaDB collection for the new tool contract."""
+    from tests.test_agent import FakeChroma
 
-    s = VectorStore(persist_dir=":memory:")
+    s = FakeChroma(provider, str(tmp_path / "chroma"))
     yield s
     try:
         s.delete_collection()
@@ -347,7 +347,7 @@ def test_search_transcripts_observation_includes_video_id(provider, store):
         embeddings=provider.embed(["Contenido del testimonio."]),
     )
 
-    search = make_search_transcripts(provider, store, top_k=3)
+    search = make_search_transcripts(store, top_k=3)
     observation = search.invoke("testimonio")
 
     assert "v003" in observation

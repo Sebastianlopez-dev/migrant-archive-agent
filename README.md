@@ -114,13 +114,12 @@ FILMIG / Plataforma Cero (YouTube)
 **Files:**
 [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
 [`rag_test.py`](backend/scripts/rag_test.py) — interactive semantic search
-[`rag_memory.py`](backend/scripts/rag_memory.py) — semantic search with Conversation Buffer Window Memory (K=5, no LLM for memory)
 [`cero-01.py`](cero-01.py) — conversational RAG with LangChain (ConversationalRetrievalChain + memory + LLM answers)
 [`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
 
 **Tests:** `test_extract_sample.py`
 
-**Memory progression:** `rag_test.py` (no memory) → `rag_memory.py` (buffer window, no LLM) → `cero-01.py` (buffer window, LLM answers) → `agent_cli.py` (buffer, LLM + tools). Same data structure, different consumer.
+**Memory progression:** `rag_test.py` (no memory) → `cero-01.py` (buffer window, LLM answers) → `agent_cli.py` (buffer, LLM + tools). Same sliding-window idea, different consumer and capabilities.
 
 </details>
 
@@ -253,7 +252,7 @@ Full details: [S01 — Video Ingestion](#s01--video-ingestion).
 Chunk transcript text, generate Gemini embeddings, and store in ChromaDB. Run once after adding new videos.
 
 ```bash
-python backend/scripts/rag_test.py --rebuild
+python backend/scripts/rebuild_index.py
 ```
 
 Full details: [S02 — Chunking and Embedding](#s02--chunking-and-embedding) and [Embeddings Workflow](#embeddings-workflow).
@@ -265,7 +264,7 @@ Full details: [S02 — Chunking and Embedding](#s02--chunking-and-embedding) and
 
 ### Step 4 — Query (RAG, from no memory to conversational)
 
-Four levels of querying ChromaDB, from keyword to semantic to conversational AI.
+Three levels of querying ChromaDB, from keyword to semantic to conversational AI.
 
 ```bash
 # Level 1 — Fast keyword search (no API, no embeddings):
@@ -274,11 +273,7 @@ python backend/scripts/quick_search.py "FilmiG"
 # Level 2 — Semantic search (API embeddings, no memory):
 python backend/scripts/rag_test.py
 
-# Level 3 — Semantic search with query history (API embeddings, buffer window memory):
-python backend/scripts/rag_memory.py
-python backend/scripts/rag_memory.py --verbose    # full pipeline trace
-
-# Level 4 — Conversational RAG (API embeddings + LLM answers + memory):
+# Level 3 — Conversational RAG (API embeddings + LLM answers + memory):
 uv run python cero-01.py "¿cómo describen el dolor de migrar?"
 uv run python cero-01.py --verbose "¿qué sentimientos expresan las mujeres?"
 uv run python cero-01.py                         # REPL mode
@@ -288,12 +283,11 @@ uv run python cero-01.py                         # REPL mode
 |--------|--------|:---:|-----------|----------|
 | `quick_search.py` | None | ❌ | 0 | Fast checks, no cost |
 | `rag_test.py` | None | ❌ | Embedding only | Exploring the DB |
-| `rag_memory.py` | Buffer Window (K=5) | ❌ | Embedding only | Comparing searches |
 | **`cero-01.py`** | **Buffer Window (K=5)** | **✅ Spanish** | **Embedding + Chat** | **Demo, conversational Q&A** |
 
 `cero-01.py` is a self-contained 124-line conversational RAG built entirely with LangChain (`ConversationalRetrievalChain`, `Chroma`, `GoogleGenerativeAIEmbeddings`, `ChatGoogleGenerativeAI`). It answers questions in Spanish using transcript chunks as context, remembers the last 5 conversation turns, and shows source documents with `--verbose`. Zero imports from `backend/core/`.
 
-Try these questions once inside `rag_test.py` or `rag_memory.py`:
+Try these questions once inside `rag_test.py` or `cero-01.py`:
 
 | Question | What it tests |
 |----------|---------------|
@@ -418,11 +412,11 @@ migrant-archive/
 │   │   ├── processor.py            ← Chunking (1000tk/200ov) + embedding
 │   │   └── vector_store.py         ← ChromaDB persistence
 │   └── scripts/
-│       ├── agent_cli.py        ← Interactive agent CLI
-│       ├── rag_test.py         ← Interactive RAG pipeline test script
-│       ├── rag_memory.py       ← Semantic search with Conversation Buffer Window Memory (K=5)
-│       ├── quick_search.py     ← Keyword search (no API, no embeddings)
-│       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
+  │       ├── agent_cli.py        ← Interactive agent CLI
+  │       ├── rag_test.py         ← Interactive RAG pipeline test script
+  │       ├── rebuild_index.py    ← Rebuild ChromaDB index from whisper JSON files
+  │       ├── quick_search.py     ← Keyword search (no API, no embeddings)
+  │       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
 │
 ├── cero-01.py                  ← Conversational RAG with LangChain (self-contained, 124 lines)
 │
@@ -594,7 +588,7 @@ Once you have transcriptions (S01), this stage converts text into searchable vec
 
 **Quick start (Gemini, recommended):**
 1. Make sure `.json` files exist in `data/raw/whisper/`
-2. Build index → `python backend/scripts/rag_test.py --rebuild`
+2. Build index → `python backend/scripts/rebuild_index.py`
 3. Query → `python backend/scripts/rag_test.py`
 4. If you add more videos later → see [Embeddings Workflow](#embeddings-workflow) below.
 
@@ -749,12 +743,12 @@ Three scenarios: first-time creation, adding new videos, and reading stored data
 source .venv/bin/activate                          # or: conda activate migrant-archive
 
 # This chunks, embeds, and stores ALL whisper JSON files
-python backend/scripts/rag_test.py --rebuild
+python backend/scripts/rebuild_index.py
 ```
 
 **What happens under the hood:**
 
-1. `rag_test.py` finds every `.json` in `data/raw/whisper/`
+1. `rebuild_index.py` finds every `.json` in `data/raw/whisper/`
 2. For each video: `VideoData.load_json()` → `Processor.chunk()` → `Processor.embed_chunks()` → `VectorStore.add()`
 3. ChromaDB is created at `data/chroma/` with collection `migrant_archive`
 
@@ -762,7 +756,7 @@ python backend/scripts/rag_test.py --rebuild
 
 ```
 Initializing Gemini embedding provider ...
---rebuild flag set: re-indexing all videos ...
+Rebuilding index from data/raw/whisper into data/chroma ...
 
 Indexing: APgxfNssxGQ.json  ... 12 chunks
 Indexing: XYZ123.json       ... 8 chunks
@@ -770,9 +764,6 @@ Indexing: XYZ123.json       ... 8 chunks
 Indexed 20 chunks from 2 video(s) into ChromaDB.
 
 Collection size: 20 chunks
-Top-K: 3
-──────────────────────────────────────────────────────────
-Paste or type a question. Type 'quit' to exit.
 ```
 
 **Alternative — programmatic (full control):**
@@ -850,10 +841,10 @@ print(f"After:  {store.count} chunks in ChromaDB (+{len(chunks)} from '{video.ti
 
 ```bash
 # This deletes the old ChromaDB index and rebuilds from ALL whisper JSONs
-python backend/scripts/rag_test.py --rebuild
+python backend/scripts/rebuild_index.py
 ```
 
-This is the same command as Scenario 1. `--rebuild` calls `delete_collection()` internally, wiping everything before re-indexing all JSON files found in `data/raw/whisper/`.
+This is the same command as Scenario 1. `rebuild_index.py` calls `delete_collection()` internally, wiping everything before re-indexing all JSON files found in `data/raw/whisper/`.
 
 > **Tip:** With Gemini API, re-embedding is fast and cheap (~$0 for the entire project). Unless you have 100+ videos, rebuilding is usually the pragmatic choice.
 
@@ -861,7 +852,7 @@ This is the same command as Scenario 1. `--rebuild` calls `delete_collection()` 
 
 ```bash
 rm -rf data/chroma/
-python backend/scripts/rag_test.py --rebuild
+python backend/scripts/rebuild_index.py
 ```
 
 Manually deleting the directory before rebuilding guarantees a clean slate — useful if you suspect ChromaDB corruption or switched between embedding providers (Gemini 3072d vs BGE-M3 1024d are incompatible in the same collection).
@@ -895,8 +886,9 @@ Searching ChromaDB (top-3) ... 3 results.
 Available flags:
 | Flag | Default | Effect |
 |------|---------|--------|
-| `--rebuild` | off | Force re-index before starting the prompt |
 | `--top-k 5` | 3 | Number of chunks to retrieve per query |
+
+To rebuild the index, use `python backend/scripts/rebuild_index.py` instead.
 
 ##### Method B: Sequential extraction (data validation)
 
@@ -1003,18 +995,18 @@ Sequentially reads the first 5,000 characters from ChromaDB and raw JSON files t
 
 ### S05 — RAG Test + Memory
 
-> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/rag_memory.py`](backend/scripts/rag_memory.py)
+> **Sources:** [`backend/scripts/quick_search.py`](backend/scripts/quick_search.py) · [`backend/scripts/rag_test.py`](backend/scripts/rag_test.py) · [`backend/scripts/rebuild_index.py`](backend/scripts/rebuild_index.py) · [`cero-01.py`](cero-01.py)
 
-Three scripts that progress from zero-cost keyword search to semantic search with conversation memory — all without an LLM for the memory layer.
+Three entry points that progress from zero-cost keyword search to semantic search to conversational RAG.
 
 ```
-quick_search.py  →  keyword, no API, no memory
-rag_test.py      →  semantic, API embeddings, no memory
-rag_memory.py    →  semantic, API embeddings, BUFFER WINDOW memory (K=5)
-cero-01.py       →  semantic, API embeddings + LLM answers, BUFFER WINDOW memory (K=5)
-                                                       ↓
-                                             S06: agent_cli.py
-                                             (same buffer, LLM reads it + tools)
+quick_search.py    →  keyword, no API, no memory
+rag_test.py        →  semantic, API embeddings, no memory
+rebuild_index.py   →  (re)build the ChromaDB index from whisper JSONs
+cero-01.py         →  semantic, API embeddings + LLM answers, BUFFER WINDOW memory (K=5)
+                                                         ↓
+                                               S06: agent_cli.py
+                                               (same buffer, LLM reads it + tools)
 ```
 
 **`quick_search.py` — Fast keyword search (no API, no embeddings)**
@@ -1034,27 +1026,21 @@ Interactive script that queries ChromaDB with embeddings. Used to verify the emb
 **Why a standalone script:** separating retrieval testing from agent development isolates failures. If semantic search returns irrelevant chunks, the problem is in chunking or embedding — not in the agent's tool-calling logic.
 
 ```bash
-python backend/scripts/rag_test.py --rebuild   # build index
 python backend/scripts/rag_test.py              # interactive Q&A
 python backend/scripts/rag_test.py --top-k 5    # custom result count
 ```
 
-**`rag_memory.py` — Semantic search with Conversation Buffer Window Memory**
+**`rebuild_index.py` — Rebuild the ChromaDB index**
 
-120 lines. Adds a `History` class — a Python list of `SearchRecord` objects limited to `MAX_HISTORY=5`. Each search is saved with its query text, result count, and video IDs. Type `history` to see past searches. Zero LLM calls for the memory layer — only Gemini embeddings for search.
+Standalone script that wipes the existing ChromaDB collection and rebuilds it from every whisper JSON found in `data/raw/whisper/`. Run this after adding new videos or changing chunking/embedding settings.
 
 ```bash
-python backend/scripts/rag_memory.py             # interactive Q&A with history
-python backend/scripts/rag_memory.py --verbose   # full pipeline trace (timing, vectors, buffer state)
+python backend/scripts/rebuild_index.py
 ```
-
-The `--verbose` flag shows every step: embedding time (Gemini API), search time (ChromaDB), and buffer state — growing from 1/5 to 5/5, then dropping the oldest entry with `action: pop "q1" + append new`.
-
-> **Why this matters:** `rag_memory.py` and `agent_cli.py` (S06) store the same kind of data — a list of past interactions. The difference is who consumes it: the human reads `history` output in `rag_memory.py`; the LLM reads `chat_history` as prompt context in `agent_cli.py`. Same buffer, different reader. This demonstrates that conversation memory is a data structure problem, not an AI problem. See [`notes/memory_types.md`](notes/memory_types.md) for the full taxonomy.
 
 **`cero-01.py` — Conversational RAG with LangChain**
 
-124 lines. The bridge between `rag_memory.py` (search only) and `agent_cli.py` (full agent with tools). Built entirely with LangChain: `ConversationalRetrievalChain` orchestrates retrieval + generation, `ConversationBufferWindowMemory` handles the sliding window, `Chroma` + `GoogleGenerativeAIEmbeddings` replace the manual vector store and embedding classes. Zero imports from `backend/core/`.
+124 lines. The bridge between `rag_test.py` (search only) and `agent_cli.py` (full agent with tools). Built entirely with LangChain: `ConversationalRetrievalChain` orchestrates retrieval + generation, `ConversationBufferWindowMemory` handles the sliding window, `Chroma` + `GoogleGenerativeAIEmbeddings` replace the manual vector store and embedding classes. Zero imports from `backend/core/`.
 
 ```bash
 uv run python cero-01.py "¿cómo describen el dolor de migrar?"
@@ -1314,7 +1300,7 @@ RAG pipeline end-to-end: transcribed video content stored in ChromaDB and retrie
 
 ```bash
 source .venv/bin/activate
-python backend/scripts/rag_test.py --rebuild   # build index (first time)
+python backend/scripts/rebuild_index.py   # build index (first time)
 python backend/scripts/rag_test.py              # interactive Q&A
 ```
 

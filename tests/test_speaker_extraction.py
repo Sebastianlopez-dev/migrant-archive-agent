@@ -16,8 +16,7 @@ sys.path.insert(0, str(BACKEND_DIR / "core"))
 
 import pytest
 
-from tools import _extract_speakers_from_description
-from processor import _normalize_math_bold
+from processor import _extract_speakers_from_description, _normalize_math_bold
 
 
 # Real description snippets extracted from data/raw/whisper/*.json.

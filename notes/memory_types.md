@@ -60,31 +60,24 @@ from langchain_classic.memory import ConversationBufferWindowMemory
 memory = ConversationBufferWindowMemory(k=5)  # keep last 5 exchanges
 ```
 
-**Our implementation**: `rag_memory.py` — 120 lines, single-purpose demo.
+**Our implementation**: `cero-01.py` — conversational RAG with `ConversationBufferWindowMemory(k=5)`.
 
 ```python
-class SearchRecord:
-    def __init__(self, query: str, results: list[dict]):
-        self.query = query
-        self.result_count = len(results)
-        self.video_ids = {r["metadata"]["video_id"] for r in results if ...}
+from langchain_classic.memory import ConversationBufferWindowMemory
 
-class History:
-    def __init__(self):
-        self._searches: list[SearchRecord] = []
-
-    def add(self, query, results):
-        self._searches.append(SearchRecord(query, results))
-        if len(self._searches) > MAX_HISTORY:  # 5
-            self._searches.pop(0)
+memory = ConversationBufferWindowMemory(
+    k=5,
+    memory_key="chat_history",
+    return_messages=True,
+)
 ```
 
-No CLI commands except `history`. Everything else is a free-text semantic search.
-The `history` command prints the buffer; the user (not an LLM) reads it.
+The chain keeps the last 5 human/AI exchanges. Older turns are dropped automatically.
+No manual list management — LangChain handles the sliding window.
 
 **When to use**: When you want short-term context but cannot afford the context window
-cost of the full history. Also useful as a teaching tool: same data structure as
-`agent_cli.py`, different consumer (human vs LLM).
+cost of the full history. Also useful as a teaching tool: same sliding-window idea as
+the agent (S06), but consumed by the chain instead of by prompt construction.
 
 ---
 
@@ -178,7 +171,7 @@ past interactions via semantic search rather than recency.
 | Type | Stores | Needs LLM to store? | Needs LLM to use? | Our implementation |
 |---|---|---|---|---|
 | Buffer | All messages | No | Yes (reads history as context) | `agent.py` (RunnableWithMessageHistory) |
-| Window | Last K messages | No | Yes | `rag_memory.py` (MAX_HISTORY=5) |
+| Window | Last K messages | No | Yes | `cero-01.py` (`ConversationBufferWindowMemory(k=5)`) |
 | Summary | Running summary | YES | Yes | Not implemented |
 | Summary Buffer | Summary + recent K | YES | Yes | Not implemented |
 | Entity | Extracted entities | Can be rule-based | No, if rule-based | Not implemented |
@@ -190,21 +183,22 @@ past interactions via semantic search rather than recency.
 ## Our Project: From Zero Memory to Agent Memory
 
 ```
-rag_test.py              rag_memory.py               agent_cli.py
-───────────              ─────────────               ────────────
+rag_test.py              cero-01.py                  agent_cli.py
+───────────              ──────────                  ────────────
 No memory                Buffer Window (type 2)       Buffer (type 1)
                          K = 5                        via LLM context
-No LLM for memory        No LLM for memory            LLM required
-Raw search output        history command              Natural language
+No LLM for memory        LLM answers                  LLM required
+Raw search output        conversational RAG           Natural language + tools
 ```
 
-**Key insight**: The jump from `rag_memory.py` to `agent_cli.py` is NOT about adding
-memory — both have memory (a list of past interactions). The jump is about WHO reads it:
+**Key insight**: The jump from `cero-01.py` to `agent_cli.py` is NOT about adding
+memory — both keep past interactions. The jump is about WHO consumes the memory
+and what else the system can do:
 
-- `rag_memory.py`: the user reads `history` output directly
-- `agent_cli.py`: Gemini reads `chat_history` as prompt context
+- `cero-01.py`: a retrieval chain uses the sliding window to answer follow-ups in Spanish.
+- `agent_cli.py`: the agent reads `chat_history` as prompt context and can call tools.
 
-Same buffer, different consumer. One is deterministic, the other is semantic.
+Same sliding-window idea, different consumer and capabilities.
 
 ---
 

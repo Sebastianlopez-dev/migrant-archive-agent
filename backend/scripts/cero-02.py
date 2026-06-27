@@ -3,6 +3,11 @@ import os
 import sys
 from pathlib import Path
 
+# Allow the script to find backend/agents/tools when run directly.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
+sys.path.insert(0, str(_PROJECT_ROOT / "backend"))
+
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
@@ -11,7 +16,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
-from tools_01 import make_search_transcripts, make_list_videos, make_get_video_info
+from agents.tools import make_search_transcripts, make_list_videos, make_get_video_info
 
 load_dotenv()
 
@@ -47,7 +52,7 @@ Specific knowledge:
 - When asked about FILMIG, use get_video_info for this video first.
   The video "Presentacion FILMIG 2024 (Feria Itinerante del Libro Migrante)"
   (APgxfNssxGQ) contains the official definition and purpose of FILMIG.
-  
+
 
 When to use tools:
 - list_videos: to discover what videos exist, find videos by year or speaker,

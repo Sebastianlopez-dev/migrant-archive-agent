@@ -16,7 +16,9 @@ from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
+from langchain_core.embeddings import Embeddings
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_chroma import Chroma
 
 # Load API keys from .env so conditional skips (e.g. E2E) resolve correctly.
 load_dotenv()
@@ -27,12 +29,75 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "backend" / "core"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend" / "agents"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend" / "scripts"))
 
-from test_embedding import FakeEmbeddingProvider  # noqa: E402
+from tests.test_embedding import FakeEmbeddingProvider  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+class _FakeLangchainEmbeddings(Embeddings):
+    """Wraps the deterministic FakeEmbeddingProvider as a LangChain Embeddings class."""
+
+    def __init__(self, provider: FakeEmbeddingProvider) -> None:
+        self._provider = provider
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._provider.embed(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._provider.embed_query(text)
+
+
+class FakeChroma:
+    """Lightweight Chroma wrapper that exposes the interface the agent tools expect.
+
+    The tools use ``store._collection.get/count`` and ``store.similarity_search``.
+    This fake uses a real ``langchain_chroma.Chroma`` instance backed by fake
+    embeddings so the tool logic can be exercised without calling Gemini.
+    """
+
+    def __init__(self, provider: FakeEmbeddingProvider, persist_dir: str) -> None:
+        self._provider = provider
+        self._persist_dir = persist_dir
+        self._embedding_function = _FakeLangchainEmbeddings(provider)
+        self._chroma = self._create_chroma()
+
+    def _create_chroma(self) -> Chroma:
+        return Chroma(
+            collection_name="test_agent",
+            embedding_function=self._embedding_function,
+            persist_directory=self._persist_dir,
+        )
+
+    def add(
+        self,
+        ids: list[str],
+        documents: list[str],
+        metadatas: list[dict],
+        embeddings: list[list[float]],
+    ) -> None:
+        """Add texts to the underlying Chroma collection."""
+        # Embeddings are ignored because the fake embedding function produces
+        # deterministic vectors that match the provider fixture.
+        _ = embeddings
+        self._chroma.add_texts(texts=documents, metadatas=metadatas, ids=ids)
+
+    def delete_collection(self) -> None:
+        """Drop the collection and recreate a fresh one for the next test step."""
+        self._chroma.delete_collection()
+        self._chroma = self._create_chroma()
+
+    @property
+    def _collection(self):
+        return self._chroma._collection
+
+    def as_retriever(self, **kwargs):
+        return self._chroma.as_retriever(**kwargs)
+
+    def similarity_search(self, query: str, k: int | None = None, filter=None):
+        return self._chroma.similarity_search(query, k=k, filter=filter)
 
 
 def _make_video_data(
@@ -65,6 +130,12 @@ def _save_video_data(tmp_path: Path, data: dict) -> Path:
     return filepath
 
 
+@pytest.fixture
+def store(provider, tmp_path):
+    """Fresh in-memory ChromaDB collection wrapped for the new tool contract."""
+    return FakeChroma(provider, str(tmp_path / "chroma"))
+
+
 # ---------------------------------------------------------------------------
 # Phase 2: search_transcripts tool
 # ---------------------------------------------------------------------------
@@ -76,7 +147,7 @@ class TestSearchTranscriptsTool:
     def test_empty_store_returns_no_index_message(self, provider, store):
         from tools import make_search_transcripts
 
-        search = make_search_transcripts(provider, store, top_k=3)
+        search = make_search_transcripts(store, top_k=3)
         result = search.invoke("migración")
         assert "No hay transcripciones indexadas" in result
 
@@ -97,10 +168,11 @@ class TestSearchTranscriptsTool:
             embeddings=provider.embed(["La migración es un fenómeno global."]),
         )
 
-        search = make_search_transcripts(provider, store, top_k=3)
+        search = make_search_transcripts(store, top_k=3)
         result = search.invoke("migración")
 
         assert "Testimonio de migración" in result
+        assert "v001" in result
         assert "12.5" in result
         assert "18.3" in result
         assert "La migración es un fenómeno global" in result
@@ -123,7 +195,7 @@ class TestSearchTranscriptsTool:
             embeddings=provider.embed(docs),
         )
 
-        search = make_search_transcripts(provider, store, top_k=2)
+        search = make_search_transcripts(store, top_k=2)
         result = search.invoke("migración")
 
         # Each result is formatted as a block prefixed with [1], [2], ...
@@ -159,7 +231,7 @@ class TestSearchTranscriptsTool:
             embeddings=provider.embed(docs),
         )
 
-        search = make_search_transcripts(provider, store, top_k=5)
+        search = make_search_transcripts(store, top_k=5)
         result = search.invoke({"query": "texto", "video_id": "vA"})
 
         assert "Video A" in result
@@ -193,7 +265,7 @@ class TestSearchTranscriptsTool:
             embeddings=provider.embed(docs),
         )
 
-        search = make_search_transcripts(provider, store, top_k=5)
+        search = make_search_transcripts(store, top_k=5)
         result = search.invoke({"query": "texto", "year": 2024})
 
         assert "Video 2024" in result
@@ -227,7 +299,7 @@ class TestSearchTranscriptsTool:
             embeddings=provider.embed(docs),
         )
 
-        search = make_search_transcripts(provider, store, top_k=5)
+        search = make_search_transcripts(store, top_k=5)
         result = search.invoke({"query": "texto", "channel": "Canal 1"})
 
         assert "Video Canal 1" in result
@@ -269,7 +341,7 @@ class TestSearchTranscriptsTool:
             embeddings=provider.embed(docs),
         )
 
-        search = make_search_transcripts(provider, store, top_k=5)
+        search = make_search_transcripts(store, top_k=5)
         result = search.invoke({"query": "Canal", "year": 2024, "channel": "Canal 1"})
 
         assert "Canal 1 2024" in result
@@ -302,19 +374,16 @@ class TestListVideosTool:
             embeddings=provider.embed(["uno", "dos", "tres"]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         result = list_videos.invoke({})
-        parsed = json.loads(result)
 
-        assert len(parsed) == 2
-        assert parsed[0]["video_id"] == "v1"
-        assert parsed[0]["channel"] == "Canal Lina"
-        assert parsed[0]["year"] == 2024
-        assert parsed[0]["chunk_count"] == 1
-        assert parsed[1]["video_id"] == "v2"
-        assert parsed[1]["channel"] == "Canal Ana"
-        assert parsed[1]["year"] == 2023
-        assert parsed[1]["chunk_count"] == 2
+        assert "Video uno" in result
+        assert "Video dos" in result
+        assert "Canal Lina" in result
+        assert "Canal Ana" in result
+        assert "1 chunk(s)" in result
+        assert "2 chunk(s)" in result
+        assert "2 video(s)" in result
 
     def test_list_videos_filters_by_year(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -338,13 +407,12 @@ class TestListVideosTool:
             embeddings=provider.embed(["a", "b"]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         result = list_videos.invoke({"year": 2024})
-        parsed = json.loads(result)
 
-        assert len(parsed) == 1
-        assert parsed[0]["title"] == "Video 2024"
-        assert parsed[0]["year"] == 2024
+        assert "Video 2024" in result
+        assert "Video 2023" not in result
+        assert "1 video(s)" in result
 
     def test_list_videos_filters_by_speaker(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -368,13 +436,12 @@ class TestListVideosTool:
             embeddings=provider.embed(["a", "b"]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         result = list_videos.invoke({"speaker": "Lina"})
-        parsed = json.loads(result)
 
-        assert len(parsed) == 1
-        assert parsed[0]["title"] == "Video Lina"
-        assert parsed[0]["speaker"] == "Lina"
+        assert "Video Lina" in result
+        assert "Video Ana" not in result
+        assert "1 video(s)" in result
 
     def test_list_videos_filters_by_channel(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -398,13 +465,12 @@ class TestListVideosTool:
             embeddings=provider.embed(["a", "b"]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         result = list_videos.invoke({"channel": "Canal 1"})
-        parsed = json.loads(result)
 
-        assert len(parsed) == 1
-        assert parsed[0]["title"] == "Video Canal 1"
-        assert parsed[0]["channel"] == "Canal 1"
+        assert "Video Canal 1" in result
+        assert "Video Canal 2" not in result
+        assert "1 video(s)" in result
 
     def test_list_videos_combines_filters(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -428,12 +494,12 @@ class TestListVideosTool:
             embeddings=provider.embed(["a", "b"]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         result = list_videos.invoke({"year": 2024, "speaker": "Lina", "channel": "Canal Lina"})
-        parsed = json.loads(result)
 
-        assert len(parsed) == 1
-        assert parsed[0]["title"] == "Lina 2024"
+        assert "Lina 2024" in result
+        assert "Lina 2023" not in result
+        assert "1 video(s)" in result
 
     def test_list_videos_uses_store_when_json_missing(self, provider, store, tmp_path):
         from tools import make_list_videos
@@ -452,15 +518,12 @@ class TestListVideosTool:
             embeddings=provider.embed(["a"]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         result = list_videos.invoke({})
-        parsed = json.loads(result)
 
-        assert len(parsed) == 1
-        assert parsed[0]["video_id"] == "v1"
-        assert parsed[0]["title"] == "Solo en store"
-        assert parsed[0]["channel"] == "Canal Store"
-        assert parsed[0]["year"] == 2024
+        assert "Solo en store" in result
+        assert "Canal Store" in result
+        assert "1 video(s)" in result
 
 
 class TestGetVideoInfoTool:
@@ -482,32 +545,36 @@ class TestGetVideoInfoTool:
             ),
         )
         store.delete_collection()
+        first_doc = (
+            "Description: Descripción de prueba\n"
+            "[00:00] Texto completo del video de prueba."
+        )
         store.add(
             ids=["v1_chunk_0", "v1_chunk_1"],
-            documents=["a", "b"],
+            documents=[first_doc, "b"],
             metadatas=[
                 {"video_id": "v1", "title": "Título de prueba", "chunk_index": 0, "channel": "Canal Store", "year": 2024, "speaker": "Lina", "duration": 125},
                 {"video_id": "v1", "title": "Título de prueba", "chunk_index": 1, "channel": "Canal Store", "year": 2024, "speaker": "Lina", "duration": 125},
             ],
-            embeddings=provider.embed(["a", "b"]),
+            embeddings=provider.embed([first_doc, "b"]),
         )
 
-        get_info = make_get_video_info(tmp_path, store)
+        get_info = make_get_video_info(store)
         result = get_info.invoke({"video_id": "v1"})
-        parsed = json.loads(result)
 
-        assert parsed["title"] == "Título de prueba"
-        assert parsed["description"] == "Descripción de prueba"
-        assert parsed["year"] == 2024
-        assert parsed["duration"] == 125
-        assert parsed["channel"] == "Canal Store"
-        assert parsed["chunk_count"] == 2
-        assert parsed["summary"].startswith("Texto completo")
+        assert "Title: Título de prueba" in result
+        assert "Description: Descripción de prueba" in result
+        assert "Year: 2024" in result
+        assert "Duration: 125s" in result
+        assert "Channel: Canal Store" in result
+        assert "Chunks: 2" in result
+        assert "Speaker(s): Lina" in result
+        assert "Transcript:" in result
 
     def test_get_video_info_missing_video_returns_not_found(self, provider, store, tmp_path):
         from tools import make_get_video_info
 
-        get_info = make_get_video_info(tmp_path, store)
+        get_info = make_get_video_info(store)
         result = get_info.invoke({"video_id": "missing"})
 
         assert "no encontrado" in result.lower() or "not found" in result.lower()
@@ -530,16 +597,15 @@ class TestGetVideoInfoTool:
             embeddings=provider.embed(["a"]),
         )
 
-        get_info = make_get_video_info(tmp_path, store)
+        get_info = make_get_video_info(store)
         result = get_info.invoke({"video_id": "v1"})
-        parsed = json.loads(result)
 
-        assert parsed["video_id"] == "v1"
-        assert parsed["title"] == "Solo en store"
-        assert parsed["year"] == 2024
-        assert parsed["channel"] == "Canal Store"
-        assert parsed["duration"] == 60
-        assert parsed["chunk_count"] == 1
+        assert "ID: v1" in result
+        assert "Title: Solo en store" in result
+        assert "Year: 2024" in result
+        assert "Channel: Canal Store" in result
+        assert "Duration: 60s" in result
+        assert "Chunks: 1" in result
 
 
 # ---------------------------------------------------------------------------
@@ -636,30 +702,27 @@ class TestCreateAgent:
         assert "get_video_info" in SYSTEM_PROMPT
         assert "search_transcripts" in SYSTEM_PROMPT
 
-    def test_system_prompt_mandates_reformulation(self, provider, store):
+    def test_system_prompt_has_search_strategy(self, provider, store):
         from agent import SYSTEM_PROMPT
 
-        assert "rewrite" in SYSTEM_PROMPT.lower() or "reformulate" in SYSTEM_PROMPT.lower()
+        assert "Search strategy" in SYSTEM_PROMPT
 
-    def test_system_prompt_requires_list_formatting(self, provider, store):
+    def test_system_prompt_mentions_filmig(self, provider, store):
         from agent import SYSTEM_PROMPT
 
-        assert "numbered" in SYSTEM_PROMPT.lower() or "bulleted" in SYSTEM_PROMPT.lower()
+        assert "FILMIG" in SYSTEM_PROMPT
 
-    def test_system_prompt_requires_channel_and_speakers(self, provider, store):
+    def test_system_prompt_requires_plain_text_formatting(self, provider, store):
         from agent import SYSTEM_PROMPT
 
-        assert "channel" in SYSTEM_PROMPT.lower()
-        assert "speakers" in SYSTEM_PROMPT.lower()
-        assert "ponentes" in SYSTEM_PROMPT.lower()
-        assert "re-parse" in SYSTEM_PROMPT.lower() or "reparse" in SYSTEM_PROMPT.lower()
-        assert "list" in SYSTEM_PROMPT.lower()
+        assert "plain text" in SYSTEM_PROMPT.lower() or "Do NOT use markdown" in SYSTEM_PROMPT
 
     def test_system_prompt_mentions_search_filters(self, provider, store):
         from agent import SYSTEM_PROMPT
 
         assert "year" in SYSTEM_PROMPT.lower()
         assert "channel" in SYSTEM_PROMPT.lower()
+        assert "video_id" in SYSTEM_PROMPT.lower()
         assert "search_transcripts" in SYSTEM_PROMPT
 
     def test_create_agent_can_invoke_with_fake_llm(self, provider, store):
@@ -701,7 +764,7 @@ class TestToolCallingLoop:
             embeddings=provider.embed(["La migración es un fenómeno global."]),
         )
 
-        search = make_search_transcripts(provider, store, top_k=3)
+        search = make_search_transcripts(store, top_k=3)
         llm = FakeToolCallingModel(
             final_answer="La migración es un fenómeno global.",
             tool_args={"query": "migración"},
@@ -729,7 +792,7 @@ class TestToolCallingLoop:
             embeddings=provider.embed(["Texto del video uno."]),
         )
 
-        list_videos = make_list_videos(tmp_path, store)
+        list_videos = make_list_videos(store)
         llm = FakeToolCallingModel(
             final_answer="Aquí está la lista de videos.",
             tool_name="list_videos",
@@ -760,7 +823,7 @@ class TestToolCallingLoop:
             embeddings=provider.embed(["Texto del video uno."]),
         )
 
-        get_info = make_get_video_info(tmp_path, store)
+        get_info = make_get_video_info(store)
         llm = FakeToolCallingModel(
             final_answer="Aquí está la información del video.",
             tool_name="get_video_info",
@@ -885,93 +948,6 @@ class TestBoundedChatMessageHistory:
 
 
 # ---------------------------------------------------------------------------
-# Phase 6: CLI REPL
-# ---------------------------------------------------------------------------
-
-
-class TestAgentCLI:
-    """Unit tests for backend/scripts/agent_cli.py REPL."""
-
-    def _make_fake_agent(self):
-        from unittest.mock import MagicMock
-
-        fake_agent = MagicMock()
-        fake_agent.invoke.return_value = {"output": "Respuesta del agente."}
-        return fake_agent
-
-    def test_cli_welcome_and_quit(self, monkeypatch, capsys):
-        import agent_cli
-
-        fake_agent = self._make_fake_agent()
-        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
-        monkeypatch.setattr("builtins.input", lambda _: "quit")
-
-        agent_cli.main()
-
-        captured = capsys.readouterr()
-        assert "Cero" in captured.out
-        assert "Bienvenido" in captured.out
-        fake_agent.invoke.assert_not_called()
-
-    def test_cli_asks_question_and_prints_answer(self, monkeypatch, capsys):
-        import agent_cli
-
-        fake_agent = self._make_fake_agent()
-        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
-
-        inputs = iter(["¿De qué trata?", "salir"])
-        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
-
-        agent_cli.main()
-
-        captured = capsys.readouterr()
-        assert "Respuesta del agente" in captured.out
-        fake_agent.invoke.assert_called_once()
-
-    def test_cli_invokes_with_session_id(self, monkeypatch, capsys):
-        import agent_cli
-
-        fake_agent = self._make_fake_agent()
-        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
-
-        inputs = iter(["¿De qué trata?", "salir"])
-        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
-
-        agent_cli.main()
-
-        fake_agent.invoke.assert_called_once()
-        call_args = fake_agent.invoke.call_args
-        assert call_args.kwargs.get("config") == {
-            "configurable": {"session_id": "cli-session"},
-        }
-
-    def test_cli_exits_with_salir(self, monkeypatch, capsys):
-        import agent_cli
-
-        fake_agent = self._make_fake_agent()
-        monkeypatch.setattr(agent_cli, "create_agent", lambda **_: fake_agent)
-        monkeypatch.setattr("builtins.input", lambda _: "salir")
-
-        agent_cli.main()
-
-        captured = capsys.readouterr()
-        assert "Cero" in captured.out
-        fake_agent.invoke.assert_not_called()
-
-    def test_cli_exits_when_api_key_missing(self, monkeypatch, capsys):
-        import agent_cli
-
-        monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-
-        with pytest.raises(SystemExit) as exc_info:
-            agent_cli.main()
-
-        assert exc_info.value.code == 1
-        captured = capsys.readouterr()
-        assert "GEMINI_API_KEY" in captured.out
-
-
-# ---------------------------------------------------------------------------
 # Phase 7: End-to-end (requires GEMINI_API_KEY)
 # ---------------------------------------------------------------------------
 
@@ -983,17 +959,20 @@ class TestAgentCLI:
 class TestAgentE2E:
     """End-to-end agent test with real Gemini LLM and embeddings."""
 
-    def test_e2e_agent_answers_from_transcripts(self):
+    def test_e2e_agent_answers_from_transcripts(self, tmp_path):
         from agent import create_agent
-        from embedding_gemini import GeminiEmbeddingProvider
-        from vector_store import VectorStore
+        from tools import make_search_transcripts
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-        provider = GeminiEmbeddingProvider()
-        store = VectorStore(persist_dir=":memory:")
+        embedding_function = GoogleGenerativeAIEmbeddings(model="gemini-embedding-2")
+        store = Chroma(
+            collection_name="e2e_test",
+            embedding_function=embedding_function,
+            persist_directory=str(tmp_path / "chroma"),
+        )
 
-        store.add(
-            ids=["v100_chunk_0"],
-            documents=["La migración en el mediterráneo es un tema complejo y peligroso."],
+        store.add_texts(
+            texts=["La migración en el mediterráneo es un tema complejo y peligroso."],
             metadatas=[{
                 "video_id": "v100",
                 "title": "Cruce del Mediterráneo",
@@ -1001,14 +980,10 @@ class TestAgentE2E:
                 "start_time": 0.0,
                 "end_time": 10.0,
             }],
-            embeddings=provider.embed([
-                "La migración en el mediterráneo es un tema complejo y peligroso."
-            ]),
+            ids=["v100_chunk_0"],
         )
 
-        from tools import make_search_transcripts
-
-        tools = [make_search_transcripts(provider, store, top_k=3)]
+        tools = [make_search_transcripts(store, top_k=3)]
         agent = create_agent(tools=tools)
         result = agent.invoke(
             {"input": "¿Qué se dice sobre la migración en el mediterráneo?"},
@@ -1018,6 +993,6 @@ class TestAgentE2E:
 
         assert "mediterráneo" in answer.lower() or "migración" in answer.lower()
 
-        # Clean up the in-memory collection so later tests can use a different
+        # Clean up the collection so later tests can use a different
         # embedding dimension without hitting a ChromaDB dimension mismatch.
         store.delete_collection()
