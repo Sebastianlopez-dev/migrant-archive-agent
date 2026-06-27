@@ -71,11 +71,11 @@ def main() -> None:
 
     # ── REPL mode ─────────────────────────────────────────────────
     print("=" * 50)
-    print("\nHi, I'm Cero \n- The Plataforma Cero's Youtube Q&A Agent.")
+    print("\nHi, I'm Cero - The Plataforma Cero's Youtube Q&A Agent.")
     print("=" * 50)
-    print("\nHere some commands you can activate: \n'history' to check memory\n'q','quit','exit' to finish session.")
+    print("\nCommands: 'history' to check memory, 'q'/'quit'/'exit' to finish.")
     print("=" * 50)
-    print("\nAbove here you can insert a question for me")
+    print("\nAsk me anything about the archived videos:\n")
 
     try:
         while True:
