@@ -170,7 +170,14 @@ export class ChatWidget {
       const data: AskResponse = await response.json();
       this.renderMessage(data.answer, 'agent', data.sources);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo contactar al asistente.';
+      let message: string;
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        message = 'La respuesta está tardando demasiado. Intentá con una pregunta más concreta.';
+      } else if (error instanceof Error) {
+        message = error.message;
+      } else {
+        message = 'No se pudo contactar al asistente.';
+      }
       this.renderMessage(message, 'error');
     } finally {
       this.setLoading(false);

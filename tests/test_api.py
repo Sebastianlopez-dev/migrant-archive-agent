@@ -138,7 +138,7 @@ def sample_observation():
     return (
         "[1] v001 | Testimonio de María (12.5–18.3)\n"
         "María describe su viaje.\n\n"
-        "[2] v002 | Testimonio de Juan (20.0–25.0)\n"
+        "[2] v002 | Testimonio de Juan [Juan Pérez] (20.0–25.0)\n"
         "Juan describe su viaje."
     )
 

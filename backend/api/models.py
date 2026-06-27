@@ -27,3 +27,10 @@ class AskResponse(BaseModel):
 
     answer: str
     sources: list[Source]
+
+
+class SessionClearResponse(BaseModel):
+    """Response for DELETE /api/session/{session_id}."""
+
+    session_id: str = Field(..., description="The session that was cleared")
+    cleared: bool = Field(..., description="Whether the session existed and was cleared")

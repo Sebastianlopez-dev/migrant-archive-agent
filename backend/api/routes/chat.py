@@ -8,11 +8,10 @@ import sys
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from backend.api.dependencies import get_agent
-from backend.api.models import AskRequest, AskResponse, Source
+from backend.api.models import AskRequest, AskResponse, SessionClearResponse, Source
 
 # Ensure backend/agents/ is on sys.path so the agent module is importable
 # without a pip-installed package (same pattern used in dependencies.py).
@@ -24,12 +23,6 @@ from agent import clear_session  # noqa: E402
 
 router = APIRouter()
 
-
-class SessionClearResponse(BaseModel):
-    """Response for DELETE /api/session/{session_id}."""
-
-    session_id: str = Field(..., description="The session that was cleared")
-    cleared: bool = Field(..., description="Whether the session existed and was cleared")
 
 # Matches an observation block produced by the search_transcripts tool:
 #   [1] VIDEO_ID | Title (start–end)
@@ -67,6 +60,8 @@ def parse_sources(intermediate_steps: list) -> list[Source]:
 
         for match in _SOURCE_BLOCK_RE.finditer(observation):
             _, video_id, title, start_time, end_time, text = match.groups()
+            # Strip trailing [Speaker] tag that tools.py appends to the header.
+            title = re.sub(r"\s*\[[^\]]+\]$", "", title.strip())
             sources.append(
                 Source(
                     video_id=video_id.strip(),
