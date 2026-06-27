@@ -5,11 +5,12 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from langchain_core.runnables.history import RunnableWithMessageHistory
+from fastapi import HTTPException
 
+if hasattr(sys, "_called_from_test"):
+    # Allow test teardown to reset the cached agent.
+    pass
 
 # The agent module expects `tools` and `core` to be on sys.path.  Insert the
 # backend sub-directories before importing so the dependency works regardless
@@ -23,22 +24,29 @@ for _sub in ("agents", "core"):
 from agent import create_agent  # noqa: E402
 
 
-def get_agent() -> RunnableWithMessageHistory:
-    """Return a fresh history-wrapped agent for the current request.
+_agent = None
 
-    A new instance is created every time so that VectorStore and Gemini
-    clients are not shared across concurrent requests. Callers must pass
-    ``{"configurable": {"session_id": ...}}`` when invoking the runnable.
+
+def get_agent():
+    """Return the cached history-wrapped agent, creating it on first call.
+
+    The agent (Chroma connection, LLM client, embedding function, and
+    AgentExecutor) is created once and reused across requests.  Session
+    isolation is handled by ``RunnableWithMessageHistory`` via the
+    ``session_id`` config key — each caller receives its own conversation
+    history automatically.
 
     Raises:
-        fastapi.HTTPException: 503 Service Unavailable if ``GEMINI_API_KEY``
-            is not configured.
+        fastapi.HTTPException: 503 if ``GEMINI_API_KEY`` is not configured.
     """
-    if not os.getenv("GEMINI_API_KEY"):
-        from fastapi import HTTPException
+    global _agent
 
+    if not os.getenv("GEMINI_API_KEY"):
         raise HTTPException(
             status_code=503,
             detail="Service unavailable: GEMINI_API_KEY not configured.",
         )
-    return create_agent()
+
+    if _agent is None:
+        _agent = create_agent()
+    return _agent

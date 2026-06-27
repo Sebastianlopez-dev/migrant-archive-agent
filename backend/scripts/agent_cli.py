@@ -52,7 +52,7 @@ def main() -> None:
         print("ERROR: GEMINI_API_KEY not set. Copy .env.example to .env and fill it in.")
         sys.exit(1)
 
-    agent = create_agent(verbose=True)
+    agent = create_agent(verbose=False)
     args = sys.argv[1:]
 
     # ── Single-question mode ──────────────────────────────────────
