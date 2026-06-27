@@ -19,6 +19,7 @@ export class ChatWidget {
   private input: HTMLInputElement | null = null;
   private sendButton: HTMLButtonElement | null = null;
   private isOpen = false;
+  private hasGreeted = false;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -116,6 +117,15 @@ export class ChatWidget {
   openPanel(): void {
     this.isOpen = true;
     this.updatePanelState();
+    if (!this.hasGreeted) {
+      this.hasGreeted = true;
+      this.renderMessage(
+        'Hi, I\'m Cero - The Plataforma Cero\'s Youtube Q&A Agent.\n\n' +
+        'Commands: \'history\' to check memory, \'q\'/\'quit\'/\'exit\' to finish.\n\n' +
+        'Ask me anything about the archived videos:',
+        'agent'
+      );
+    }
   }
 
   closePanel(): void {
