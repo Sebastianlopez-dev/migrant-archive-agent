@@ -140,7 +140,7 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S07 — LangSmith, API + Chat Widget: 1 decision · 10 files · 3 test files (55 frontend tests)</summary>
+<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 12 files · 3 test files (55 frontend tests)</summary>
 
 **Decisions:**
 - LangSmith zero-code tracing (env-var auto-detection, no application code required)
@@ -374,7 +374,7 @@ uv run uvicorn backend.api.main:app --reload --port 8000
 cd frontend && pnpm install && pnpm dev
 ```
 
-Open `http://localhost:5173`. Blue bubble bottom-right — click to open.
+Open `http://localhost:5173`. Cero avatar floating bottom-right — click to open.
 
 Full details: [S07 — LangSmith, API + Chat Widget](#s07--langsmith-api--chat-widget).
 
@@ -1123,7 +1123,7 @@ uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 
 ### S07 — LangSmith, API + Chat Widget
 
-> Sources: [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/chat-widget.ts`](frontend/src/chat-widget.ts)
+> Sources: [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/`](frontend/src/) (7 modules)
 
 The **Cero** agent is exposed as a REST API with LangSmith tracing and an embeddable chat widget.
 
@@ -1174,7 +1174,7 @@ Each source: `video_id`, `title`, `start_time`, `end_time`, `text`. Session defa
 uv run python -m pytest tests/test_api.py tests/test_frontend.py -v
 ```
 
-29 tests: models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, widget structure.
+Tests cover API models, routes, session lifecycle, CORS, error handling, source parsing, frontend build, widget structure, and accessibility.
 
 #### Start the chat widget
 
@@ -1197,7 +1197,7 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 
 #### What's done
 
-- **Chat widget** (`frontend/src/chat-widget.ts`): blue bubble, slide-out panel, send via `fetch('/api/ask')`, answer + source rendering with clickable YouTube links
+- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice/model placeholders, dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
 - **Presentation** (`presentation/migrant-archive-slides.html`): 20-slide HTML deck
 
 #### Deploy options (TBD)
@@ -1229,7 +1229,7 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 169 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
+**Results:** 221 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
@@ -1237,7 +1237,7 @@ python -m pytest tests/ -v
 | Integration | 58 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
 | Agent | 34 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
 | Speaker | 10 | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
-| Frontend | 9 | `test_frontend.py` | Vite build, widget class structure, DOM bootstrap, styling |
+| Frontend | 55 | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
 | Observability | 3 | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
 
@@ -1396,8 +1396,8 @@ Criteria not yet defined by Ironhack.
 **Ready:**
 - LangSmith tracing (auto-tracing via env vars)
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
-- Chat widget (Vite + TypeScript, blue bubble UI)
+- Chat widget (Vite + TypeScript, FAB + side panel, dark theme, 7 modules)
 - Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
-- 169 passed, 1 skipped, 0 failed
+- 221 passed, 1 skipped, 0 failed
 
 </details>

@@ -1,7 +1,7 @@
 """Gemini embedding provider.
 
 Cloud-based embeddings via Google GenAI API.  Uses the
-`gemini-embedding-001` model with 3072-dim Matryoshka-capable output.
+`gemini-embedding-2` model with 3072-dim Matryoshka-capable output.
 
 Requires GEMINI_API_KEY in environment.
 """
