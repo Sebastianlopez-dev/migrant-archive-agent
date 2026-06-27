@@ -1,7 +1,6 @@
 """Integration tests for vector_store.py with ChromaDB.
 
 Uses Gemini embedding (project default) for semantic tests.
-BGE-M3 tests require a conda environment — skipped in uv/pip.
 """
 
 import os
@@ -358,7 +357,4 @@ class TestVectorStoreGemini:
         assert "migración" in results[0]["document"].lower()
 
 
-@pytest.mark.skip(reason="BGE-M3 requires conda environment (torch/numpy compat)")
-class TestVectorStoreBGE_M3:
-    """BGE-M3 integration tests — requires conda env with torch >= 2.4."""
-    pass
+

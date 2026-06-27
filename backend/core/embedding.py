@@ -1,8 +1,8 @@
 """Embedding provider contract.
 
-Defines the interface that all embedding implementations (Gemini, BGE-M3)
-must satisfy.  Processor.py receives an EmbeddingProvider via constructor
-(dependency injection) and does not care which implementation is wired in.
+Defines the interface that all embedding implementations must satisfy.
+Processor receives an EmbeddingProvider via constructor (dependency
+injection) and does not care which implementation is wired in.
 """
 
 from abc import ABC, abstractmethod
@@ -13,7 +13,6 @@ class EmbeddingProvider(ABC):
 
     Implementations:
       - GeminiEmbeddingProvider  → cloud API, 3072-dim
-      - BGEM3EmbeddingProvider   → local CPU, 1024-dim
     """
 
     @abstractmethod

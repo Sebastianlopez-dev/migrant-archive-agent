@@ -34,7 +34,7 @@ class Processor:
     """Orchestrates chunking and embedding of VideoData.
 
     Constructor receives an EmbeddingProvider — the processor has zero
-    knowledge of *which* provider is active (Gemini, BGE-M3, or fake).
+    knowledge of *which* provider is active (Gemini or fake).
     """
 
     def __init__(
