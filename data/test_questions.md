@@ -1,67 +1,30 @@
-# Test Questions
+# Test Questions for agent_cli.py
 
-Copy-paste one at a time. Commands assume `uv run python`.
-
----
-
-## rag_test.py — Semantic Search
-
-Questions for `backend/scripts/rag_test.py` (embedding search, no LLM).
-
-### FILMIG Presentation (APgxfNssxGQ)
-
-- ¿Qué es FILMIG y cuál es su propósito?
-- ¿Quiénes organizan la FILMIG y qué otras entidades colaboran?
-- ¿Cuándo y dónde se realizó la primera edición de FILMIG?
-- ¿Qué tipo de actividades, géneros literarios y contenidos hay en la feria?
-- ¿Cuál es el lema de FILMIG y qué hashtags se usan?
-
-### Conversatorio Literatura Palestina (myxPJCDedOE)
-
-- ¿Quiénes participaron en el conversatorio sobre literatura palestina?
-- ¿Quién fue Ghassan Kanafani y por qué es relevante?
-- ¿Cuál es la tensión entre estética y política en la literatura palestina?
-- ¿Qué dijo Mahmoud Darwish sobre la poesía política?
-- ¿Qué papel juega Sahar Khalifa en la literatura palestina?
-- Según Mohammad Bitari, ¿el escritor palestino debe ser documentador o artista?
-- ¿Qué relación tiene el lema "escribir es para valientes" con el conversatorio?
-- ¿En qué video y minuto se habla de la Nakba?
-
----
-
-## cero-01.py — Conversational RAG
-
-Single-shot or REPL. Use `--verbose` to see source documents.
+Copy-paste one at a time into the REPL or use single-shot mode:
 
 ```bash
-uv run python cero-01.py "pregunta"
-uv run python cero-01.py --verbose "pregunta"
-uv run python cero-01.py                # REPL mode
+uv run python backend/scripts/agent_cli.py "pregunta"
+uv run python backend/scripts/agent_cli.py              # REPL mode
 ```
 
-### Works — Experiential questions (semantic search)
+---
 
-| # | Question |
-|---|----------|
-| 1 | ¿qué sentimientos expresan las mujeres en los testimonios? |
-| 2 | ¿cómo ayuda la escritura a las migrantes? |
-| 3 | ¿cómo describen el apoyo entre mujeres migrantes? |
-| 4 | ¿qué dicen sobre el dolor de migrar? |
-| 5 | ¿cómo cambian las personas después de compartir sus historias? |
-| 6 | ¿qué significa sororidad en los testimonios? |
-| 7 | ¿cómo enfrentan la soledad? |
-| 8 | ¿qué papel tiene la poesía en los relatos? |
-| 9 | ¿hay experiencias de sanación o cura? |
-| 10 | ¿cómo describen el proceso de migrar? |
+1. ¿qué es FILMIG y cuál es su propósito?
 
-### Does NOT work — Catalog questions (needs tools)
+2. ¿cuántos videos hay y de qué canales?
 
-These require `list_videos` / `get_video_info` tools (not yet implemented).
+3. ¿qué videos tienen speakers identificados?
 
-| # | Question |
-|---|----------|
-| 1 | ¿qué videos tienes? |
-| 2 | ¿cuántos testimonios hay? |
-| 3 | dame la lista de videos |
-| 4 | ¿cuál es el video más reciente? |
-| 5 | ¿qué canales están indexados? |
+4. dame los detalles del video mY1hw79ydY0
+
+5. ¿cómo describen el dolor de migrar en los testimonios?
+
+6. ¿qué se dijo sobre la literatura palestina en los conversatorios?
+
+7. ¿qué autores participaron en FILMIG 2025?
+
+8. ¿qué significa "escribir es para valientes" en el contexto de los videos?
+
+9. ¿hay videos con Nadia Jabr? ¿de qué tratan?
+
+10. ¿cómo ayuda la escritura a las mujeres migrantes según los testimonios?
