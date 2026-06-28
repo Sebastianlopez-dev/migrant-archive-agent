@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 load_dotenv()
 
-from backend.api.routes import chat, transcribe
+from backend.api.routes import chat
 
 
 def create_app() -> FastAPI:
@@ -39,11 +39,6 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(chat.router, prefix="/api")
-    app.include_router(transcribe.router, prefix="/api")
-
-    @app.on_event("startup")
-    async def startup_preload():
-        transcribe.preload_model()
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
