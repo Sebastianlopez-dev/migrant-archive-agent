@@ -90,6 +90,23 @@ export async function ask(sessionId: string, question: string): Promise<AskRespo
 }
 
 /**
+ * Clear the chat history for a session on the backend.
+ *
+ * Best-effort: failures are silently ignored since a new session id
+ * will be generated regardless. The backend cleans up orphaned sessions
+ * when the server restarts.
+ */
+export async function clearSession(sessionId: string): Promise<void> {
+  try {
+    await fetch(`/api/session/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    // Best-effort cleanup — ignore network errors.
+  }
+}
+
+/**
  * Convenience wrapper that asks using the default session id.
  *
  * Prefer `ask(sessionId, question)` when the caller manages its own

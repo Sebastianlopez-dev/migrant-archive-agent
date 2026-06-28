@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 load_dotenv()
 
-from backend.api.routes import chat
+from backend.api.routes import chat, transcribe
 
 
 def create_app() -> FastAPI:
@@ -24,7 +24,10 @@ def create_app() -> FastAPI:
 
     origins = [
         origin.strip()
-        for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+        for origin in os.getenv(
+            "ALLOWED_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173",
+        ).split(",")
         if origin.strip()
     ]
     app.add_middleware(
@@ -36,6 +39,11 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(chat.router, prefix="/api")
+    app.include_router(transcribe.router, prefix="/api")
+
+    @app.on_event("startup")
+    async def startup_preload():
+        transcribe.preload_model()
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(

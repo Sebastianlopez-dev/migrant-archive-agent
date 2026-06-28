@@ -65,15 +65,17 @@ def test_styles_css_uses_brand_custom_properties():
     assert ".chat-panel" in css
 
 
-def test_styles_css_has_no_animations():
-    """styles.css must not contain transitions, keyframes, or animations outside reduced-motion."""
+def test_styles_css_respects_reduced_motion():
+    """styles.css must disable all motion inside prefers-reduced-motion."""
     import re
     css = _read_text("src/styles.css")
-    css_no_reduced = re.sub(r"@media\s*\(prefers-reduced-motion[^}]*\}", "", css, flags=re.DOTALL)
-    css_lower = css_no_reduced.lower()
-    assert "transition" not in css_lower, "CSS transitions are not allowed"
-    assert "@keyframes" not in css_lower, "CSS keyframes are not allowed"
-    assert "animation" not in css_lower, "CSS animations are not allowed"
+    reduced_block = re.search(
+        r"@media\s*\(prefers-reduced-motion[^}]*\}", css, flags=re.DOTALL,
+    )
+    assert reduced_block is not None, "prefers-reduced-motion block must exist"
+    block = reduced_block.group(0).lower()
+    assert "transition" in block, "reduced-motion block must disable transitions"
+    assert "animation" in block, "reduced-motion block must disable animations"
 
 
 def test_styles_css_panel_width_is_responsive():
@@ -131,6 +133,15 @@ def test_chat_widget_zero_state_suggestion_sends_question():
     assert "sendMessage(" in source
 
 
+def test_chat_widget_reset_clears_session_and_state():
+    """resetConversation() must clear the backend session and local state."""
+    source = _read_text("src/chat-widget.ts")
+    assert "resetConversation(" in source
+    assert "clearSession(" in source
+    assert "sessionId" in source
+    assert "hasStarted = false" in source
+    assert "confirm(" in source or "window.confirm(" in source
+
 def test_chat_widget_replaces_zero_state_with_message_list():
     """Sending the first message must hide the zero-state and show messages."""
     source = _read_text("src/chat-widget.ts")
@@ -172,6 +183,7 @@ def test_api_client_module_exists_and_exports_required_types():
     assert "export interface Message" in source
     assert "export async function ask(" in source
     assert "export async function askQuestion(" in source
+    assert "export async function clearSession(" in source
 
 
 def test_api_client_ask_sends_session_id_and_question():
@@ -204,6 +216,14 @@ def test_api_client_error_class_exposes_status():
     assert "export class ApiClientError" in source
     assert "status" in source
 
+
+def test_api_client_clear_session_calls_delete_endpoint():
+    """clearSession() must send a DELETE request to /api/session/{id}."""
+    source = _read_text("src/api-client.ts")
+    assert "clearSession" in source
+    assert "DELETE" in source
+    assert "/api/session/" in source
+    assert "encodeURIComponent" in source
 
 def test_api_client_ask_question_delegates_to_ask():
     """askQuestion() must be a convenience wrapper around ask()."""
@@ -299,6 +319,14 @@ def test_panel_supports_escape_key():
     assert "keydown" in source
     assert "Escape" in source
 
+def test_panel_has_refresh_button_with_callback():
+    """The panel must expose a refresh button wired to onRefresh."""
+    source = _read_text("src/panel.ts")
+    assert "onRefresh" in source
+    assert "chat-panel-refresh" in source
+    assert "Reiniciar conversación" in source
+    assert "REFRESH_ICON" in source
+
 
 # ───────────────────────── Phase 8.6: Content modules ─────────────────────────
 
@@ -317,9 +345,9 @@ def test_zero_state_renders_greeting_and_suggestions():
     source = _read_text("src/zero-state.ts")
     assert "Hola, soy Cero" in source
     assert "Preguntame sobre los videos de Plataforma Cero" in source
+    assert "Lista de videos de Plataforma Cero" in source
     assert "¿Qué es FILMIG?" in source
-    assert "¿Qué videos puedo encontrar de Plataforma Cero?" in source
-    assert "¿Qué es mujeres del maíz?" in source
+    assert "¿Qué es Mujeres del Maíz?" in source
     assert "chat-zero-state" in source
     assert "chat-suggestion" in source
     assert "addEventListener('click'" in source or 'addEventListener("click"' in source
@@ -347,8 +375,8 @@ def test_input_bar_module_exists_and_exports_factory():
     assert "onSend" in source
 
 
-def test_input_bar_renders_input_send_mic_and_model():
-    """createInputBar must render a text input, send button, mic placeholder, and model label."""
+def test_input_bar_renders_input_send_and_mic():
+    """createInputBar must render a text input, send button, and mic button."""
     source = _read_text("src/input-bar.ts")
     assert "chat-input-bar" in source
     assert "chat-input" in source
@@ -356,7 +384,6 @@ def test_input_bar_renders_input_send_mic_and_model():
     assert "aria-label" in source
     assert "Enviar" in source or "send" in source.lower()
     assert "mic" in source.lower() or "microphone" in source.lower() or "voz" in source.lower()
-    assert "model" in source.lower() or "gemini" in source.lower()
 
 
 def test_input_bar_enter_triggers_send():
@@ -383,11 +410,13 @@ def test_input_bar_shift_enter_allows_newline():
     assert "event.preventDefault()" in source or "preventDefault()" in source
 
 
-def test_input_bar_mic_button_is_disabled_placeholder():
-    """The microphone button must be present but disabled."""
+def test_input_bar_mic_button_uses_media_recorder():
+    """The microphone button must use MediaRecorder + getUserMedia, not SpeechRecognition."""
     source = _read_text("src/input-bar.ts")
-    assert "disabled" in source
-    assert "mic" in source.lower() or "microphone" in source.lower() or "voz" in source.lower()
+    assert "MediaRecorder" in source
+    assert "getUserMedia" in source
+    assert "transcribeAudio" in source
+    assert "isListening" in source
 
 
 # ───────────────────────── Phase 8.7: Message list module ─────────────────────────
@@ -578,8 +607,8 @@ def test_pnpm_build_produces_dist_bundle():
 
 @pytest.mark.slow
 @pytest.mark.skipif(not _FRONTEND_DIR.exists(), reason="frontend directory not created yet")
-def test_built_css_has_no_animations():
-    """The emitted CSS bundle must not contain transitions, keyframes, or animations outside reduced-motion."""
+def test_built_css_respects_reduced_motion():
+    """The emitted CSS bundle must disable motion inside prefers-reduced-motion."""
     import re
     dist_css = _FRONTEND_DIR / "dist" / "assets"
     css_files = list(dist_css.glob("*.css"))
@@ -587,8 +616,10 @@ def test_built_css_has_no_animations():
         pytest.skip("no CSS bundle emitted yet")
 
     css_raw = css_files[0].read_text(encoding="utf-8")
-    css_no_reduced = re.sub(r"@media\s*\(prefers-reduced-motion[^}]*\}", "", css_raw, flags=re.DOTALL)
-    css = css_no_reduced.lower()
-    assert "transition" not in css, "built CSS must not contain transitions"
-    assert "@keyframes" not in css, "built CSS must not contain keyframes"
-    assert "animation" not in css, "built CSS must not contain animations"
+    reduced_block = re.search(
+        r"@media\s*\(prefers-reduced-motion[^}]*\}", css_raw, flags=re.DOTALL,
+    )
+    assert reduced_block is not None, "built CSS must retain prefers-reduced-motion block"
+    block = reduced_block.group(0).lower()
+    assert "transition" in block, "reduced-motion block must disable transitions"
+    assert "animation" in block, "reduced-motion block must disable animations"

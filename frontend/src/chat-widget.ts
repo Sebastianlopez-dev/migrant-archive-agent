@@ -7,7 +7,7 @@
  * API call.
  */
 
-import { ask, ApiClientError } from './api-client.ts';
+import { ask, clearSession, ApiClientError } from './api-client.ts';
 import { createFab } from './fab.ts';
 import { createPanel, type PanelSlots } from './panel.ts';
 import { createZeroState } from './zero-state.ts';
@@ -16,7 +16,7 @@ import { createMessageList, type MessageListApi } from './message-list.ts';
 
 export class ChatWidget {
   private readonly root: HTMLElement;
-  private readonly sessionId: string;
+  private sessionId: string;
   private readonly fab: HTMLButtonElement;
   private readonly panelSlots: PanelSlots;
   private readonly inputBar: InputBarApi;
@@ -32,7 +32,10 @@ export class ChatWidget {
     this.sessionId = crypto.randomUUID();
 
     this.fab = createFab(() => this.openPanel());
-    this.panelSlots = createPanel(() => this.closePanel());
+    this.panelSlots = createPanel(
+      () => this.closePanel(),
+      () => this.resetConversation(),
+    );
     this.zeroState = createZeroState((question) => this.selectSuggestion(question));
     this.inputBar = createInputBar((question) => this.sendMessage(question));
     this.messageList = createMessageList();
@@ -74,9 +77,38 @@ export class ChatWidget {
     }
   }
 
+  resetConversation(): void {
+    if (!this.hasStarted) return;
+
+    const confirmed = window.confirm(
+      '¿Querés borrar la conversación y empezar de cero?',
+    );
+    if (!confirmed) return;
+
+    void clearSession(this.sessionId);
+
+    this.isLoading = false;
+    this.inputBar.setLoading(false);
+    this.messageList.clear();
+    this.hasStarted = false;
+    this.sessionId = crypto.randomUUID();
+
+    if (this.panelSlots.contentSlot.contains(this.messageList.element)) {
+      this.panelSlots.contentSlot.removeChild(this.messageList.element);
+    }
+    this.panelSlots.contentSlot.appendChild(this.zeroState);
+
+    this.inputBar.focus();
+  }
+
   private updateVisibility(): void {
-    this.panelSlots.element.style.display = this.isOpen ? 'flex' : 'none';
-    this.fab.style.display = this.isOpen ? 'none' : 'flex';
+    if (this.isOpen) {
+      this.panelSlots.element.classList.add('chat-panel--visible');
+      this.fab.style.display = 'none';
+    } else {
+      this.panelSlots.element.classList.remove('chat-panel--visible');
+      this.fab.style.display = 'flex';
+    }
     this.fab.setAttribute('aria-expanded', String(this.isOpen));
   }
 

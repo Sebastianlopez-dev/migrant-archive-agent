@@ -34,3 +34,9 @@ class SessionClearResponse(BaseModel):
 
     session_id: str = Field(..., description="The session that was cleared")
     cleared: bool = Field(..., description="Whether the session existed and was cleared")
+
+
+class TranscribeResponse(BaseModel):
+    """Response for POST /api/transcribe."""
+
+    text: str = Field(..., description="Transcribed text from the audio input")
