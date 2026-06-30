@@ -1,20 +1,18 @@
-"""Voice transcription endpoint using faster-whisper on-device.
+"""Voice transcription endpoint using Groq Whisper API.
 
-Accepts an audio blob from the browser (via MediaRecorder), runs local
-faster-whisper transcription, and returns the text.  No cloud APIs are
-involved — works in every browser including Brave and Firefox.
-
-The whisper model is loaded once on first use.  For production, call
-``_preload_model()`` at server startup so the first request is fast.
+Accepts an audio blob from the browser (via MediaRecorder) and forwards it
+directly to Groq's hosted whisper-large-v3-turbo model. No filesystem writes
+or temporary files are used. This is the sole voice transcription path for
+the chat widget (replaces the former dual-path Web Speech API + MediaRecorder approach).
 """
 
 from __future__ import annotations
 
 import logging
-import tempfile
-from pathlib import Path
+import os
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from groq import Groq
 
 from backend.api.models import TranscribeResponse
 
@@ -22,88 +20,81 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_MODEL_SIZE = "tiny"
-_MODEL_DEVICE = "cpu"
-_MODEL_COMPUTE = "int8"
+_ALLOWED_LANGUAGES = {"en", "es", "ca", "fr", "pt", "de"}
 
-_whisper_model = None
+_client: Groq | None = None
 
 
-def _get_whisper():
-    """Load the faster-whisper model once and reuse it across requests."""
-    global _whisper_model
-    if _whisper_model is None:
-        from faster_whisper import WhisperModel
-
-        _whisper_model = WhisperModel(
-            _MODEL_SIZE, device=_MODEL_DEVICE, compute_type=_MODEL_COMPUTE
-        )
-        logger.info("faster-whisper model loaded (size=%s)", _MODEL_SIZE)
-    return _whisper_model
+def _get_client() -> Groq:
+    """Return a cached Groq client, creating one on first call."""
+    global _client
+    if _client is None:
+        _client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    return _client
 
 
-def preload_model() -> bool:
-    """Preload the whisper model synchronously.  Call at server startup.
-
-    Returns True if the model loaded, False otherwise.
-    """
-    try:
-        _get_whisper()
-        return True
-    except Exception as exc:
-        logger.warning("faster-whisper model could not be preloaded: %s", exc)
-        return False
+_GROQ_MODEL = "whisper-large-v3-turbo"
+_GROQ_RESPONSE_FORMAT = "json"
 
 
 @router.post("/transcribe", response_model=TranscribeResponse)
-async def transcribe(audio: UploadFile = File(...)) -> TranscribeResponse:
+async def transcribe(audio: UploadFile = File(...), language: str | None = None) -> TranscribeResponse:
     """Transcribe an audio recording to text.
 
-    The audio is expected as a multipart file upload (typically webm or
-    wav from MediaRecorder).  faster-whisper runs locally — no cloud
-    dependency.
+    The audio is expected as a multipart file upload (webm from Chrome/Firefox
+    or mp4 from Safari). Audio bytes are forwarded to Groq without writing to
+    disk.
     """
-    try:
-        _get_whisper()
-    except Exception as exc:
-        logger.warning("faster-whisper model could not be loaded: %s", exc)
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        logger.warning("GROQ_API_KEY not configured")
         raise HTTPException(
             status_code=503,
-            detail="Transcription service unavailable — model failed to load.",
-        ) from exc
+            detail="Transcription service unavailable — GROQ_API_KEY not configured.",
+        )
 
     if not audio.filename:
         raise HTTPException(status_code=400, detail="No audio file provided.")
 
-    suffix = Path(audio.filename).suffix or ".webm"
-
     try:
         contents = await audio.read()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Could not read audio file.") from None
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Could not read audio file.") from exc
 
     if not contents:
         raise HTTPException(status_code=400, detail="Empty audio file.")
 
-    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-    try:
-        tmp.write(contents)
-        tmp.close()
-
-        model = _get_whisper()
-        segments, _info = model.transcribe(
-            tmp.name, language="es", beam_size=5
-        )
-        text = " ".join(seg.text.strip() for seg in segments)
-
-    except Exception as exc:
-        logger.exception("Transcription failed")
+    if language is not None and language not in _ALLOWED_LANGUAGES:
         raise HTTPException(
-            status_code=500,
-            detail=f"Transcription failed: {exc}",
+            status_code=400,
+            detail=f"Unsupported language code: {language}. Supported: {', '.join(sorted(_ALLOWED_LANGUAGES))}.",
+        )
+
+    _MAX_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB
+    if len(contents) > _MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="Audio file too large (max 25 MB).",
+        )
+
+    try:
+        client = _get_client()
+        transcription_kwargs = {
+            "file": (audio.filename, contents),
+            "model": _GROQ_MODEL,
+            "response_format": _GROQ_RESPONSE_FORMAT,
+        }
+        if language:
+            transcription_kwargs["language"] = language
+        transcription = client.audio.transcriptions.create(**transcription_kwargs)
+    except Exception as exc:
+        logger.warning("Groq transcription request failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Transcription service unavailable — Groq request failed.",
         ) from exc
-    finally:
-        Path(tmp.name).unlink(missing_ok=True)
+
+    text = transcription.text.strip() if transcription.text else ""
 
     if not text:
         raise HTTPException(

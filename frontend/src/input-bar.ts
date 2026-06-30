@@ -2,12 +2,9 @@
  * Input bar module for the chat widget.
  *
  * Renders a bottom-anchored toolbar with a text input, send button, and
- * voice input. Two strategies, tried in order:
- *
- *   1. Web Speech API (SpeechRecognition) — instant, zero-backend, works
- *      in Chrome, Edge, and Safari. Brave deliberately disables it.
- *   2. MediaRecorder + backend /api/transcribe — fallback for Firefox
- *      and any browser without SpeechRecognition.
+ * voice input. Voice transcription is handled via MediaRecorder capture
+ * sent to the backend Groq Whisper endpoint — this is the sole voice path,
+ * not a fallback.
  */
 
 export interface InputBarApi {
@@ -21,6 +18,8 @@ export interface InputBarApi {
   focus: () => void;
   /** Enable or disable the input and send button. */
   setLoading: (isLoading: boolean) => void;
+  /** Set the language hint passed to the voice transcription endpoint. */
+  setVoiceLanguage: (lang: string) => void;
 }
 
 const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
@@ -28,20 +27,24 @@ const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" w
 const MIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`;
 
 // ---------------------------------------------------------------------------
-// Backend fallback: MediaRecorder → POST /api/transcribe → faster-whisper
+// Voice transcription: MediaRecorder → POST /api/transcribe → Groq Whisper
 // ---------------------------------------------------------------------------
 
-async function transcribeAudio(blob: Blob): Promise<string> {
+async function transcribeAudio(blob: Blob, filename: string, language: string): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120_000);
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
   const form = new FormData();
-  form.append('audio', blob, 'recording.webm');
+  form.append('audio', blob, filename);
+
+  const url = language
+    ? `/api/transcribe?language=${encodeURIComponent(language)}`
+    : '/api/transcribe';
 
   console.log('[mic:backend] POST /api/transcribe — blob:', blob.size, 'bytes');
 
   try {
-    const response = await fetch('/api/transcribe', {
+    const response = await fetch(url, {
       method: 'POST',
       body: form,
       signal: controller.signal,
@@ -49,7 +52,7 @@ async function transcribeAudio(blob: Blob): Promise<string> {
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(body || `Transcription failed (${response.status})`);
+      throw new Error(`[${response.status}] ${body || 'Transcription failed'}`);
     }
 
     const data: { text: string } = await response.json();
@@ -57,17 +60,6 @@ async function transcribeAudio(blob: Blob): Promise<string> {
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-// ---------------------------------------------------------------------------
-// Voice strategy detection
-// ---------------------------------------------------------------------------
-
-/** Resolve the SpeechRecognition constructor across browser prefixes. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getSpeechRecognitionAPI(): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,9 +75,19 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
 
   // ── Shared voice state ──────────────────────────────────────────
 
+  let voiceLanguage = 'en';
   let isListening = false;
   let isProcessing = false;
   let hadFinalResult = false;
+
+  let mediaRecorder: MediaRecorder | null = null;
+  let audioChunks: Blob[] = [];
+  let micStream: MediaStream | null = null;
+  let startAborted = false;
+  let maxRecordTimer: ReturnType<typeof setTimeout> | null = null;
+  let countdownStartTimer: ReturnType<typeof setTimeout> | null = null;
+  let countdownInterval: ReturnType<typeof setInterval> | null = null;
+  const MAX_RECORD_SECONDS = 30;
 
   const voiceButton = document.createElement('button');
   voiceButton.className = 'chat-input-tool chat-input-tool--voice';
@@ -119,7 +121,7 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
   function showHint(message: string): void {
     input.placeholder = message;
     setTimeout(() => {
-      if (!isListening) {
+      if (!isListening && !isProcessing) {
         input.placeholder = 'Escribí tu pregunta…';
       }
     }, 2500);
@@ -141,172 +143,66 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     }
   }
 
-  // ===================================================================
-  // Strategy 1: Web Speech API (primary — Chrome, Edge, Safari)
-  // ===================================================================
+  // ── Voice recording ─────────────────────────────────────────────
 
-  const SpeechRecognitionAPI = getSpeechRecognitionAPI();
-
-  if (SpeechRecognitionAPI) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let recognition: any = null;
-
-    voiceButton.addEventListener('click', () => {
-      if (isProcessing) return;
-      if (isListening) {
-        stopSpeechRecognition();
-      } else {
-        startSpeechRecognition();
-      }
-    });
-
-    function startSpeechRecognition(): void {
-      if (isListening || isProcessing) return;
-
-      hadFinalResult = false;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition = new (SpeechRecognitionAPI as any)();
-      recognition.lang = 'es-ES';
-      recognition.interimResults = true;
-      recognition.continuous = true;
-      // Stop after a short silence — the API fires a final result.
-      recognition.maxAlternatives = 1;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        // Walk results backwards so we pick up the final isFinal.
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          transcript += result[0].transcript;
-          if (result.isFinal) {
-            hadFinalResult = true;
-          }
-        }
-        input.value = transcript;
-        input.rows = Math.min(5, transcript.split('\n').length);
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onerror = (event: any) => {
-        console.log('[mic:speech] error:', event.error, event.message);
-        if (event.error === 'not-allowed') {
-          showHint('Micrófono bloqueado por el navegador');
-        } else if (event.error !== 'aborted') {
-          showHint('No se detectó voz');
-        }
-        cleanupSpeechRecognition();
-        isListening = false;
-        finishVoice(false);
-      };
-
-      recognition.onend = () => {
-        const wasListening = isListening;
-        cleanupSpeechRecognition();
-        if (wasListening) {
-          isListening = false;
-          voiceButton.classList.remove('chat-input-tool--recording');
-          finishVoice(hadFinalResult);
-          if (hadFinalResult) input.focus();
-        }
-      };
-
-      recognition.onaudiostart = () => {
-        isProcessing = false;
-      };
-
-      recognition.start();
-      isListening = true;
-      voiceButton.classList.add('chat-input-tool--recording');
-      voiceButton.setAttribute('aria-label', 'Grabando… pulsá para detener');
-      input.value = '';
-      input.placeholder = 'Escuchando…';
+  voiceButton.addEventListener('click', () => {
+    if (isProcessing) {
+      showHint('Transcribiendo…');
+      return;
     }
+    if (isListening) {
+      stopBackendRecording();
+    } else {
+      startBackendRecording();
+    }
+  });
 
-    function stopSpeechRecognition(): void {
+  async function startBackendRecording(): Promise<void> {
+    if (isListening || isProcessing) return;
+
+    isListening = true;
+    startAborted = false;
+
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      console.log('[mic:backend] getUserMedia failed:', err);
       isListening = false;
-      isProcessing = true;
-      voiceButton.classList.remove('chat-input-tool--recording');
-      voiceButton.classList.add('chat-input-tool--processing');
-      voiceButton.setAttribute('aria-label', 'Transcribiendo…');
-      input.placeholder = 'Transcribiendo…';
-
-      if (recognition) {
-        recognition.stop();
-      }
-    }
-
-    function cleanupSpeechRecognition(): void {
-      if (recognition) {
-        // Remove handlers to avoid double-fires.
-        recognition.onresult = null;
-        recognition.onerror = null;
-        recognition.onend = null;
-        recognition.onaudiostart = null;
-        recognition = null;
-      }
-    }
-
-    console.log('[mic] Web Speech API active — transcription runs entirely in-browser');
-  } else {
-
-    // ===================================================================
-    // Strategy 2: MediaRecorder + backend (fallback)
-    // ===================================================================
-
-    let mediaRecorder: MediaRecorder | null = null;
-    let audioChunks: Blob[] = [];
-    let micStream: MediaStream | null = null;
-    let startAborted = false;
-    let maxRecordTimer: ReturnType<typeof setTimeout> | null = null;
-    const MAX_RECORD_SECONDS = 10;
-
-    voiceButton.addEventListener('click', () => {
-      if (isProcessing) {
-        showHint('Transcribiendo…');
-        return;
-      }
-      if (isListening) {
-        stopBackendRecording();
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError') {
+          showHint('Permiso de micrófono denegado — revisá configuración del navegador');
+          voiceButton.classList.add('chat-input-tool--denied');
+        } else if (err.name === 'NotFoundError') {
+          showHint('No se detectó ningún micrófono');
+        } else {
+          showHint('Micrófono no disponible');
+        }
       } else {
-        startBackendRecording();
-      }
-    });
-
-    async function startBackendRecording(): Promise<void> {
-      if (isListening || isProcessing) return;
-
-      isListening = true;
-      startAborted = false;
-
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (err) {
-        console.log('[mic:backend] getUserMedia failed:', err);
-        isListening = false;
         showHint('Micrófono no disponible');
-        return;
       }
+      return;
+    }
 
-      if (startAborted) {
-        micStream.getTracks().forEach((t) => t.stop());
-        micStream = null;
-        isListening = false;
-        return;
-      }
+    if (startAborted) {
+      micStream.getTracks().forEach((t) => t.stop());
+      micStream = null;
+      isListening = false;
+      return;
+    }
 
-      hadFinalResult = false;
-      audioChunks = [];
-      input.placeholder = 'Escuchando…';
-      input.value = '';
+    hadFinalResult = false;
+    audioChunks = [];
+    const capturedLanguage = voiceLanguage;
+    input.placeholder = 'Escuchando…';
+    input.value = '';
 
-      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/mp4';
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/mp4';
 
+    try {
       mediaRecorder = new MediaRecorder(micStream, { mimeType: mime });
 
       mediaRecorder.ondataavailable = (event: BlobEvent) => {
@@ -316,35 +212,74 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
       };
 
       mediaRecorder.onstop = async () => {
+        if (!mediaRecorder) return;
+
         if (micStream) {
           micStream.getTracks().forEach((t) => t.stop());
           micStream = null;
         }
 
         if (audioChunks.length === 0) {
+          showHint('No se detectó audio');
           finishVoice(false);
           return;
         }
 
         const blob = new Blob(audioChunks, { type: mime });
+        const filename = mime === 'audio/mp4' ? 'recording.mp4' : 'recording.webm';
 
         try {
-          const text = await transcribeAudio(blob);
+          const text = await transcribeAudio(blob, filename, capturedLanguage);
           input.value = text;
           input.rows = Math.min(5, text.split('\n').length);
           hadFinalResult = true;
           finishVoice(true);
           input.focus();
+          input.placeholder = 'Presioná Enter para enviar';
+          setTimeout(() => {
+            input.placeholder = 'Escribí tu pregunta…';
+          }, 3000);
         } catch (err) {
           console.log('[mic:backend] transcription failed:', err);
           hadFinalResult = false;
-          showHint('No se detectó voz');
+          const msg = err instanceof Error ? err.message : String(err);
+          if (err instanceof TypeError || msg.includes('ECONNREFUSED') || msg.includes('Failed to fetch')) {
+            showHint('Error de conexión — intentá de nuevo');
+          } else if (msg.includes('[422]')) {
+            showHint('No se detectó voz');
+          } else if (msg.includes('[503]')) {
+            showHint('Servicio de transcripción no disponible');
+          } else if (msg.includes('[413]')) {
+            showHint('Audio demasiado largo — máximo 25 MB');
+          } else {
+            showHint('Error de conexión — intentá de nuevo');
+          }
           finishVoice(false);
         }
       };
 
       mediaRecorder.onerror = (event) => {
         console.log('[mic:backend] MediaRecorder error:', event);
+        isListening = false;
+        if (maxRecordTimer) {
+          clearTimeout(maxRecordTimer);
+          maxRecordTimer = null;
+        }
+        if (countdownStartTimer) {
+          clearTimeout(countdownStartTimer);
+          countdownStartTimer = null;
+        }
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        if (micStream) {
+          micStream.getTracks().forEach((t) => t.stop());
+          micStream = null;
+        }
+        mediaRecorder = null;
+        voiceButton.classList.remove('chat-input-tool--recording');
+        input.placeholder = 'Escribí tu pregunta…';
         finishVoice(false);
       };
 
@@ -357,36 +292,68 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
           stopBackendRecording();
         }
       }, MAX_RECORD_SECONDS * 1000);
-    }
 
-    function stopBackendRecording(): void {
-      if (!mediaRecorder) {
-        if (isListening) {
-          startAborted = true;
-          isListening = false;
-          voiceButton.classList.remove('chat-input-tool--recording');
-          voiceButton.setAttribute('aria-label', 'Hablar por voz');
-        }
-        return;
-      }
-      if (mediaRecorder.state === 'inactive') return;
-
-      if (maxRecordTimer) {
-        clearTimeout(maxRecordTimer);
-        maxRecordTimer = null;
-      }
-
+      countdownStartTimer = setTimeout(() => {
+        if (!isListening) return;
+        let remaining = 3;
+        input.placeholder = `Escuchando… ${remaining}s`;
+        countdownInterval = setInterval(() => {
+          remaining--;
+          if (remaining <= 0 || !isListening) {
+            if (countdownInterval) {
+              clearInterval(countdownInterval);
+              countdownInterval = null;
+            }
+            return;
+          }
+          input.placeholder = `Escuchando… ${remaining}s`;
+        }, 1000);
+      }, (MAX_RECORD_SECONDS - 3) * 1000);
+    } catch (err) {
+      console.log('[mic:backend] MediaRecorder construction/start failed:', err);
       isListening = false;
-      isProcessing = true;
-      voiceButton.classList.remove('chat-input-tool--recording');
-      voiceButton.classList.add('chat-input-tool--processing');
-      voiceButton.setAttribute('aria-label', 'Transcribiendo…');
-      input.placeholder = 'Transcribiendo…';
+      if (micStream) {
+        micStream.getTracks().forEach((t) => t.stop());
+        micStream = null;
+      }
+      showHint('Error al iniciar grabación');
+      return;
+    }
+  }
 
-      mediaRecorder.stop();
+  function stopBackendRecording(): void {
+    if (!mediaRecorder) {
+      if (isListening) {
+        startAborted = true;
+        isListening = false;
+        voiceButton.classList.remove('chat-input-tool--recording');
+        voiceButton.setAttribute('aria-label', 'Hablar por voz');
+      }
+      return;
+    }
+    if (mediaRecorder.state === 'inactive') return;
+
+    if (maxRecordTimer) {
+      clearTimeout(maxRecordTimer);
+      maxRecordTimer = null;
+    }
+    if (countdownStartTimer) {
+      clearTimeout(countdownStartTimer);
+      countdownStartTimer = null;
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
     }
 
-    console.log('[mic] Backend transcription active — audio sent to /api/transcribe');
+    isListening = false;
+    isProcessing = true;
+    voiceButton.classList.remove('chat-input-tool--recording');
+    voiceButton.classList.add('chat-input-tool--processing');
+    voiceButton.setAttribute('aria-label', 'Transcribiendo…');
+    input.placeholder = 'Transcribiendo…';
+
+    mediaRecorder.stop();
   }
 
   // ── Helpers ────────────────────────────────────────────────────
@@ -417,6 +384,11 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
   function setLoading(isLoading: boolean): void {
     input.disabled = isLoading;
     sendButton.disabled = isLoading;
+    voiceButton.disabled = isLoading;
+  }
+
+  function setVoiceLanguage(lang: string): void {
+    voiceLanguage = lang;
   }
 
   sendButton.addEventListener('click', submit);
@@ -433,5 +405,5 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     input.rows = Math.min(5, Math.max(1, lines));
   });
 
-  return { element: root, setQuestion, clear, focus, setLoading };
+  return { element: root, setQuestion, clear, focus, setLoading, setVoiceLanguage };
 }
