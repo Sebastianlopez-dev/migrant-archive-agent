@@ -149,7 +149,7 @@ class TestSearchTranscriptsTool:
 
         search = make_search_transcripts(store, top_k=3)
         result = search.invoke("migración")
-        assert "No hay transcripciones indexadas" in result
+        assert "No transcripts indexed" in result
 
     def test_search_returns_formatted_result_with_metadata(self, provider, store):
         from tools import make_search_transcripts
@@ -690,7 +690,7 @@ class TestCreateAgent:
 
         assert isinstance(agent, RunnableWithMessageHistory)
         assert "Cero" in SYSTEM_PROMPT
-        assert "spanish" in SYSTEM_PROMPT.lower()
+        assert "{language}" in SYSTEM_PROMPT
         assert "Thought:" not in SYSTEM_PROMPT
         assert "Action:" not in SYSTEM_PROMPT
         assert "agent_scratchpad" not in SYSTEM_PROMPT
@@ -732,7 +732,7 @@ class TestCreateAgent:
         agent = create_agent(llm=llm, tools=[], verbose=False)
 
         result = agent.invoke(
-            {"input": "Hola"},
+            {"input": "Hola", "language": "Spanish"},
             {"configurable": {"session_id": "test-session"}},
         )
         assert "Respuesta final" in result["output"]
@@ -772,7 +772,7 @@ class TestToolCallingLoop:
         agent = create_agent(llm=llm, tools=[search], verbose=False)
 
         result = agent.invoke(
-            {"input": "¿Qué es la migración?"},
+            {"input": "¿Qué es la migración?", "language": "Spanish"},
             {"configurable": {"session_id": "tool-session"}},
         )
 
@@ -801,7 +801,7 @@ class TestToolCallingLoop:
         agent = create_agent(llm=llm, tools=[list_videos], verbose=False)
 
         result = agent.invoke(
-            {"input": "Lista los videos"},
+            {"input": "Lista los videos", "language": "Spanish"},
             {"configurable": {"session_id": "list-session"}},
         )
 
@@ -832,7 +832,7 @@ class TestToolCallingLoop:
         agent = create_agent(llm=llm, tools=[get_info], verbose=False)
 
         result = agent.invoke(
-            {"input": "Cuéntame del video v1"},
+            {"input": "Cuéntame del video v1", "language": "Spanish"},
             {"configurable": {"session_id": "info-session"}},
         )
 
@@ -858,13 +858,13 @@ class TestMemoryAccumulation:
         agent = create_agent(llm=llm, tools=[], verbose=False)
 
         agent.invoke(
-            {"input": "Pregunta uno"},
+            {"input": "Pregunta uno", "language": "Spanish"},
             {"configurable": {"session_id": "mem-session"}},
         )
 
         llm.final_answer = "Segunda respuesta."
         agent.invoke(
-            {"input": "Pregunta dos"},
+            {"input": "Pregunta dos", "language": "Spanish"},
             {"configurable": {"session_id": "mem-session"}},
         )
 
@@ -890,11 +890,11 @@ class TestMemoryAccumulation:
         agent = create_agent(llm=llm, tools=[], verbose=False)
 
         agent.invoke(
-            {"input": "Pregunta A"},
+            {"input": "Pregunta A", "language": "Spanish"},
             {"configurable": {"session_id": "session-a"}},
         )
         agent.invoke(
-            {"input": "Pregunta B"},
+            {"input": "Pregunta B", "language": "Spanish"},
             {"configurable": {"session_id": "session-b"}},
         )
 
@@ -986,7 +986,7 @@ class TestAgentE2E:
         tools = [make_search_transcripts(store, top_k=3)]
         agent = create_agent(tools=tools)
         result = agent.invoke(
-            {"input": "¿Qué se dice sobre la migración en el mediterráneo?"},
+            {"input": "¿Qué se dice sobre la migración en el mediterráneo?", "language": "Spanish"},
             {"configurable": {"session_id": "e2e-session"}},
         )
         answer = result.get("output", "")

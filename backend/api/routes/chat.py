@@ -15,6 +15,7 @@ from backend.api.models import AskRequest, AskResponse, SessionClearResponse, So
 # dependencies.py already configures sys.path for backend/agents/ so bare
 # imports from the agent module work without repeating the path setup here.
 from agent import clear_session  # noqa: E402
+from agent import LANGUAGE_NAMES  # noqa: E402
 
 router = APIRouter()
 
@@ -129,7 +130,7 @@ async def ask(request: AskRequest, agent=Depends(get_agent)) -> AskResponse:
         result = await asyncio.wait_for(
             run_in_threadpool(
                 agent.invoke,
-                {"input": request.question, "language": request.language},
+                {"input": request.question, "language": LANGUAGE_NAMES.get(request.language, "English")},
                 {"configurable": {"session_id": request.session_id}},
             ),
             timeout=90.0,

@@ -39,7 +39,7 @@ class TestLangSmithTracingEnabled:
         agent = create_agent(llm=llm, tools=[], verbose=False)
 
         result = agent.invoke(
-            {"input": "Hola"},
+            {"input": "Hola", "language": "en"},
             {"configurable": {"session_id": "langsmith-enabled-session"}},
         )
 

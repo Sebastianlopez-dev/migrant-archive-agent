@@ -14,13 +14,11 @@ import os
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from groq import Groq
 
-from backend.api.models import TranscribeResponse
+from backend.api.models import ALLOWED_LANGUAGES, TranscribeResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-_ALLOWED_LANGUAGES = {"en", "es", "ca", "fr", "pt", "de"}
 
 _client: Groq | None = None
 
@@ -64,10 +62,10 @@ async def transcribe(audio: UploadFile = File(...), language: str | None = None)
     if not contents:
         raise HTTPException(status_code=400, detail="Empty audio file.")
 
-    if language is not None and language not in _ALLOWED_LANGUAGES:
+    if language is not None and language not in ALLOWED_LANGUAGES:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported language code: {language}. Supported: {', '.join(sorted(_ALLOWED_LANGUAGES))}.",
+            detail=f"Unsupported language code: {language}. Supported: {', '.join(sorted(ALLOWED_LANGUAGES))}.",
         )
 
     _MAX_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB

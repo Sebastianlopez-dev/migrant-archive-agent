@@ -7,21 +7,39 @@
  * API call.
  */
 
-import { ask, clearSession, ApiClientError } from './api-client.ts';
-import { createFab } from './fab.ts';
+import { ask, clearSession } from './api-client.ts';
+import { createFab, type FabApi } from './fab.ts';
 import { createPanel, type PanelSlots } from './panel.ts';
-import { createZeroState } from './zero-state.ts';
+import { createZeroState, SUPPORTED_LANGUAGES, type ZeroStateElement } from './zero-state.ts';
 import { createInputBar, type InputBarApi } from './input-bar.ts';
 import { createMessageList, type MessageListApi } from './message-list.ts';
+
+const CONFIRM_RESET: Record<string, string> = {
+  en: 'Delete this conversation and start over?',
+  es: '¿Querés borrar la conversación y empezar de cero?',
+  ca: 'Vols esborrar la conversa i començar de zero?',
+  fr: 'Supprimer cette conversation et recommencer ?',
+  pt: 'Apagar esta conversa e começar de novo?',
+  de: 'Diese Unterhaltung löschen und neu beginnen?',
+};
+
+const ERROR_MESSAGES: Record<string, string> = {
+  en: 'Could not reach the assistant.',
+  es: 'No se pudo contactar al asistente.',
+  ca: "No s'ha pogut contactar amb l'assistent.",
+  fr: "Impossible de contacter l'assistant.",
+  pt: 'Não foi possível contactar o assistente.',
+  de: 'Der Assistent konnte nicht erreicht werden.',
+};
 
 export class ChatWidget {
   private readonly root: HTMLElement;
   private sessionId: string;
-  private readonly fab: HTMLButtonElement;
+  private readonly fab: FabApi;
   private readonly panelSlots: PanelSlots;
   private readonly inputBar: InputBarApi;
   private readonly messageList: MessageListApi;
-  private readonly zeroState: HTMLElement;
+  private readonly zeroState: ZeroStateElement;
   private isOpen = false;
   private hasStarted = false;
   private isLoading = false;
@@ -33,26 +51,25 @@ export class ChatWidget {
     this.sessionId = crypto.randomUUID();
 
     const savedLang = localStorage.getItem('migrant-archive-lang');
-    const ALLOWED_LANGS = ['en', 'es', 'ca', 'fr', 'pt', 'de'];
-    if (savedLang && ALLOWED_LANGS.includes(savedLang)) {
+    if (savedLang && (SUPPORTED_LANGUAGES as readonly string[]).includes(savedLang)) {
       this.language = savedLang;
     }
 
-    this.fab = createFab(() => this.openPanel());
+    this.fab = createFab(this.language, () => this.openPanel());
     this.panelSlots = createPanel(
       () => this.closePanel(),
       () => this.resetConversation(),
       (lang) => this.setLanguage(lang),
       this.language,
     );
-    this.zeroState = createZeroState((question) => this.selectSuggestion(question));
-    this.inputBar = createInputBar((question) => this.sendMessage(question));
-    this.messageList = createMessageList();
+    this.zeroState = createZeroState(this.language, (question) => this.selectSuggestion(question));
+    this.inputBar = createInputBar(this.language, (question) => this.sendMessage(question));
+    this.messageList = createMessageList(this.language);
 
     this.panelSlots.contentSlot.appendChild(this.zeroState);
     this.panelSlots.footerSlot.appendChild(this.inputBar.element);
 
-    this.root.appendChild(this.fab);
+    this.root.appendChild(this.fab.element);
     this.root.appendChild(this.panelSlots.element);
 
     this.updateVisibility();
@@ -75,7 +92,7 @@ export class ChatWidget {
     if (!this.isOpen) return;
     this.isOpen = false;
     this.updateVisibility();
-    this.fab.focus();
+    this.fab.element.focus();
   }
 
   togglePanel(): void {
@@ -87,11 +104,15 @@ export class ChatWidget {
   }
 
   setLanguage(lang: string): void {
+    if (!(SUPPORTED_LANGUAGES as readonly string[]).includes(lang)) return;
     if (this.language === lang) return;
     this.language = lang;
     localStorage.setItem('migrant-archive-lang', lang);
-    this.inputBar.setVoiceLanguage(lang);
+    this.fab.setLanguage(lang);
+    this.inputBar.setLanguage(lang);
+    this.messageList.setLanguage(lang);
     this.panelSlots.setLanguage(lang);
+    this.zeroState.updateLanguage(lang);
 
     if (this.hasStarted) {
       this._doReset();
@@ -102,7 +123,7 @@ export class ChatWidget {
     if (!this.hasStarted) return;
 
     const confirmed = window.confirm(
-      '¿Querés borrar la conversación y empezar de cero?',
+      CONFIRM_RESET[this.language] || CONFIRM_RESET.en,
     );
     if (!confirmed) return;
 
@@ -128,12 +149,12 @@ export class ChatWidget {
   private updateVisibility(): void {
     if (this.isOpen) {
       this.panelSlots.element.classList.add('chat-panel--visible');
-      this.fab.style.display = 'none';
+      this.fab.element.style.display = 'none';
     } else {
       this.panelSlots.element.classList.remove('chat-panel--visible');
-      this.fab.style.display = 'flex';
+      this.fab.element.style.display = 'flex';
     }
-    this.fab.setAttribute('aria-expanded', String(this.isOpen));
+    this.fab.element.setAttribute('aria-expanded', String(this.isOpen));
   }
 
   selectSuggestion(question: string): void {
@@ -161,10 +182,8 @@ export class ChatWidget {
       const response = await ask(this.sessionId, text, this.language);
       this.messageList.addAgentResponse(response);
     } catch (error) {
-      const message =
-        error instanceof ApiClientError
-          ? error.message
-          : 'No se pudo contactar al asistente.';
+      void error; // ApiClientError details are logged but not shown to the user.
+      const message = ERROR_MESSAGES[this.language] || ERROR_MESSAGES.en;
       this.messageList.addErrorMessage(message);
     } finally {
       this.setLoading(false);

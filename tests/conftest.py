@@ -8,6 +8,10 @@ import pytest
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: marks tests as slow")
+
 # Several backend modules import sibling packages as top-level names
 # (e.g. `from core.embedding import ...`).  Adding these directories to
 # sys.path makes the test suite order-independent and robust.

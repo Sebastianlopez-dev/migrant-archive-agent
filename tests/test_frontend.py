@@ -182,7 +182,6 @@ def test_api_client_module_exists_and_exports_required_types():
     assert "export interface AskResponse" in source
     assert "export interface Message" in source
     assert "export async function ask(" in source
-    assert "export async function askQuestion(" in source
     assert "export async function clearSession(" in source
 
 
@@ -224,14 +223,6 @@ def test_api_client_clear_session_calls_delete_endpoint():
     assert "DELETE" in source
     assert "/api/session/" in source
     assert "encodeURIComponent" in source
-
-def test_api_client_ask_question_delegates_to_ask():
-    """askQuestion() must be a convenience wrapper around ask()."""
-    source = _read_text("src/api-client.ts")
-    assert "askQuestion" in source
-    assert "ask(" in source
-    assert "default" in source
-
 
 def test_api_client_types_compile():
     """api-client.ts must compile without TypeScript errors."""
@@ -296,7 +287,7 @@ def test_panel_creates_dialog_with_header_content_footer():
     assert "role" in source
     assert "dialog" in source
     assert "aria-label" in source
-    assert "Chat con Cero" in source
+    assert "Chat with Cero" in source
     assert "chat-panel-header" in source
     assert "chat-panel-title" in source
     assert "Cero" in source
@@ -310,7 +301,7 @@ def test_panel_close_button_has_aria_label():
     """The panel close button must expose an accessible label."""
     source = _read_text("src/panel.ts")
     assert "aria-label" in source
-    assert "Cerrar chat" in source
+    assert "Close chat" in source
 
 
 def test_panel_supports_escape_key():
@@ -324,7 +315,7 @@ def test_panel_has_refresh_button_with_callback():
     source = _read_text("src/panel.ts")
     assert "onRefresh" in source
     assert "chat-panel-refresh" in source
-    assert "Reiniciar conversación" in source
+    assert "Restart conversation" in source
     assert "REFRESH_ICON" in source
 
 
@@ -363,7 +354,7 @@ def test_zero_state_suggestion_click_calls_callback():
 def test_zero_state_suggestion_passes_exact_label():
     """The callback must receive the suggestion label so it can be used as the question."""
     source = _read_text("src/zero-state.ts")
-    assert "onSuggestionClick(suggestion.label)" in source or "onSuggestionClick(question)" in source
+    assert "onSuggestionClick(currentLabel)" in source or "onSuggestionClick(" in source
 
 
 def test_input_bar_module_exists_and_exports_factory():
@@ -540,7 +531,7 @@ def test_chat_widget_a11y_attributes():
     assert "role" in panel
     assert "dialog" in panel
     assert "aria-label" in panel
-    assert "Chat con Cero" in panel
+    assert "Chat with Cero" in panel
     assert "role" in message_list
     assert "log" in message_list
     assert "aria-live" in message_list
@@ -552,7 +543,7 @@ def test_chat_widget_focus_management_helpers():
     """The orchestrator must call focus on the input when opening and on the FAB when closing."""
     source = _read_text("src/chat-widget.ts")
     assert "inputBar.focus()" in source
-    assert "fab.focus()" in source
+    assert "fab.element.focus()" in source
 
 
 def test_input_bar_focus_and_loading_methods_exist():

@@ -41,7 +41,7 @@ def make_search_transcripts(store, top_k: int = 3):
             channel: Optional channel name to filter results (case-insensitive).
         """
         if store._collection.count() == 0:
-            return "No hay transcripciones indexadas aun."
+            return "No transcripts indexed yet."
 
         # Build a Chroma ``where`` filter for exact-match metadata fields.
         where_parts: list[dict] = []
@@ -72,7 +72,7 @@ def make_search_transcripts(store, top_k: int = 3):
             ]
 
         if not docs:
-            return "No se encontraron resultados relevantes."
+            return "No relevant results found."
 
         blocks: list[str] = []
         seen: set[str] = set()
@@ -116,12 +116,12 @@ def make_list_videos(store):
         video_ids to call get_video_info or search_transcripts.
         """
         if store._collection.count() == 0:
-            return "No hay videos indexados aun."
+            return "No videos indexed yet."
 
         result = store._collection.get(include=["metadatas"])
         metadatas = result.get("metadatas", [])
         if not metadatas:
-            return "No hay videos indexados aun."
+            return "No videos indexed yet."
 
         counts: dict[str, int] = {}
         titles: dict[str, str] = {}
@@ -173,7 +173,7 @@ def make_list_videos(store):
             lines.append(line)
 
         if not lines:
-            return "No se encontraron videos que coincidan con los filtros."
+            return "No videos matched the filters."
 
         lines.append(f"---\n{shown} video(s)")
         with_speakers = [vid for vid, s in speakers.items() if s and vid in counts]
@@ -203,7 +203,7 @@ def make_get_video_info(store):
         metadatas = results.get("metadatas", [])
         documents = results.get("documents", [])
         if not metadatas:
-            return f"Video '{video_id}' no encontrado."
+            return f"Video '{video_id}' not found."
 
         first = metadatas[0]
         first_doc = documents[0] if documents else ""

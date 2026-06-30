@@ -7,19 +7,43 @@
  * toggling a CSS class.
  */
 
+export interface FabApi {
+  /** The FAB button element. */
+  element: HTMLButtonElement;
+  /** Update the aria-label based on the selected language. */
+  setLanguage: (lang: string) => void;
+}
+
+const FAB_I18N: Record<string, string> = {
+  en: 'Open chat with Cero',
+  es: 'Abrir chat con Cero',
+  ca: 'Obrir xat amb Cero',
+  fr: 'Ouvrir le chat avec Cero',
+  pt: 'Abrir chat com Cero',
+  de: 'Chat mit Cero öffnen',
+};
+
 /**
  * Create a Floating Action Button that opens the chat panel.
  *
+ * @param language - ISO code for the display language (default: `en`).
  * @param onClick - Callback invoked when the user clicks the FAB.
- * @returns The configured button element, ready to be appended to the DOM.
+ * @returns The button element and a language setter.
  */
-export function createFab(onClick: () => void): HTMLButtonElement {
+export function createFab(language = 'en', onClick: () => void): FabApi {
+  let currentLanguage = language;
+
   const button = document.createElement('button');
   button.className = 'chat-fab';
   button.type = 'button';
-  button.setAttribute('aria-label', 'Abrir chat con Cero');
   button.setAttribute('aria-controls', 'chat-panel');
   button.setAttribute('aria-expanded', 'false');
+
+  function refreshLabel(): void {
+    button.setAttribute('aria-label', FAB_I18N[currentLanguage] || FAB_I18N.en);
+  }
+
+  refreshLabel();
 
   const avatar = document.createElement('img');
   avatar.src = '/cerito-avatar.svg';
@@ -30,5 +54,10 @@ export function createFab(onClick: () => void): HTMLButtonElement {
   button.appendChild(avatar);
   button.addEventListener('click', onClick);
 
-  return button;
+  function setLanguage(lang: string): void {
+    currentLanguage = lang;
+    refreshLabel();
+  }
+
+  return { element: button, setLanguage };
 }

@@ -141,6 +141,7 @@ yarl==1.24.2
 youtube-transcript-api==1.2.4
 yt-dlp==2026.3.17
 zlib-state==0.1.12
+langchain-chroma==1.1.0
 langchain-classic==1.0.8
 langchain-core==1.4.8
 langchain-google-genai==4.2.5

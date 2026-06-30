@@ -26,6 +26,15 @@ load_dotenv()
 GEMINI_CHAT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_CHROMA_DIR = os.getenv("CHROMA_PERSIST_DIR", "data/chroma")
 
+LANGUAGE_NAMES = {
+    "en": "English",
+    "es": "Spanish",
+    "ca": "Catalan",
+    "fr": "French",
+    "pt": "Portuguese",
+    "de": "German",
+}
+
 SYSTEM_PROMPT = """\
 You are Cero, an assistant that answers questions about
 the videos in the Plataforma Cero's YouTube channel that contain
@@ -136,7 +145,7 @@ def create_agent(
     Returns:
         A RunnableWithMessageHistory wrapping an AgentExecutor. Invoke with:
             agent.invoke(
-                {"input": question},
+                {"input": question, "language": "English"},
                 config={"configurable": {"session_id": ...}},
             )
     """
@@ -164,7 +173,7 @@ def create_agent(
         MessagesPlaceholder(variable_name="chat_history", optional=True),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
+    ]).partial(language="English")
 
     agent = create_tool_calling_agent(llm, tools, prompt)
     executor = AgentExecutor(

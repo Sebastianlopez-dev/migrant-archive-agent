@@ -18,8 +18,8 @@ export interface InputBarApi {
   focus: () => void;
   /** Enable or disable the input and send button. */
   setLoading: (isLoading: boolean) => void;
-  /** Set the language hint passed to the voice transcription endpoint. */
-  setVoiceLanguage: (lang: string) => void;
+  /** Set display language and refresh visible labels. */
+  setLanguage: (lang: string) => void;
 }
 
 const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
@@ -63,10 +63,152 @@ async function transcribeAudio(blob: Blob, filename: string, language: string): 
 }
 
 // ---------------------------------------------------------------------------
+// i18n strings
+// ---------------------------------------------------------------------------
+
+const INPUT_BAR_I18N: Record<string, Record<string, string>> = {
+  en: {
+    voiceLabel: 'Speak',
+    placeholder: 'Type your question…',
+    messageLabel: 'Message',
+    sendLabel: 'Send message',
+    transcribedLabel: 'Voice message transcribed',
+    processing: 'Transcribing…',
+    permissionDenied: 'Microphone blocked — check browser settings',
+    noMic: 'No microphone detected',
+    micUnavailable: 'Microphone unavailable',
+    listening: 'Listening…',
+    noAudio: 'No audio detected',
+    pressEnter: 'Press Enter to send',
+    connectionError: 'Connection error — try again',
+    noSpeech: 'No speech detected',
+    serviceUnavailable: 'Transcription service unavailable',
+    audioTooLarge: 'Audio too long — max 25 MB',
+    recording: 'Recording… tap to stop',
+    countdown: 'Listening… {n}s',
+    recorderError: 'Recording failed to start',
+    transcribingStatus: 'Transcribing…',
+  },
+  es: {
+    voiceLabel: 'Hablar por voz',
+    placeholder: 'Escribí tu pregunta…',
+    messageLabel: 'Mensaje',
+    sendLabel: 'Enviar mensaje',
+    transcribedLabel: 'Mensaje de voz transcrito',
+    processing: 'Transcribiendo…',
+    permissionDenied: 'Permiso de micrófono denegado — revisá configuración del navegador',
+    noMic: 'No se detectó ningún micrófono',
+    micUnavailable: 'Micrófono no disponible',
+    listening: 'Escuchando…',
+    noAudio: 'No se detectó audio',
+    pressEnter: 'Presioná Enter para enviar',
+    connectionError: 'Error de conexión — intentá de nuevo',
+    noSpeech: 'No se detectó voz',
+    serviceUnavailable: 'Servicio de transcripción no disponible',
+    audioTooLarge: 'Audio demasiado largo — máximo 25 MB',
+    recording: 'Grabando… pulsá para detener',
+    countdown: 'Escuchando… {n}s',
+    recorderError: 'Error al iniciar grabación',
+    transcribingStatus: 'Transcribiendo…',
+  },
+  ca: {
+    voiceLabel: 'Parlar',
+    placeholder: 'Escriu la teva pregunta…',
+    messageLabel: 'Missatge',
+    sendLabel: 'Enviar missatge',
+    transcribedLabel: 'Missatge de veu transcrit',
+    processing: 'Transcrivint…',
+    permissionDenied: 'Micròfon bloquejat — revisa la configuració del navegador',
+    noMic: 'No s\'ha detectat cap micròfon',
+    micUnavailable: 'Micròfon no disponible',
+    listening: 'Escoltant…',
+    noAudio: 'No s\'ha detectat àudio',
+    pressEnter: 'Prem Enter per enviar',
+    connectionError: 'Error de connexió — torna a intentar',
+    noSpeech: 'No s\'ha detectat veu',
+    serviceUnavailable: 'Servei de transcripció no disponible',
+    audioTooLarge: 'Àudio massa llarg — màxim 25 MB',
+    recording: 'Gravant… prem per aturar',
+    countdown: 'Escoltant… {n}s',
+    recorderError: 'Error en iniciar la gravació',
+    transcribingStatus: 'Transcrivint…',
+  },
+  fr: {
+    voiceLabel: 'Parler',
+    placeholder: 'Écrivez votre question…',
+    messageLabel: 'Message',
+    sendLabel: 'Envoyer',
+    transcribedLabel: 'Message vocal transcrit',
+    processing: 'Transcription…',
+    permissionDenied: 'Micro bloqué — vérifiez les paramètres du navigateur',
+    noMic: 'Aucun microphone détecté',
+    micUnavailable: 'Microphone indisponible',
+    listening: 'Écoute…',
+    noAudio: 'Aucun audio détecté',
+    pressEnter: 'Appuyez sur Entrée pour envoyer',
+    connectionError: 'Erreur de connexion — réessayez',
+    noSpeech: 'Aucune parole détectée',
+    serviceUnavailable: 'Service de transcription indisponible',
+    audioTooLarge: 'Audio trop long — max 25 Mo',
+    recording: 'Enregistrement… appuyez pour arrêter',
+    countdown: 'Écoute… {n}s',
+    recorderError: 'Échec du démarrage de l\'enregistrement',
+    transcribingStatus: 'Transcription…',
+  },
+  pt: {
+    voiceLabel: 'Falar',
+    placeholder: 'Digite sua pergunta…',
+    messageLabel: 'Mensagem',
+    sendLabel: 'Enviar mensagem',
+    transcribedLabel: 'Mensagem de voz transcrita',
+    processing: 'Transcrevendo…',
+    permissionDenied: 'Microfone bloqueado — verifique as configurações do navegador',
+    noMic: 'Nenhum microfone detectado',
+    micUnavailable: 'Microfone indisponível',
+    listening: 'Ouvindo…',
+    noAudio: 'Nenhum áudio detectado',
+    pressEnter: 'Pressione Enter para enviar',
+    connectionError: 'Erro de conexão — tente novamente',
+    noSpeech: 'Nenhuma fala detectada',
+    serviceUnavailable: 'Serviço de transcrição indisponível',
+    audioTooLarge: 'Áudio muito longo — máx 25 MB',
+    recording: 'Gravando… toque para parar',
+    countdown: 'Ouvindo… {n}s',
+    recorderError: 'Falha ao iniciar gravação',
+    transcribingStatus: 'Transcrevendo…',
+  },
+  de: {
+    voiceLabel: 'Sprechen',
+    placeholder: 'Frage eingeben…',
+    messageLabel: 'Nachricht',
+    sendLabel: 'Nachricht senden',
+    transcribedLabel: 'Sprachnachricht transkribiert',
+    processing: 'Transkribiere…',
+    permissionDenied: 'Mikrofon blockiert — Browsereinstellungen prüfen',
+    noMic: 'Kein Mikrofon erkannt',
+    micUnavailable: 'Mikrofon nicht verfügbar',
+    listening: 'Höre zu…',
+    noAudio: 'Kein Audio erkannt',
+    pressEnter: 'Enter drücken zum Senden',
+    connectionError: 'Verbindungsfehler — erneut versuchen',
+    noSpeech: 'Keine Sprache erkannt',
+    serviceUnavailable: 'Transkriptionsdienst nicht verfügbar',
+    audioTooLarge: 'Audio zu lang — max 25 MB',
+    recording: 'Aufnahme… zum Stoppen tippen',
+    countdown: 'Höre zu… {n}s',
+    recorderError: 'Aufnahme konnte nicht gestartet werden',
+    transcribingStatus: 'Transkribiere…',
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Input bar factory
 // ---------------------------------------------------------------------------
 
-export function createInputBar(onSend: (question: string) => void): InputBarApi {
+export function createInputBar(language = 'en', onSend: (question: string) => void): InputBarApi {
+  let currentLanguage = language;
+  const t = (key: string): string => (INPUT_BAR_I18N[currentLanguage] || INPUT_BAR_I18N.en)[key] || key;
+
   const root = document.createElement('div');
   root.className = 'chat-input-bar';
 
@@ -75,7 +217,6 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
 
   // ── Shared voice state ──────────────────────────────────────────
 
-  let voiceLanguage = 'en';
   let isListening = false;
   let isProcessing = false;
   let hadFinalResult = false;
@@ -92,7 +233,7 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
   const voiceButton = document.createElement('button');
   voiceButton.className = 'chat-input-tool chat-input-tool--voice';
   voiceButton.type = 'button';
-  voiceButton.setAttribute('aria-label', 'Hablar por voz');
+  voiceButton.setAttribute('aria-label', t('voiceLabel'));
   voiceButton.innerHTML = MIC_ICON;
 
   // ── Text input ──────────────────────────────────────────────────
@@ -100,15 +241,15 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
   const input = document.createElement('textarea');
   input.className = 'chat-input';
   input.rows = 1;
-  input.placeholder = 'Escribí tu pregunta…';
-  input.setAttribute('aria-label', 'Mensaje');
+  input.placeholder = t('placeholder');
+  input.setAttribute('aria-label', t('messageLabel'));
 
   // ── Send button ─────────────────────────────────────────────────
 
   const sendButton = document.createElement('button');
   sendButton.className = 'chat-send';
   sendButton.type = 'button';
-  sendButton.setAttribute('aria-label', 'Enviar mensaje');
+  sendButton.setAttribute('aria-label', t('sendLabel'));
   sendButton.innerHTML = SEND_ICON;
 
   toolbar.appendChild(voiceButton);
@@ -122,7 +263,7 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     input.placeholder = message;
     setTimeout(() => {
       if (!isListening && !isProcessing) {
-        input.placeholder = 'Escribí tu pregunta…';
+        input.placeholder = t('placeholder');
       }
     }, 2500);
   }
@@ -133,13 +274,13 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
 
     if (success && hadFinalResult && input.value.trim()) {
       voiceButton.classList.add('chat-input-tool--success');
-      voiceButton.setAttribute('aria-label', 'Mensaje de voz transcrito');
+      voiceButton.setAttribute('aria-label', t('transcribedLabel'));
       setTimeout(() => {
         voiceButton.classList.remove('chat-input-tool--success');
-        voiceButton.setAttribute('aria-label', 'Hablar por voz');
+        voiceButton.setAttribute('aria-label', t('voiceLabel'));
       }, 2000);
     } else {
-      voiceButton.setAttribute('aria-label', 'Hablar por voz');
+      voiceButton.setAttribute('aria-label', t('voiceLabel'));
     }
   }
 
@@ -147,7 +288,7 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
 
   voiceButton.addEventListener('click', () => {
     if (isProcessing) {
-      showHint('Transcribiendo…');
+      showHint(t('processing'));
       return;
     }
     if (isListening) {
@@ -170,21 +311,21 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
       isListening = false;
       if (err instanceof DOMException) {
         if (err.name === 'NotAllowedError') {
-          showHint('Permiso de micrófono denegado — revisá configuración del navegador');
+          showHint(t('permissionDenied'));
           voiceButton.classList.add('chat-input-tool--denied');
         } else if (err.name === 'NotFoundError') {
-          showHint('No se detectó ningún micrófono');
+          showHint(t('noMic'));
         } else {
-          showHint('Micrófono no disponible');
+          showHint(t('micUnavailable'));
         }
       } else {
-        showHint('Micrófono no disponible');
+        showHint(t('micUnavailable'));
       }
       return;
     }
 
     if (startAborted) {
-      micStream.getTracks().forEach((t) => t.stop());
+      micStream.getTracks().forEach((tr) => tr.stop());
       micStream = null;
       isListening = false;
       return;
@@ -192,8 +333,8 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
 
     hadFinalResult = false;
     audioChunks = [];
-    const capturedLanguage = voiceLanguage;
-    input.placeholder = 'Escuchando…';
+    const capturedLanguage = currentLanguage;
+    input.placeholder = t('listening');
     input.value = '';
 
     const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -215,12 +356,12 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
         if (!mediaRecorder) return;
 
         if (micStream) {
-          micStream.getTracks().forEach((t) => t.stop());
+          micStream.getTracks().forEach((tr) => tr.stop());
           micStream = null;
         }
 
         if (audioChunks.length === 0) {
-          showHint('No se detectó audio');
+          showHint(t('noAudio'));
           finishVoice(false);
           return;
         }
@@ -235,24 +376,24 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
           hadFinalResult = true;
           finishVoice(true);
           input.focus();
-          input.placeholder = 'Presioná Enter para enviar';
+          input.placeholder = t('pressEnter');
           setTimeout(() => {
-            input.placeholder = 'Escribí tu pregunta…';
+            input.placeholder = t('placeholder');
           }, 3000);
         } catch (err) {
           console.log('[mic:backend] transcription failed:', err);
           hadFinalResult = false;
           const msg = err instanceof Error ? err.message : String(err);
           if (err instanceof TypeError || msg.includes('ECONNREFUSED') || msg.includes('Failed to fetch')) {
-            showHint('Error de conexión — intentá de nuevo');
+            showHint(t('connectionError'));
           } else if (msg.includes('[422]')) {
-            showHint('No se detectó voz');
+            showHint(t('noSpeech'));
           } else if (msg.includes('[503]')) {
-            showHint('Servicio de transcripción no disponible');
+            showHint(t('serviceUnavailable'));
           } else if (msg.includes('[413]')) {
-            showHint('Audio demasiado largo — máximo 25 MB');
+            showHint(t('audioTooLarge'));
           } else {
-            showHint('Error de conexión — intentá de nuevo');
+            showHint(t('connectionError'));
           }
           finishVoice(false);
         }
@@ -274,18 +415,18 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
           countdownInterval = null;
         }
         if (micStream) {
-          micStream.getTracks().forEach((t) => t.stop());
+          micStream.getTracks().forEach((tr) => tr.stop());
           micStream = null;
         }
         mediaRecorder = null;
         voiceButton.classList.remove('chat-input-tool--recording');
-        input.placeholder = 'Escribí tu pregunta…';
+        input.placeholder = t('placeholder');
         finishVoice(false);
       };
 
       mediaRecorder.start(1000);
       voiceButton.classList.add('chat-input-tool--recording');
-      voiceButton.setAttribute('aria-label', 'Grabando… pulsá para detener');
+      voiceButton.setAttribute('aria-label', t('recording'));
 
       maxRecordTimer = setTimeout(() => {
         if (isListening && mediaRecorder && mediaRecorder.state === 'recording') {
@@ -296,7 +437,7 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
       countdownStartTimer = setTimeout(() => {
         if (!isListening) return;
         let remaining = 3;
-        input.placeholder = `Escuchando… ${remaining}s`;
+        input.placeholder = t('countdown').replace('{n}', String(remaining));
         countdownInterval = setInterval(() => {
           remaining--;
           if (remaining <= 0 || !isListening) {
@@ -306,17 +447,29 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
             }
             return;
           }
-          input.placeholder = `Escuchando… ${remaining}s`;
+          input.placeholder = t('countdown').replace('{n}', String(remaining));
         }, 1000);
       }, (MAX_RECORD_SECONDS - 3) * 1000);
     } catch (err) {
       console.log('[mic:backend] MediaRecorder construction/start failed:', err);
       isListening = false;
+      if (maxRecordTimer) {
+        clearTimeout(maxRecordTimer);
+        maxRecordTimer = null;
+      }
+      if (countdownStartTimer) {
+        clearTimeout(countdownStartTimer);
+        countdownStartTimer = null;
+      }
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
       if (micStream) {
-        micStream.getTracks().forEach((t) => t.stop());
+        micStream.getTracks().forEach((tr) => tr.stop());
         micStream = null;
       }
-      showHint('Error al iniciar grabación');
+      showHint(t('recorderError'));
       return;
     }
   }
@@ -327,7 +480,7 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
         startAborted = true;
         isListening = false;
         voiceButton.classList.remove('chat-input-tool--recording');
-        voiceButton.setAttribute('aria-label', 'Hablar por voz');
+        voiceButton.setAttribute('aria-label', t('voiceLabel'));
       }
       return;
     }
@@ -350,8 +503,8 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     isProcessing = true;
     voiceButton.classList.remove('chat-input-tool--recording');
     voiceButton.classList.add('chat-input-tool--processing');
-    voiceButton.setAttribute('aria-label', 'Transcribiendo…');
-    input.placeholder = 'Transcribiendo…';
+    voiceButton.setAttribute('aria-label', t('transcribingStatus'));
+    input.placeholder = t('processing');
 
     mediaRecorder.stop();
   }
@@ -387,8 +540,12 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     voiceButton.disabled = isLoading;
   }
 
-  function setVoiceLanguage(lang: string): void {
-    voiceLanguage = lang;
+  function setLanguage(lang: string): void {
+    currentLanguage = lang;
+    voiceButton.setAttribute('aria-label', t('voiceLabel'));
+    input.placeholder = t('placeholder');
+    input.setAttribute('aria-label', t('messageLabel'));
+    sendButton.setAttribute('aria-label', t('sendLabel'));
   }
 
   sendButton.addEventListener('click', submit);
@@ -405,5 +562,5 @@ export function createInputBar(onSend: (question: string) => void): InputBarApi 
     input.rows = Math.min(5, Math.max(1, lines));
   });
 
-  return { element: root, setQuestion, clear, focus, setLoading, setVoiceLanguage };
+  return { element: root, setQuestion, clear, focus, setLoading, setLanguage };
 }
