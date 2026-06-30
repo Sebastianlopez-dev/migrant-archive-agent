@@ -228,7 +228,27 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
   let maxRecordTimer: ReturnType<typeof setTimeout> | null = null;
   let countdownStartTimer: ReturnType<typeof setTimeout> | null = null;
   let countdownInterval: ReturnType<typeof setInterval> | null = null;
+  let hintTimer: ReturnType<typeof setTimeout> | null = null;
   const MAX_RECORD_SECONDS = 30;
+
+  function clearVoiceTimers(): void {
+    if (maxRecordTimer) {
+      clearTimeout(maxRecordTimer);
+      maxRecordTimer = null;
+    }
+    if (countdownStartTimer) {
+      clearTimeout(countdownStartTimer);
+      countdownStartTimer = null;
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    if (hintTimer) {
+      clearTimeout(hintTimer);
+      hintTimer = null;
+    }
+  }
 
   const voiceButton = document.createElement('button');
   voiceButton.className = 'chat-input-tool chat-input-tool--voice';
@@ -261,7 +281,11 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
 
   function showHint(message: string): void {
     input.placeholder = message;
-    setTimeout(() => {
+    if (hintTimer) {
+      clearTimeout(hintTimer);
+    }
+    hintTimer = setTimeout(() => {
+      hintTimer = null;
       if (!isListening && !isProcessing) {
         input.placeholder = t('placeholder');
       }
@@ -269,6 +293,7 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
   }
 
   function finishVoice(success: boolean): void {
+    clearVoiceTimers();
     isProcessing = false;
     voiceButton.classList.remove('chat-input-tool--processing', 'chat-input-tool--recording');
 
@@ -306,6 +331,7 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
 
     try {
       micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceButton.classList.remove('chat-input-tool--denied');
     } catch (err) {
       console.log('[mic:backend] getUserMedia failed:', err);
       isListening = false;
@@ -402,18 +428,7 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
       mediaRecorder.onerror = (event) => {
         console.log('[mic:backend] MediaRecorder error:', event);
         isListening = false;
-        if (maxRecordTimer) {
-          clearTimeout(maxRecordTimer);
-          maxRecordTimer = null;
-        }
-        if (countdownStartTimer) {
-          clearTimeout(countdownStartTimer);
-          countdownStartTimer = null;
-        }
-        if (countdownInterval) {
-          clearInterval(countdownInterval);
-          countdownInterval = null;
-        }
+        clearVoiceTimers();
         if (micStream) {
           micStream.getTracks().forEach((tr) => tr.stop());
           micStream = null;
@@ -453,18 +468,7 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
     } catch (err) {
       console.log('[mic:backend] MediaRecorder construction/start failed:', err);
       isListening = false;
-      if (maxRecordTimer) {
-        clearTimeout(maxRecordTimer);
-        maxRecordTimer = null;
-      }
-      if (countdownStartTimer) {
-        clearTimeout(countdownStartTimer);
-        countdownStartTimer = null;
-      }
-      if (countdownInterval) {
-        clearInterval(countdownInterval);
-        countdownInterval = null;
-      }
+      clearVoiceTimers();
       if (micStream) {
         micStream.getTracks().forEach((tr) => tr.stop());
         micStream = null;
@@ -486,18 +490,7 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
     }
     if (mediaRecorder.state === 'inactive') return;
 
-    if (maxRecordTimer) {
-      clearTimeout(maxRecordTimer);
-      maxRecordTimer = null;
-    }
-    if (countdownStartTimer) {
-      clearTimeout(countdownStartTimer);
-      countdownStartTimer = null;
-    }
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
+    clearVoiceTimers();
 
     isListening = false;
     isProcessing = true;
@@ -535,6 +528,9 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
   }
 
   function setLoading(isLoading: boolean): void {
+    if (isLoading && isListening) {
+      stopBackendRecording();
+    }
     input.disabled = isLoading;
     sendButton.disabled = isLoading;
     voiceButton.disabled = isLoading;
@@ -543,7 +539,9 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
   function setLanguage(lang: string): void {
     currentLanguage = lang;
     voiceButton.setAttribute('aria-label', t('voiceLabel'));
-    input.placeholder = t('placeholder');
+    if (!isListening) {
+      input.placeholder = t('placeholder');
+    }
     input.setAttribute('aria-label', t('messageLabel'));
     sendButton.setAttribute('aria-label', t('sendLabel'));
   }

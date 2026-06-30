@@ -8,11 +8,12 @@ the chat widget (replaces the former dual-path Web Speech API + MediaRecorder ap
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from groq import Groq
+from groq import AsyncGroq, AuthenticationError, BadRequestError, RateLimitError
 
 from backend.api.models import ALLOWED_LANGUAGES, TranscribeResponse
 
@@ -20,14 +21,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_client: Groq | None = None
+_client: AsyncGroq | None = None
 
 
-def _get_client() -> Groq:
+def _get_client() -> AsyncGroq:
     """Return a cached Groq client, creating one on first call."""
     global _client
     if _client is None:
-        _client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        _client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
     return _client
 
 
@@ -84,15 +85,41 @@ async def transcribe(audio: UploadFile = File(...), language: str | None = None)
         }
         if language:
             transcription_kwargs["language"] = language
-        transcription = client.audio.transcriptions.create(**transcription_kwargs)
+        transcription = await asyncio.wait_for(
+            client.audio.transcriptions.create(**transcription_kwargs),
+            timeout=30.0,
+        )
+        text = transcription.text.strip() if transcription.text else ""
+    except asyncio.TimeoutError as exc:
+        logger.warning("Groq transcription request timed out")
+        raise HTTPException(
+            status_code=504,
+            detail="Transcription service timed out — please try again.",
+        ) from exc
+    except RateLimitError as exc:
+        logger.warning("Groq rate limit exceeded: %s", exc)
+        raise HTTPException(
+            status_code=429,
+            detail="Transcription rate limit exceeded — try again later.",
+        ) from exc
+    except AuthenticationError as exc:
+        logger.warning("Groq authentication failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Transcription service unavailable — GROQ_API_KEY invalid.",
+        ) from exc
+    except BadRequestError as exc:
+        logger.warning("Groq bad request: %s", exc)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transcription request invalid: {exc}",
+        ) from exc
     except Exception as exc:
         logger.warning("Groq transcription request failed: %s", exc)
         raise HTTPException(
             status_code=503,
             detail="Transcription service unavailable — Groq request failed.",
         ) from exc
-
-    text = transcription.text.strip() if transcription.text else ""
 
     if not text:
         raise HTTPException(
