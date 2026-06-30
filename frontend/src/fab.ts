@@ -40,7 +40,7 @@ export function createFab(language = 'en', onClick: () => void): FabApi {
   refreshLabel();
 
   const avatar = document.createElement('img');
-  avatar.src = '/cero-idea03.png';
+  avatar.src = '/cero-agent-icon.png';
   avatar.alt = 'Cero';
   avatar.width = 63;
   avatar.height = 63;

@@ -264,7 +264,7 @@ def test_fab_creates_button_with_avatar_and_aria():
     assert "chat-panel" in source
     assert "aria-expanded" in source
     assert "aria-label" in source
-    assert "/cero-gretings.png" in source
+    assert "/cero-agent-icon.png" in source
     assert "addEventListener('click'" in source or 'addEventListener("click"' in source
 
 
@@ -317,6 +317,25 @@ def test_panel_has_refresh_button_with_callback():
     assert "chat-panel-refresh" in source
     assert "Restart conversation" in source
     assert "REFRESH_ICON" in source
+
+
+def test_panel_has_theme_toggle_button():
+    """createPanel must include a theme toggle button with aria-label."""
+    source = _read_text("src/panel.ts")
+    assert "migrant-archive-theme" in source
+    assert "data-theme" in source
+    assert "prefers-color-scheme" in source
+    assert "SUN_ICON" in source
+    assert "MOON_ICON" in source
+    assert "THEME_LABELS" in source
+
+
+def test_styles_css_has_light_theme_overrides():
+    """styles.css must define light theme overrides via [data-theme='light']."""
+    source = _read_text("src/styles.css")
+    assert '[data-theme="light"]' in source or "[data-theme='light']" in source
+    assert "chat-overlay" in source
+    assert "chat-surface-rgb" in source
 
 
 # ───────────────────────── Phase 8.6: Content modules ─────────────────────────

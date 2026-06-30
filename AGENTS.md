@@ -7,7 +7,7 @@
 - Google Gemini (embeddings + LLM via google-genai)
 - Groq (Whisper API for voice transcription)
 - pytest (testing, strict TDD)
-- HTML/CSS/JS (frontend, planned Week 4)
+- TypeScript/Vite (frontend, complete)
 - JSON (VideoData format, data storage)
 
 ## Language Convention
@@ -41,14 +41,14 @@ When new packages are added to requirements.txt, update the Stack section above.
 - Skip E2E when GEMINI_API_KEY is not set
 
 ## Environment
-- `.env` file with GEMINI_API_KEY (required)
-- Two paths: UV (lightweight, Gemini cloud) or Conda (ML-ready, BGE-M3 local)
+- `.env` file with GEMINI_API_KEY (required) and GROQ_API_KEY (required for voice transcription)
+- UV (lightweight, Gemini cloud) — the only supported path. Conda removed after BGE-M3 deprecation.
 - Package install: `uv pip install -r requirements.txt`
 
 ## Architecture
 - Pipeline: S01 Ingestion → S02 Chunking+Embedding → S03 ChromaDB → S04-S05 Scripts → S06 Agent → S07 API → S08 Frontend
 - Strategy Pattern for ingestion (captions / faster-whisper local / Colab GPU)
-- Dependency Inversion for embeddings (EmbeddingProvider abstract base, Gemini and BGE-M3 implementations)
+- Dependency Inversion for embeddings (EmbeddingProvider abstract base, Gemini implementation)
 - Single Responsibility: each file does one thing
 
 ## Commits
@@ -58,5 +58,6 @@ When new packages are added to requirements.txt, update the Stack section above.
 
 ## Current State (June 2026)
 - S01-S05: Complete (ingestion, chunking, embeddings, ChromaDB, RAG test)
-- S06: Complete (LangChain agent with ConversationBufferMemory + search_transcripts tool)
-- S07-S08: Pending (FastAPI, frontend)
+- S06: Complete (LangChain agent with native tool calling + 3 tools + session memory)
+- S07: Complete (FastAPI REST API + LangSmith tracing + Groq voice transcription)
+- S08: Complete (Vite/TypeScript chat widget + i18n + voice input + presentation slides)

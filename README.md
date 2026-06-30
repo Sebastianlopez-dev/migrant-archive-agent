@@ -88,7 +88,7 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S02 — Chunking + Embedding: 3 decisions · 4 files · 4 test files</summary>
+<summary>S02 — Chunking + Embedding: 3 decisions · 3 files · 3 test files</summary>
 
 **Decisions:**
 - Chunk size 1000 / overlap 200 (optimized for Spanish conversational content)
@@ -118,6 +118,7 @@ FILMIG / Plataforma Cero (YouTube)
 [`rag_test.py`](backend/scripts/rag_test.py) — interactive semantic search
 [`backend/scripts/cero-01.py`](backend/scripts/cero-01.py) — conversational RAG with LangChain (ConversationalRetrievalChain + memory + LLM answers)
 [`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
+[`rebuild_index.py`](backend/scripts/rebuild_index.py) — rebuild ChromaDB index from whisper JSONs
 
 **Tests:** `test_extract_sample.py`
 
@@ -141,20 +142,20 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 12 files · 3 test files (55 frontend tests)</summary>
+<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 13 files · 3 test files (57 frontend tests)</summary>
 
 **Decisions:**
 - LangSmith zero-code tracing (env-var auto-detection, no application code required)
 - YouTube links generated in backend (deterministic, no HTML injection)
 
-**Files:** [`main.py`](backend/api/main.py) · [`models.py`](backend/api/models.py) · [`dependencies.py`](backend/api/dependencies.py) · [`chat.py`](backend/api/routes/chat.py) · [`chat-widget.ts`](frontend/src/chat-widget.ts) · [`api-client.ts`](frontend/src/api-client.ts) · [`fab.ts`](frontend/src/fab.ts) · [`panel.ts`](frontend/src/panel.ts) · [`zero-state.ts`](frontend/src/zero-state.ts) · [`input-bar.ts`](frontend/src/input-bar.ts) · [`message-list.ts`](frontend/src/message-list.ts) · [`main.ts`](frontend/src/main.ts)
+**Files:** [`main.py`](backend/api/main.py) · [`models.py`](backend/api/models.py) · [`dependencies.py`](backend/api/dependencies.py) · [`chat.py`](backend/api/routes/chat.py) · [`transcribe.py`](backend/api/routes/transcribe.py) · [`chat-widget.ts`](frontend/src/chat-widget.ts) · [`api-client.ts`](frontend/src/api-client.ts) · [`fab.ts`](frontend/src/fab.ts) · [`panel.ts`](frontend/src/panel.ts) · [`zero-state.ts`](frontend/src/zero-state.ts) · [`input-bar.ts`](frontend/src/input-bar.ts) · [`message-list.ts`](frontend/src/message-list.ts) · [`main.ts`](frontend/src/main.ts)
 
 **Tests:** `test_api.py` · `test_frontend.py` · `test_langsmith.py`
 
 </details>
 
 <details>
-<summary>S08 — Frontend + Deploy: 1 decision · 5 completed · 1 pending</summary>
+<summary>S08 — Frontend + Deploy: 1 decision · 7 completed · 1 pending</summary>
 
 **Decisions:**
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
@@ -166,7 +167,7 @@ FILMIG / Plataforma Cero (YouTube)
 - Multilingual support: 6 languages (EN/ES/CA/FR/PT/DE) with language selector in panel header
 - I18N across all modules: zero-state, input-bar, message-list, FAB, panel
 - Custom circular UI: all buttons (send, mic, language, refresh, close) are circular
-- New Cero avatar icon (`cero-gretings.png`)
+- New Cero avatar icon (`cero-agent-icon.png`)
 
 **Pending:** deploy to production
 
@@ -183,23 +184,20 @@ From raw YouTube videos to the chat widget. Each step links to the detailed sect
 
 ### Step 1 — Choose Your Environment
 
-This project has two paths. Pick the one that fits your needs.
+This project uses UV as its package manager.
 
-| | UV (lightweight) | Conda (ML-ready) |
-|---|---|-------------------|-------------------|
-| **Best for** | Gemini API embeddings | Local ML toolchain |
-| **What you get** | Transcription + Gemini cloud embeddings | Transcription + Gemini cloud embeddings |
-| **Install size** | ~500 MB | ~4 GB (includes PyTorch) |
-| **GPU needed?** | No | No |
-| **Internet required?** | Yes (for Gemini API) | Yes (for Gemini API) |
-| **API keys?** | Gemini (free tier) | Gemini (free tier) |
+| | UV (lightweight) |
+|---|---|
+| **Best for** | Gemini API embeddings |
+| **What you get** | Transcription + Gemini cloud embeddings |
+| **Install size** | ~500 MB |
+| **GPU needed?** | No |
+| **Internet required?** | Yes (for Gemini API) |
+| **API keys?** | Gemini (free tier) |
 
 > **Embedding provider note:** Only Gemini embeddings are supported. BGE-M3 was removed.
 
-> **Don't know which to choose?**
-> Start with UV + Gemini. It's faster to set up and the Gemini free tier covers the entire project's embedding needs (~$0.10 total).
-
-#### Option A: UV + Gemini (recommended)
+#### UV + Gemini (recommended)
 
 ```bash
 # 1. Install UV
@@ -209,27 +207,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install -r requirements.txt
 
-# 3. Add API keys (free: aistudio.google.com/apikey, smith.langchain.com)
-cp .env.example .env   # then set GEMINI_API_KEY, LANGSMITH_API_KEY, LANGSMITH_PROJECT
+# 3. Add API keys (free: aistudio.google.com/apikey, console.groq.com, smith.langchain.com)
+cp .env.example .env   # set GEMINI_API_KEY, GROQ_API_KEY, and optionally LANGSMITH_API_KEY / LANGSMITH_PROJECT
 
 # 4. System dependency
 brew install ffmpeg     # macOS
-```
-
-#### Option B: Conda (ML-ready)
-
-```bash
-# 1. Install Miniconda
-curl -LsSf https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o miniconda.sh && bash miniconda.sh
-
-# 2. Create env
-conda create -n migrant-archive python=3.12 -y && conda activate migrant-archive
-
-# 3. Install dependencies
-pip install chromadb google-genai pytest python-dotenv yt-dlp youtube-transcript-api faster-whisper
-
-# 4. Add API keys
-cp .env.example .env   # set GEMINI_API_KEY, LANGSMITH_API_KEY
 ```
 
 </details>
@@ -292,11 +274,11 @@ uv run python backend/scripts/cero-01.py           # REPL mode
 
 | Script | Memory | LLM Answers | API calls | Best for |
 |--------|--------|:---:|-----------|----------|
-| `quick_search.py` | None | ❌ | 0 | Fast checks, no cost |
-| `rag_test.py` | None | ❌ | Embedding only | Exploring the DB |
-| **`backend/scripts/cero-01.py`** | **Buffer Window (K=5)** | **✅ Spanish** | **Embedding + Chat** | **Demo, conversational Q&A** |
+| `quick_search.py` | None | No | 0 | Fast checks, no cost |
+| `rag_test.py` | None | No | Embedding only | Exploring the DB |
+| **`backend/scripts/cero-01.py`** | **Buffer Window (K=5)** | **Spanish** | **Embedding + Chat** | **Demo, conversational Q&A** |
 
-`backend/scripts/cero-01.py` is a self-contained 124-line conversational RAG built entirely with LangChain (`ConversationalRetrievalChain`, `Chroma`, `GoogleGenerativeAIEmbeddings`, `ChatGoogleGenerativeAI`). It answers questions in Spanish using transcript chunks as context, remembers the last 5 conversation turns, and shows source documents with `--verbose`. Zero imports from `backend/core/`.
+`backend/scripts/cero-01.py` is a self-contained 123-line conversational RAG built entirely with LangChain (`ConversationalRetrievalChain`, `Chroma`, `GoogleGenerativeAIEmbeddings`, `ChatGoogleGenerativeAI`). It answers questions in Spanish using transcript chunks as context, remembers the last 5 conversation turns, and shows source documents with `--verbose`. Zero imports from `backend/core/`.
 
 Try these questions once inside `rag_test.py` or `backend/scripts/cero-01.py`:
 
@@ -408,8 +390,10 @@ migrant-archive/
 │   │   ├── models.py           ← Pydantic schemas (AskRequest with session_id)
 │   │   ├── dependencies.py     ← Agent dependency injection (RunnableWithMessageHistory)
 │   │   └── routes/
-│   │       └── chat.py         ← POST /api/ask + DELETE /api/session/{id}
+│   │       ├── chat.py         ← POST /api/ask + DELETE /api/session/{id}
+│   │       └── transcribe.py   ← POST /api/transcribe (Groq Whisper)
 │   ├── agents/
+│   │   ├── __init__.py
 │   │   ├── agent.py            ← Tool-calling agent + per-session message history
 │   │   └── tools.py            ← 3 tools + speaker extraction
 │   ├── core/
@@ -421,20 +405,21 @@ migrant-archive/
 │   │   ├── embedding_gemini.py     ← Gemini API implementation
 │   │   ├── processor.py            ← Chunking (1000tk/200ov) + embedding
 │   │   └── vector_store.py         ← ChromaDB persistence
-    │   └── scripts/
-    │       ├── agent_cli.py        ← Interactive agent CLI
-    │       ├── cero-01.py          ← Conversational RAG with LangChain (self-contained, 124 lines)
-    │       ├── rag_test.py         ← Interactive RAG pipeline test script
-    │       ├── rebuild_index.py    ← Rebuild ChromaDB index from whisper JSON files
-    │       ├── quick_search.py     ← Keyword search (no API, no embeddings)
-    │       └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
+│   ├── scripts/
+│   │   ├── agent_cli.py        ← Interactive agent CLI
+│   │   ├── cero-01.py          ← Conversational RAG with LangChain (self-contained, 123 lines)
+│   │   ├── rag_test.py         ← Interactive RAG pipeline test script
+│   │   ├── rebuild_index.py    ← Rebuild ChromaDB index from whisper JSON files
+│   │   ├── quick_search.py     ← Keyword search (no API, no embeddings)
+│   │   └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
 │
 ├── frontend/
 │   ├── index.html              ← Widget mount point
 │   ├── package.json            ← pnpm dependencies
 │   ├── vite.config.ts          ← Vite + API proxy config
 │   ├── public/
-│   │   └── cerito-avatar.svg   ← Agent avatar for FAB and panel header
+│   │   ├── cero-agent-icon.png     ← Cero avatar (FAB, panel header, zero-state)
+│   │   └── cerito-avatar.svg       ← Original vector avatar (legacy)
 │   └── src/
 │       ├── main.ts             ← Widget bootstrap
 │       ├── api-client.ts       ← Typed fetch wrapper for POST /api/ask
@@ -468,7 +453,6 @@ migrant-archive/
 │   ├── audio/                  ← Downloaded audio cache (gitignored)
 │   ├── chroma/                 ← ChromaDB persistent storage (gitignored)
 │   └── raw/
-│       ├── captions/           ← Caption strategy JSON output
 │       └── whisper/            ← Whisper strategy JSON output
 │
 ├── models/
@@ -476,21 +460,11 @@ migrant-archive/
 │
 ├── presentation/               ← HTML slides for project demo
 │
-├── notebooks/                  ← Colab notebooks for cloud GPU processing
+└── notebooks/                  ← Colab notebooks for cloud GPU processing
 │   └── transcribe_video_colab.ipynb  ← Transcribe long videos with T4 GPU
-│
-└── notes/                      ← Decision records + research
-    ├── session-1-ingestion.md
-    ├── session-2-embeddings-research.md
-    ├── session-2-chunking-and-testing.md
-    ├── agent-tools-discovery.md
-    ├── faster-whisper-migration.md    ← Why faster-whisper over WhisperX
-    ├── langsmith-tracing.md           ← Zero-code tracing: how LangSmith hooks into LangChain
-    ├── memory-to-agents.md            ← Migration: ConversationBufferMemory → RunnableWithMessageHistory
-    ├── memory_types.md                ← Taxonomy: 7 memory types in LLM applications
-    ├── uv.md
-    └── test_questions.md       ← Pre-verified questions for vector DB demo
 ```
+
+> The `openspec/` directory contains the full SDD technical documentation (specs, designs, proposals, archives) for anyone who wants to understand the technical decisions behind each feature.
 
 </details>
 
@@ -540,7 +514,7 @@ Defaults: `large-v3` model, `--device cuda`. Saves to Google Drive (`migrant-arc
 
 > **Source:** [`backend/core/ingestion_audio.py`](backend/core/ingestion_audio.py) · shared contract: [`backend/core/ingestion.py`](backend/core/ingestion.py)
 >
-> **Why faster-whisper over WhisperX?** WhisperX adds speaker diarisation and word-level alignment but is incompatible with Google Colab as of mid-2026 (NumPy/CUDA conflicts). faster-whisper uses the same Whisper large-v3 model with zero dependency issues. FILMIG content is mostly single-speaker. faster-whisper was chosen for its zero dependency issues and Colab compatibility. Full decision: [`notes/faster-whisper-migration.md`](notes/faster-whisper-migration.md).
+> **Why faster-whisper over WhisperX?** WhisperX adds speaker diarisation and word-level alignment but is incompatible with Google Colab as of mid-2026 (NumPy/CUDA conflicts). faster-whisper uses the same Whisper large-v3 model with zero dependency issues. FILMIG content is mostly single-speaker. faster-whisper was chosen for its zero dependency issues and Colab compatibility. Full decision: faster-whisper-migration.md.
 
 Good quality at zero cost. Runs entirely on your machine — no API, no uploads. Good fallback for short videos when Colab is unavailable.
 
@@ -722,7 +696,7 @@ Three scenarios: first-time creation, adding new videos, and reading stored data
 **Simplest path — use the rebuild script:**
 
 ```bash
-source .venv/bin/activate                          # or: conda activate migrant-archive
+source .venv/bin/activate
 
 # This chunks, embeds, and stores ALL whisper JSON files
 python backend/scripts/rebuild_index.py
@@ -1022,7 +996,7 @@ python backend/scripts/rebuild_index.py
 
 **`backend/scripts/cero-01.py` — Conversational RAG with LangChain**
 
-124 lines. The bridge between `rag_test.py` (search only) and `agent_cli.py` (full agent with tools). Built entirely with LangChain: `ConversationalRetrievalChain` orchestrates retrieval + generation, `ConversationBufferWindowMemory` handles the sliding window, `Chroma` + `GoogleGenerativeAIEmbeddings` replace the manual vector store and embedding classes. Zero imports from `backend/core/`.
+123 lines. The bridge between `rag_test.py` (search only) and `agent_cli.py` (full agent with tools). Built entirely with LangChain: `ConversationalRetrievalChain` orchestrates retrieval + generation, `ConversationBufferWindowMemory` handles the sliding window, `Chroma` + `GoogleGenerativeAIEmbeddings` replace the manual vector store and embedding classes. Zero imports from `backend/core/`.
 
 ```bash
 uv run python backend/scripts/cero-01.py "¿cómo describen el dolor de migrar?"
@@ -1030,7 +1004,7 @@ uv run python backend/scripts/cero-01.py --verbose "¿qué sentimientos expresan
 uv run python backend/scripts/cero-01.py           # REPL mode with history command
 ```
 
-Key features: answers in Spanish with video/timestamp citations, remembers 5 conversation turns via sliding window buffer, returns source documents with `--verbose`, handles API errors gracefully. The `SYSTEM_PROMPT` is a standalone constant — editable without touching chain logic. See [`notes/Cero-01-checklist.md`](notes/Cero-01-checklist.md) for the full evolution from shebang to conversational AI.
+Key features: answers in Spanish with video/timestamp citations, remembers 5 conversation turns via sliding window buffer, returns source documents with `--verbose`, handles API errors gracefully. The `SYSTEM_PROMPT` is a standalone constant — editable without touching chain logic. See Cero-01-checklist.md for the full evolution from shebang to conversational AI.
 
 </details>
 
@@ -1060,6 +1034,31 @@ User → agent_cli.py → Tool Calling Agent (LangChain)
                          ├── Gemini 2.5 Flash (LLM)
                          └── RunnableWithMessageHistory + InMemoryChatMessageHistory
 ```
+
+##### Agent factory ([`agent.py`](backend/agents/agent.py))
+
+`create_agent()` builds the complete agent pipeline:
+
+1. **LLM**: `ChatGoogleGenerativeAI` with `gemini-2.5-flash` (overridable via
+   `GEMINI_MODEL` env var), temperature 0.2, and
+   `function_calling_config: { mode: "ANY" }` to force structured tool calls.
+2. **Tools**: `list_videos`, `get_video_info`, `search_transcripts` — each
+   receives a `Chroma` vector store configured with
+   `GoogleGenerativeAIEmbeddings` ("gemini-embedding-2") and the
+   `migrant_archive` collection.
+3. **Prompt**: `ChatPromptTemplate` with system prompt, optional chat history,
+   human input, and agent scratchpad. The `{language}` placeholder is resolved
+   at invoke time via `LANGUAGE_NAMES` (ISO code → full name).
+4. **Executor**: `AgentExecutor` with `max_iterations=10` and
+   `return_intermediate_steps=True` so sources can be parsed from tool
+   observations.
+5. **Output normalization**: `_normalize_output()` handles Gemini's
+   list-of-parts response format, converting it to a plain string for
+   downstream consumers.
+6. **Memory**: `RunnableWithMessageHistory` wraps the executor, routing each
+   `session_id` to its own `BoundedChatMessageHistory` (10 messages = 5 Q&A
+   turns). History is stored in-memory (a `dict[str, BoundedChatMessageHistory]`)
+   and cleared on CLI exit or `DELETE /api/session/{id}`.
 
 #### Tools and data sources
 
@@ -1132,7 +1131,7 @@ uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 
 ### S07 — LangSmith, API + Chat Widget
 
-> Sources: [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/`](frontend/src/) (7 modules)
+> Sources: [`backend/api/main.py`](backend/api/main.py) · [`backend/api/routes/chat.py`](backend/api/routes/chat.py) · [`frontend/src/chat-widget.ts`](frontend/src/chat-widget.ts) · [`frontend/src/`](frontend/src/) (7 modules)
 
 The **Cero** agent is exposed as a REST API with LangSmith tracing and an embeddable chat widget.
 
@@ -1173,6 +1172,7 @@ uv run uvicorn backend.api.main:app --reload --port 8000
 | Endpoint | Method | Request | Response |
 |----------|--------|---------|----------|
 | `/api/ask` | POST | `{"question": "string", "session_id": "string"}` | `{"answer": "string", "sources": [...]}` |
+| `/api/transcribe` | POST | `multipart audio file + optional language query param` | `{"text": "string"}` |
 | `/api/session/{session_id}` | DELETE | — | `{"session_id": "string", "cleared": bool}` |
 
 Each source: `video_id`, `title`, `start_time`, `end_time`, `text`. Session defaults to `"default"`. Errors: `422` (empty question), `503` (no API key).
@@ -1193,6 +1193,67 @@ cd frontend && pnpm install && pnpm dev
 
 Open `http://localhost:5173`. Cero avatar floating bottom-right — click to open the side panel. Zero-state shows a greeting and three clickable suggestion cards. Type a question or click a suggestion. Agent responses include clickable YouTube links inline. Dark theme, responsive (full-width below 640px). Keyboard accessible (Escape to close, Enter to send, Tab navigation).
 
+The widget uses `/cero-agent-icon.png` as the Cero avatar across all states: FAB button, panel header, and zero-state greeting.
+
+#### Frontend Architecture
+
+The chat widget is built as 8 independent ES modules wired together by a single
+orchestrator. Each module is a focused, testable unit.
+
+| Module | File | Role |
+|--------|------|------|
+| Bootstrap | [`main.ts`](frontend/src/main.ts) | Mounts the widget on `DOMContentLoaded` |
+| Orchestrator | [`chat-widget.ts`](frontend/src/chat-widget.ts) | State, wiring, session lifecycle, API calls |
+| FAB | [`fab.ts`](frontend/src/fab.ts) | Floating action button with avatar + ARIA |
+| Panel | [`panel.ts`](frontend/src/panel.ts) | Side panel shell (30%), language selector, refresh |
+| Zero-state | [`zero-state.ts`](frontend/src/zero-state.ts) | Greeting + 3 clickable suggestion cards |
+| Input bar | [`input-bar.ts`](frontend/src/input-bar.ts) | Text input + send button + voice recording |
+| Message list | [`message-list.ts`](frontend/src/message-list.ts) | Conversation rendering + source citations |
+| API client | [`api-client.ts`](frontend/src/api-client.ts) | Typed fetch wrapper, 60s timeout, error normalization |
+
+##### Orchestrator ([`chat-widget.ts`](frontend/src/chat-widget.ts))
+
+The `ChatWidget` class manages all widget state and wires modules together.
+It does not render UI itself — every module owns its own DOM.
+
+**Session lifecycle:**
+- On construction, a `session_id` is generated via `crypto.randomUUID()`
+- The language is loaded from `localStorage` (key: `migrant-archive-lang`)
+- Changing the language or resetting the conversation generates a new
+  `session_id` and clears the backend session via `DELETE /api/session/{id}`
+- A confirm dialog (i18n) guards the reset action
+
+**State transitions:**
+```
+closed ──FAB click──► open (zero-state visible)
+                         │
+                    suggestion click
+                    or typed question
+                         │
+                         ▼
+                      loading (message list visible, input disabled)
+                         │
+                    API response
+                         │
+                    ┌────┴────┐
+                    ▼         ▼
+                 answer    error
+                 rendered   message
+```
+
+**Key behaviors:**
+- FAB is hidden while the panel is open, restored on close
+- Escape key closes the panel
+- `setLanguage()` propagates to all 6 modules, resets session if conversation has started
+- Loading state disables input, send, and voice buttons to prevent double-submit
+
+##### Dev server proxy ([`vite.config.ts`](frontend/vite.config.ts))
+
+The Vite dev server proxies `/api/*` requests to the FastAPI backend at
+`localhost:8000` with a 120-second timeout. This means the frontend calls
+`/api/ask` and `/api/transcribe` without hardcoded hostnames — the proxy
+handles routing in development. The `build.outDir` is `dist/`.
+
 </details>
 
 <details>
@@ -1200,7 +1261,7 @@ Open `http://localhost:5173`. Cero avatar floating bottom-right — click to ope
 
 ### S08 — Frontend + Deploy
 
-> Sources: [`frontend/src/`](frontend/src/) · [`presentation/migrant-archive-slides.html`](presentation/migrant-archive-slides.html)
+> Sources: [`frontend/src/`](frontend/src/) · [`presentation/migrant-archive-slides.html`](presentation/migrant-archive-slides.html) · [`transcribe.py`](backend/api/routes/transcribe.py) · [`input-bar.ts`](frontend/src/input-bar.ts) · [`main.py`](backend/api/main.py)
 
 The final phase: presentation, deploy, polish, and voice input. See [Progress Dashboard](#progress-dashboard) for current priority order.
 
@@ -1208,20 +1269,128 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 
 - **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button, dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
 - **Presentation** (`presentation/migrant-archive-slides.html`): 18-slide HTML deck
-- **Voice input**: complete via Groq Whisper API (`whisper-large-v3-turbo`), free tier 2000 requests/day. 30-second maximum recording with visual countdown (last 3 seconds). Manual stop or auto-stop at 30s. Error handling for permission denied, network errors, empty speech, and service unavailable. Works in all browsers (Chrome, Firefox, Brave, Safari).
+- **Voice input** ([`input-bar.ts`](frontend/src/input-bar.ts) + [`transcribe.py`](backend/api/routes/transcribe.py)): complete via Groq Whisper API (`whisper-large-v3-turbo`), free tier 2000 requests/day. 30-second maximum recording with visual countdown (last 3 seconds). Manual stop or auto-stop at 30s. Error handling for permission denied, network errors, empty speech, and service unavailable. Works in all browsers (Chrome, Firefox, Brave, Safari).
 - **Multilingual support**: language selector dropdown in panel header with 6 languages (EN/ES/CA/FR/PT/DE). Type-to-filter and keyboard navigation. Selected language persists in localStorage. Session resets on language change. All UI text translates: greeting, suggestions, input bar, error messages, and confirm dialogs. Backend uses dynamic agent prompt via language parameter and Groq transcription language hint. Agent responds in the selected language.
 
 #### Voice
 
-- **Backend**: `POST /api/transcribe` uses Groq Whisper API (`whisper-large-v3-turbo`)
+Voice input is a browser-capture → backend-proxy → Groq transcription pipeline. The browser records audio with `MediaRecorder`, sends it to the FastAPI `/api/transcribe` endpoint, and receives plain text back.
+
+```
+Browser                         Backend                        Groq Cloud
+───────                         ───────                        ──────────
+MediaRecorder ──POST /api/transcribe──► transcribe.py ──► whisper-large-v3-turbo
+     ◄────────── { text } ────────────◄──── { text } ────────────◄
+```
+
+##### Backend implementation ([`transcribe.py`](backend/api/routes/transcribe.py))
+
+- **File**: [`transcribe.py`](backend/api/routes/transcribe.py) (129 lines)
+- **SDK**: uses the `groq` Python package with an `AsyncGroq` client
+- **Pattern**: lazy singleton — `_get_client()` creates the `AsyncGroq` instance once and reuses it across requests
+- **Model**: `whisper-large-v3-turbo`, response format `json`
+- **Flow**: receives a multipart `UploadFile`, validates size (25 MB max), language code, and non-empty payload, then forwards the bytes directly to Groq without writing to disk, and returns `TranscribeResponse { text }`
 - **Requirement**: `GROQ_API_KEY` in `.env`
-- **UX**: 30-second recording limit, visual countdown (last 3 seconds), manual stop or auto-stop at 30s
-- **Error classification**: permission denied, network errors, empty speech, service unavailable
+
+All HTTP errors in the table below are raised from [`transcribe.py`](backend/api/routes/transcribe.py):
+
+| Status | Cause |
+|--------|-------|
+| `400` | bad request, empty audio, or invalid language |
+| `413` | file too large |
+| `422` | no speech detected |
+| `429` | Groq rate limit |
+| `503` | service unavailable or authentication failure |
+| `504` | timeout |
+
+##### Frontend implementation ([`input-bar.ts`](frontend/src/input-bar.ts))
+
+- **File**: [`input-bar.ts`](frontend/src/input-bar.ts) (564 lines)
+- **Capture**: `MediaRecorder` API with MIME negotiation: `audio/webm;codecs=opus` → `audio/webm` → `audio/mp4` (Safari fallback)
+- **State machine**:
+
+  ```
+  idle ──click──► listening ──start──► recording ──stop──► processing ──► success
+                       │                    │                  │              │
+                       ▼                    ▼                  ▼              ▼
+                   permission          auto-stop           error hint      text in
+                   denied hint         at 30s              displayed       input field
+  ```
+
+- **UX details**:
+  - visual countdown (last 3 seconds shown in the placeholder)
+  - manual stop or auto-stop at 30 seconds
+  - success flash (green ring for 2 seconds)
+  - error hints: permission denied, no speech, connection error, service unavailable, audio too large
+- **Language hint**: passes the selected UI language as a `?language=` query parameter so Groq can optimize transcription
+
+##### Data model ([`models.py`](backend/api/models.py))
+
+- **File**: [`models.py`](backend/api/models.py)
+- **`TranscribeResponse`**: `{ text: string }`
+- **`ALLOWED_LANGUAGES`**: `{"en", "es", "ca", "fr", "pt", "de"}` — validated on both the frontend (type-to-filter) and the backend (Pydantic validator plus the language check in [`transcribe.py`](backend/api/routes/transcribe.py))
+
+#### Backend API Architecture
+
+The FastAPI backend serves two route groups from a single process. Every request is independent — session state is isolated per `session_id`.
+
+##### App factory ([`main.py`](backend/api/main.py))
+
+- `create_app()` builds the FastAPI instance with CORS middleware (default origins: `localhost:5173` for the Vite dev server)
+- mounts two routers under `/api`: `chat` (`POST /api/ask`, `DELETE /api/session/{id}`) and `transcribe` (`POST /api/transcribe`)
+- custom validation error handler returns structured 422 responses
+
+##### Agent singleton ([`dependencies.py`](backend/api/dependencies.py))
+
+- `get_agent()` creates the LangChain agent once and caches it globally
+- the agent is wrapped with `RunnableWithMessageHistory` so each `session_id` gets its own isolated conversation history
+- raises 503 if `GEMINI_API_KEY` is not configured
+- the `create_agent()` factory is imported from [`agent.py`](backend/agents/agent.py)
+
+##### Chat route ([`chat.py`](backend/api/routes/chat.py))
+
+- `POST /api/ask` — accepts `AskRequest { question, session_id, language }`, invokes the agent with the session config, returns `AskResponse { answer, sources[] }`
+- `DELETE /api/session/{id}` — clears the message history for that session
+- YouTube links are generated in the backend (deterministic, no HTML injection)
+- sources are parsed from agent intermediate steps and include `video_id`, `title`, `start_time`, `end_time`, and `text`
+
+##### Transcription route ([`transcribe.py`](backend/api/routes/transcribe.py))
+
+- `POST /api/transcribe` — documented in the Voice section above
+
+##### YouTube linkification ([`chat.py`](backend/api/routes/chat.py))
+
+Agent answers contain bare YouTube video IDs. Before the response reaches the
+browser, `linkify_answer()` replaces each video ID with a clickable
+`<a href="https://www.youtube.com/watch?v=VIDEO_ID&t=SECONDS">` tag while
+HTML-escaping all surrounding text. The replacement uses a negative
+lookbehind regex to avoid double-linking URLs already present. Each source's
+`start_time` is converted to seconds via `_parse_time_to_seconds()` which
+handles `HH:MM:SS`, `MM:SS`, and bare-seconds formats.
+
+##### Source parsing ([`chat.py`](backend/api/routes/chat.py))
+
+Agent tool observations (from `search_transcripts`) are plain text blocks.
+`parse_sources()` extracts structured `Source` objects via a regex that
+matches the `search_transcripts` output format:
+
+```
+[N] Title [Speaker] (start–end) | VIDEO_ID
+Text content
+```
+
+Each extracted source includes `video_id`, `title`, `start_time`, `end_time`,
+and `text`. Speaker tags appended by `tools.py` (e.g. `[Lucia Mbomio]`) are
+stripped from the title. Empty or missing intermediate steps return an empty
+list gracefully.
 
 #### Internationalization
 
 - **Language selector**: dropdown in panel header (ENG circle + chevron)
 - **6 languages**: EN/ES/CA/FR/PT/DE with full i18n across zero-state, input-bar (20+ strings), FAB, message-list, and panel
+- **Allowed languages**: defined in `ALLOWED_LANGUAGES` in `backend/api/models.py`
+- **Flow**: the language parameter flows through `AskRequest.language` → agent prompt → LLM response language
+- **Codes**: the language selector uses ISO 639-1 codes (EN, ES, CA, FR, PT, DE)
 - **Backend**: dynamic agent prompt via language parameter; Groq transcription receives a language hint
 - **Behavior**: agent responds in the selected language; session resets on language change
 
@@ -1249,20 +1418,17 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 source .venv/bin/activate
 python -m pytest tests/ -v
 
-# Conda environment
-conda activate migrant-archive
-python -m pytest tests/ -v
 ```
 
 **Results:** 223 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
-| Unit | 54 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
-| Integration | 58 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
+| Unit | 53 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | 53 unit tests covering contract enforcement, chunking logic, CRUD operations, timestamp helpers |
+| Integration | 64 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | 64 integration tests covering real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
 | Agent | 34 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
 | Speaker | 10 | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
-| Frontend | 55 | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
+| Frontend | 57 | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
 | Observability | 3 | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
 
@@ -1285,8 +1451,8 @@ Weekly presentations to Ironhack instructors. Each checkpoint evaluates specific
 Complete 4-week development plan: architecture, timeline, technology choices, and strategy before any code.
 
 **Evidence:**
-- `notes/proyect_description/plan-1.md` — architecture decisions, tech stack, timeline
-- `notes/proyect_description/project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — business case and deliverable requirements
+- `plan-1.md` — architecture decisions, tech stack, timeline
+- `project-3-business-case-multimodal-ai-chatbot-for-yt-video-qa/README.md` — business case and deliverable requirements
 
 #### Checkpoint 2 — Sat 20 Jun: Vector Database Q&A Demo
 
@@ -1312,7 +1478,6 @@ python backend/scripts/rag_test.py              # interactive Q&A
 **Evidence files:**
 - `backend/scripts/rag_test.py` — interactive RAG query script
 - `backend/scripts/extract_sample.py` — sequential data extraction (data roundtrip)
-- `notes/test_questions.md` — pre-verified demo questions
 
 **Sample extraction usage:**
 
@@ -1423,6 +1588,6 @@ Criteria not yet defined by Ironhack.
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
 - Chat widget (Vite + TypeScript, FAB + side panel, dark theme, 7 modules)
 - Presentation slides (`presentation/migrant-archive-slides.html`, 18 slides)
-- 224 passed, 1 skipped, 0 failed
+- 223 passed, 1 skipped, 0 failed
 
 </details>
