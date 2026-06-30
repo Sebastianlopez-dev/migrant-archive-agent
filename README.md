@@ -12,7 +12,7 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 | 1 | Ingestion + Processing | S01–S03 complete | — |
 | 2 | Agents + Testing | S04–S06 complete | — |
 | 3 | Observability + API | S07 complete | — |
-| 4 | Frontend + Deploy | Presentation | Deploy, voice input (partial) |
+| 4 | Frontend + Deploy | Presentation | Deploy |
 
 ---
 
@@ -64,12 +64,13 @@ FILMIG / Plataforma Cero (YouTube)
                    │  embeddable widget          │
                   └────────────┬────────────────┘
                                ▼
-                       ┌─ S08 ──────────────┐
-                       │  Frontend + Deploy │
-                       │  Presentation      │
-                       │  Widget redesigned │
-                       │  Voice (partial)   │
-                       └────────────────────┘
+                        ┌─ S08 ──────────────┐
+                        │  Frontend + Deploy │
+                        │  Presentation      │
+                        │  Widget redesigned │
+                        │  Voice (Groq)      │
+                        │  i18n (6 languages)│
+                        └────────────────────┘
 ```
 
 <details>
@@ -153,14 +154,21 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S08 — Frontend + Deploy: 1 decision · 1 completed · 3 pending</summary>
+<summary>S08 — Frontend + Deploy: 1 decision · 5 completed · 1 pending</summary>
 
 **Decisions:**
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
 
-**Completed:** [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 18-slide HTML deck · Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button (Web Speech API primary; MediaRecorder + backend `/api/transcribe` fallback implemented in frontend, backend route disconnected due to OpenMP conflict on server startup). Dark theme, responsive, keyboard navigation, ARIA accessibility.
+**Completed:**
+- [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 18-slide HTML deck
+- Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button, dark theme, responsive, keyboard navigation, ARIA accessibility
+- Voice input is COMPLETE — Groq Whisper API (`whisper-large-v3-turbo`), 30s max recording with countdown, works in all browsers
+- Multilingual support: 6 languages (EN/ES/CA/FR/PT/DE) with language selector in panel header
+- I18N across all modules: zero-state, input-bar, message-list, FAB, panel
+- Custom circular UI: all buttons (send, mic, language, refresh, close) are circular
+- New Cero avatar icon (`cero-gretings.png`)
 
-**Pending:** deploy to production · voice input (Web Speech API functional; backend `/api/transcribe` fallback disconnected — see `backend/api/routes/transcribe.py`)
+**Pending:** deploy to production
 
 </details>
 
@@ -1198,9 +1206,24 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 
 #### What's done
 
-- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button (dual-strategy: Web Speech API primary + MediaRecorder/backend fallback), dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
+- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button, dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
 - **Presentation** (`presentation/migrant-archive-slides.html`): 18-slide HTML deck
-- **Voice input**: Web Speech API transcription works in Chrome/Edge. Backend fallback (`POST /api/transcribe` via faster-whisper) is implemented but disconnected from the server due to an OpenMP library conflict (`OMP Error #15`) that crashes the server on startup. The route code lives in `backend/api/routes/transcribe.py` — ready to reconnect once the OpenMP issue is resolved or a separate transcription service is used.
+- **Voice input**: complete via Groq Whisper API (`whisper-large-v3-turbo`), free tier 2000 requests/day. 30-second maximum recording with visual countdown (last 3 seconds). Manual stop or auto-stop at 30s. Error handling for permission denied, network errors, empty speech, and service unavailable. Works in all browsers (Chrome, Firefox, Brave, Safari).
+- **Multilingual support**: language selector dropdown in panel header with 6 languages (EN/ES/CA/FR/PT/DE). Type-to-filter and keyboard navigation. Selected language persists in localStorage. Session resets on language change. All UI text translates: greeting, suggestions, input bar, error messages, and confirm dialogs. Backend uses dynamic agent prompt via language parameter and Groq transcription language hint. Agent responds in the selected language.
+
+#### Voice
+
+- **Backend**: `POST /api/transcribe` uses Groq Whisper API (`whisper-large-v3-turbo`)
+- **Requirement**: `GROQ_API_KEY` in `.env`
+- **UX**: 30-second recording limit, visual countdown (last 3 seconds), manual stop or auto-stop at 30s
+- **Error classification**: permission denied, network errors, empty speech, service unavailable
+
+#### Internationalization
+
+- **Language selector**: dropdown in panel header (ENG circle + chevron)
+- **6 languages**: EN/ES/CA/FR/PT/DE with full i18n across zero-state, input-bar (20+ strings), FAB, message-list, and panel
+- **Backend**: dynamic agent prompt via language parameter; Groq transcription receives a language hint
+- **Behavior**: agent responds in the selected language; session resets on language change
 
 #### Deploy options (TBD)
 
@@ -1231,7 +1254,7 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 224 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
+**Results:** 223 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|

@@ -264,7 +264,7 @@ def test_fab_creates_button_with_avatar_and_aria():
     assert "chat-panel" in source
     assert "aria-expanded" in source
     assert "aria-label" in source
-    assert "/cerito-avatar.svg" in source
+    assert "/cero-gretings.png" in source
     assert "addEventListener('click'" in source or 'addEventListener("click"' in source
 
 

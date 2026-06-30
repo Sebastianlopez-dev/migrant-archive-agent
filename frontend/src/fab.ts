@@ -2,9 +2,7 @@
  * Floating Action Button module for the chat widget.
  *
  * Renders a fixed circular button in the bottom-right corner that toggles
- * the chat panel. The button is intentionally stateless: the orchestrator
- * decides when to show or hide it by attaching/removing it from the DOM or
- * toggling a CSS class.
+ * the chat panel.
  */
 
 export interface FabApi {
@@ -25,10 +23,6 @@ const FAB_I18N: Record<string, string> = {
 
 /**
  * Create a Floating Action Button that opens the chat panel.
- *
- * @param language - ISO code for the display language (default: `en`).
- * @param onClick - Callback invoked when the user clicks the FAB.
- * @returns The button element and a language setter.
  */
 export function createFab(language = 'en', onClick: () => void): FabApi {
   let currentLanguage = language;
@@ -46,10 +40,10 @@ export function createFab(language = 'en', onClick: () => void): FabApi {
   refreshLabel();
 
   const avatar = document.createElement('img');
-  avatar.src = '/cerito-avatar.svg';
+  avatar.src = '/cero-idea03.png';
   avatar.alt = 'Cero';
-  avatar.width = 42;
-  avatar.height = 42;
+  avatar.width = 63;
+  avatar.height = 63;
 
   button.appendChild(avatar);
   button.addEventListener('click', onClick);

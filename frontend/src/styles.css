@@ -50,8 +50,8 @@
   right: 1.25rem;
   bottom: 1.25rem;
   z-index: 1001;
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   border: none;
   padding: 0;
@@ -66,8 +66,8 @@
 }
 
 .chat-fab img {
-  width: 42px;
-  height: 42px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -139,9 +139,10 @@
 }
 
 .chat-panel-title img {
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
+  object-fit: cover;
 }
 
 .chat-panel-actions {
@@ -744,7 +745,7 @@
     max-width: none;
   }
 
-  .chat-fab {
+.chat-fab {
     right: 1rem;
     bottom: 1rem;
     width: 56px;
