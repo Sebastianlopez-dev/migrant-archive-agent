@@ -129,7 +129,7 @@ async def ask(request: AskRequest, agent=Depends(get_agent)) -> AskResponse:
         result = await asyncio.wait_for(
             run_in_threadpool(
                 agent.invoke,
-                {"input": request.question},
+                {"input": request.question, "language": request.language},
                 {"configurable": {"session_id": request.session_id}},
             ),
             timeout=90.0,

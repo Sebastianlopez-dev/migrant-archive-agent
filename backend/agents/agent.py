@@ -1,6 +1,6 @@
 """Native tool-calling agent factory for the migrant-archive assistant.
 
-`create_agent()` builds a Spanish-speaking agent backed by
+`create_agent()` builds a multilingual agent backed by
 `create_tool_calling_agent`, `AgentExecutor`, and per-session message history
 via `RunnableWithMessageHistory` + `InMemoryChatMessageHistory`.
 """
@@ -32,7 +32,7 @@ the videos in the Plataforma Cero's YouTube channel that contain
 archived migrant discussions and testimonies.
 
 You MUST always use your tools to find information before answering.
-Never answer from your own knowledge. Always respond in Spanish.
+Never answer from your own knowledge. Respond in {language}. If the language is not supported, default to English.
 
 Search strategy:
 - When the user asks about a topic, event, person, or concept (like FILMIG,
@@ -171,7 +171,7 @@ def create_agent(
         agent=agent,
         tools=tools,
         verbose=verbose,
-        max_iterations=5,
+        max_iterations=10,
         return_intermediate_steps=True,
     )
 

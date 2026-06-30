@@ -25,16 +25,25 @@ export class ChatWidget {
   private isOpen = false;
   private hasStarted = false;
   private isLoading = false;
+  private language = 'en';
 
   constructor(root: HTMLElement) {
     this.root = root;
     this.root.classList.add('chat-widget');
     this.sessionId = crypto.randomUUID();
 
+    const savedLang = localStorage.getItem('migrant-archive-lang');
+    const ALLOWED_LANGS = ['en', 'es', 'ca', 'fr', 'pt', 'de'];
+    if (savedLang && ALLOWED_LANGS.includes(savedLang)) {
+      this.language = savedLang;
+    }
+
     this.fab = createFab(() => this.openPanel());
     this.panelSlots = createPanel(
       () => this.closePanel(),
       () => this.resetConversation(),
+      (lang) => this.setLanguage(lang),
+      this.language,
     );
     this.zeroState = createZeroState((question) => this.selectSuggestion(question));
     this.inputBar = createInputBar((question) => this.sendMessage(question));
@@ -77,6 +86,18 @@ export class ChatWidget {
     }
   }
 
+  setLanguage(lang: string): void {
+    if (this.language === lang) return;
+    this.language = lang;
+    localStorage.setItem('migrant-archive-lang', lang);
+    this.inputBar.setVoiceLanguage(lang);
+    this.panelSlots.setLanguage(lang);
+
+    if (this.hasStarted) {
+      this._doReset();
+    }
+  }
+
   resetConversation(): void {
     if (!this.hasStarted) return;
 
@@ -85,6 +106,11 @@ export class ChatWidget {
     );
     if (!confirmed) return;
 
+    this._doReset();
+    this.inputBar.focus();
+  }
+
+  private _doReset(): void {
     void clearSession(this.sessionId);
 
     this.isLoading = false;
@@ -97,8 +123,6 @@ export class ChatWidget {
       this.panelSlots.contentSlot.removeChild(this.messageList.element);
     }
     this.panelSlots.contentSlot.appendChild(this.zeroState);
-
-    this.inputBar.focus();
   }
 
   private updateVisibility(): void {
@@ -134,7 +158,7 @@ export class ChatWidget {
     this.setLoading(true);
 
     try {
-      const response = await ask(this.sessionId, text);
+      const response = await ask(this.sessionId, text, this.language);
       this.messageList.addAgentResponse(response);
     } catch (error) {
       const message =

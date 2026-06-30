@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Source(BaseModel):
@@ -15,11 +15,24 @@ class Source(BaseModel):
     text: str
 
 
+ALLOWED_LANGUAGES = {"en", "es", "ca", "fr", "pt", "de"}
+
+
 class AskRequest(BaseModel):
     """Body schema for POST /api/ask."""
 
     question: str = Field(..., min_length=1)
     session_id: str = Field(default="default", min_length=1)
+    language: str = Field(default="en", min_length=2, max_length=5)
+
+    @field_validator("language")
+    @classmethod
+    def validate_language(cls, v: str) -> str:
+        if v not in ALLOWED_LANGUAGES:
+            raise ValueError(
+                f"Unsupported language code: {v}. Supported: {', '.join(sorted(ALLOWED_LANGUAGES))}."
+            )
+        return v
 
 
 class AskResponse(BaseModel):

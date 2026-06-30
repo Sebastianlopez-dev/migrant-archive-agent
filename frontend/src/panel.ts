@@ -18,6 +18,8 @@ export interface PanelSlots {
   contentSlot: HTMLElement;
   /** Container where the input bar is rendered. */
   footerSlot: HTMLElement;
+  /** Set the language select value programmatically. */
+  setLanguage: (lang: string) => void;
 }
 
 /**
@@ -26,14 +28,21 @@ export interface PanelSlots {
  * @param onClose - Callback invoked when the user clicks the close button
  *                  or presses Escape inside the panel.
  * @param onRefresh - Callback invoked when the user clicks the refresh button.
+ * @param onLanguageChange - Callback invoked when the user changes the language.
+ * @param initialLanguage - Initial language for the select (default 'en').
  * @returns The panel element and its content/footer slots.
  */
-export function createPanel(onClose: () => void, onRefresh: () => void): PanelSlots {
+export function createPanel(
+  onClose: () => void,
+  onRefresh: () => void,
+  onLanguageChange: (lang: string) => void,
+  initialLanguage = 'en',
+): PanelSlots {
   const panel = document.createElement('section');
   panel.id = 'chat-panel';
   panel.className = 'chat-panel';
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', 'Chat con Cero');
+  panel.setAttribute('aria-label', 'Chat with Cero');
 
   const header = document.createElement('header');
   header.className = 'chat-panel-header';
@@ -56,20 +65,41 @@ export function createPanel(onClose: () => void, onRefresh: () => void): PanelSl
   const headerActions = document.createElement('div');
   headerActions.className = 'chat-panel-actions';
 
+  const langSelect = document.createElement('select');
+  langSelect.className = 'chat-panel-lang';
+  langSelect.setAttribute('aria-label', 'Select language');
+  const languages = [
+    { value: 'en', label: 'English' },
+    { value: 'es', label: 'Español' },
+    { value: 'ca', label: 'Català' },
+    { value: 'fr', label: 'Français' },
+    { value: 'pt', label: 'Português' },
+    { value: 'de', label: 'Deutsch' },
+  ];
+  languages.forEach(({ value, label }) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    langSelect.appendChild(option);
+  });
+  langSelect.value = initialLanguage;
+  langSelect.addEventListener('change', () => onLanguageChange(langSelect.value));
+
   const refreshButton = document.createElement('button');
   refreshButton.className = 'chat-panel-refresh';
   refreshButton.type = 'button';
-  refreshButton.setAttribute('aria-label', 'Reiniciar conversación');
+  refreshButton.setAttribute('aria-label', 'Restart conversation');
   refreshButton.innerHTML = REFRESH_ICON;
   refreshButton.addEventListener('click', onRefresh);
 
   const closeButton = document.createElement('button');
   closeButton.className = 'chat-panel-close';
   closeButton.type = 'button';
-  closeButton.setAttribute('aria-label', 'Cerrar chat');
+  closeButton.setAttribute('aria-label', 'Close chat');
   closeButton.innerHTML = CLOSE_ICON;
   closeButton.addEventListener('click', onClose);
 
+  headerActions.appendChild(langSelect);
   headerActions.appendChild(refreshButton);
   headerActions.appendChild(closeButton);
 
@@ -92,5 +122,9 @@ export function createPanel(onClose: () => void, onRefresh: () => void): PanelSl
     }
   });
 
-  return { element: panel, contentSlot, footerSlot };
+  function setLanguage(lang: string): void {
+    langSelect.value = lang;
+  }
+
+  return { element: panel, contentSlot, footerSlot, setLanguage };
 }

@@ -49,7 +49,7 @@ const ASK_TIMEOUT_MS = 60_000;
  * The request is aborted automatically after 60 seconds. Non-200 responses,
  * network failures, and aborts are normalized into `ApiClientError`.
  */
-export async function ask(sessionId: string, question: string): Promise<AskResponse> {
+export async function ask(sessionId: string, question: string, language = 'en'): Promise<AskResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ASK_TIMEOUT_MS);
 
@@ -57,7 +57,7 @@ export async function ask(sessionId: string, question: string): Promise<AskRespo
     const response = await fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, session_id: sessionId }),
+      body: JSON.stringify({ question, session_id: sessionId, language }),
       signal: controller.signal,
     });
 
@@ -106,12 +106,4 @@ export async function clearSession(sessionId: string): Promise<void> {
   }
 }
 
-/**
- * Convenience wrapper that asks using the default session id.
- *
- * Prefer `ask(sessionId, question)` when the caller manages its own
- * conversation session.
- */
-export async function askQuestion(question: string): Promise<AskResponse> {
-  return ask('default', question);
-}
+
