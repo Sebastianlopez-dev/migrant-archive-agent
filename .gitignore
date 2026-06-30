@@ -17,3 +17,7 @@ data/chroma/
 
 frontend/node_modules/
 frontend/dist/
+
+# Local-only: legacy backup and research notes
+backend/scripts/agent_cli_monolitic.py
+notes/

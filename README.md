@@ -12,7 +12,7 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 | 1 | Ingestion + Processing | S01–S03 complete | — |
 | 2 | Agents + Testing | S04–S06 complete | — |
 | 3 | Observability + API | S07 complete | — |
-| 4 | Frontend + Deploy | Presentation | Deploy, voice input |
+| 4 | Frontend + Deploy | Presentation | Deploy, voice input (partial) |
 
 ---
 
@@ -68,7 +68,7 @@ FILMIG / Plataforma Cero (YouTube)
                        │  Frontend + Deploy │
                        │  Presentation      │
                        │  Widget redesigned │
-                       │  Voice placeholder │
+                       │  Voice (partial)   │
                        └────────────────────┘
 ```
 
@@ -158,9 +158,9 @@ FILMIG / Plataforma Cero (YouTube)
 **Decisions:**
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
 
-**Completed:** [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 20-slide HTML deck · Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice/model placeholders, dark theme, responsive, keyboard navigation, ARIA accessibility.
+**Completed:** [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 18-slide HTML deck · Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button (Web Speech API primary; MediaRecorder + backend `/api/transcribe` fallback implemented in frontend, backend route disconnected due to OpenMP conflict on server startup). Dark theme, responsive, keyboard navigation, ARIA accessibility.
 
-**Pending:** deploy to production · voice input (Web Speech API)
+**Pending:** deploy to production · voice input (Web Speech API functional; backend `/api/transcribe` fallback disconnected — see `backend/api/routes/transcribe.py`)
 
 </details>
 
@@ -453,6 +453,7 @@ migrant-archive/
 │   ├── test_ingestion.py       ← VideoData + timestamp helper tests
 │   ├── test_faster_whisper_audio.py ← faster-whisper strategy tests
 │   ├── test_faster_whisper_colab.py ← Colab notebook validation tests
+│   ├── test_rebuild_index.py  ← ChromaDB index rebuild tests
 │   └── test_speaker_extraction.py  ← Speaker extraction from descriptions
 │
 ├── data/
@@ -1197,8 +1198,9 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 
 #### What's done
 
-- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice/model placeholders, dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
-- **Presentation** (`presentation/migrant-archive-slides.html`): 20-slide HTML deck
+- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button (dual-strategy: Web Speech API primary + MediaRecorder/backend fallback), dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
+- **Presentation** (`presentation/migrant-archive-slides.html`): 18-slide HTML deck
+- **Voice input**: Web Speech API transcription works in Chrome/Edge. Backend fallback (`POST /api/transcribe` via faster-whisper) is implemented but disconnected from the server due to an OpenMP library conflict (`OMP Error #15`) that crashes the server on startup. The route code lives in `backend/api/routes/transcribe.py` — ready to reconnect once the OpenMP issue is resolved or a separate transcription service is used.
 
 #### Deploy options (TBD)
 
@@ -1217,7 +1219,7 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 
 ### Tests
 
-> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py)
+> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_rebuild_index.py`](tests/test_rebuild_index.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py)
 
 ```bash
 # UV environment
@@ -1229,7 +1231,7 @@ conda activate migrant-archive
 python -m pytest tests/ -v
 ```
 
-**Results:** 221 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
+**Results:** 224 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
@@ -1302,7 +1304,7 @@ python backend/scripts/extract_sample.py --chars 2000     # custom length
 
 #### Checkpoint 3 — Sat 27 Jun: Agent, Tools, and Memory
 
-**Status:** Ready
+**Status:** Done
 
 Conversational agent (Cero) with 3 tools, disambiguation, scoped semantic search, and session-based memory.
 
@@ -1397,7 +1399,7 @@ Criteria not yet defined by Ironhack.
 - LangSmith tracing (auto-tracing via env vars)
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
 - Chat widget (Vite + TypeScript, FAB + side panel, dark theme, 7 modules)
-- Presentation slides (`presentation/migrant-archive-slides.html`, 20 slides)
-- 221 passed, 1 skipped, 0 failed
+- Presentation slides (`presentation/migrant-archive-slides.html`, 18 slides)
+- 224 passed, 1 skipped, 0 failed
 
 </details>
