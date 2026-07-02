@@ -14,6 +14,24 @@ def _read_text(rel_path: str) -> str:
     return (_FRONTEND_DIR / rel_path).read_text(encoding="utf-8")
 
 
+def _extract_function_body(source: str, function_name: str) -> str:
+    """Return the body of a TypeScript function (between its outermost braces)."""
+    marker = f"function {function_name}("
+    start = source.find(marker)
+    assert start != -1, f"{function_name} not found in source"
+    open_brace = source.find("{", start)
+    depth = 0
+    for i in range(open_brace, len(source)):
+        char = source[i]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[open_brace + 1 : i]
+    raise ValueError(f"Could not find matching closing brace for {function_name}")
+
+
 # ───────────────────────── Phase 6: Frontend setup ─────────────────────────
 
 
@@ -338,6 +356,13 @@ def test_styles_css_has_light_theme_overrides():
     assert "chat-surface-rgb" in source
 
 
+def test_styles_css_light_mode_input_text_is_readable():
+    """Light-mode chat input must use a dark text color for readability."""
+    css = _read_text("src/styles.css")
+    assert "[data-theme=\"light\"] .chat-input" in css
+    assert "color: var(--gray-900)" in css
+
+
 # ───────────────────────── Phase 8.6: Content modules ─────────────────────────
 
 
@@ -488,12 +513,32 @@ def test_message_list_add_error_message_renders_error_bubble():
     assert "msg-error" in source
 
 
-def test_message_list_set_loading_shows_static_indicator():
-    """setLoading(true) must show the static thinking indicator."""
+def test_message_list_set_loading_shows_rotating_indicator():
+    """setLoading(true) must show a rotating archive-themed indicator."""
     source = _read_text("src/message-list.ts")
-    assert "Cero está pensando..." in source
+    assert "Record<string, string[]>" in source
+    assert "LOADING_I18N" in source
     assert "msg-loading" in source
     assert "setLoading" in source
+    assert "setInterval" in source
+    assert "rotationTimer" in source
+    assert "Consulting the archive..." in source
+
+
+def test_message_list_loading_messages_are_localized_arrays():
+    """Each supported language must define an array of loading messages."""
+    source = _read_text("src/message-list.ts")
+    for lang in ("en", "es", "ca", "fr", "pt", "de"):
+        assert f"{lang}: [" in source, f"LOADING_I18N must define an array for {lang}"
+    # Count at least four string literals inside each language array by locating
+    # the array block and checking for quoted entries.
+    for lang in ("en", "es", "ca", "fr", "pt", "de"):
+        start = source.find(f"{lang}:")
+        assert start != -1
+        open_bracket = source.find("[", start)
+        close_bracket = source.find("]", open_bracket)
+        block = source[open_bracket : close_bracket + 1]
+        assert block.count("'") >= 8, f"{lang} must have at least 4 single-quoted messages"
 
 
 def test_message_list_set_loading_false_hides_indicator():
@@ -501,6 +546,12 @@ def test_message_list_set_loading_false_hides_indicator():
     source = _read_text("src/message-list.ts")
     assert "setLoading" in source
     assert "removeChild" in source or ".remove(" in source
+
+
+def test_message_list_set_loading_false_clears_rotation_timer():
+    """setLoading(false) must clear the rotation interval."""
+    source = _read_text("src/message-list.ts")
+    assert "clearInterval(rotationTimer)" in source
 
 
 def test_message_list_clear_removes_all_messages():
@@ -531,6 +582,48 @@ def test_message_list_does_not_duplicate_loading_indicator():
     source = _read_text("src/message-list.ts")
     assert "setLoading" in source
     assert "if (!loadingIndicator)" in source
+
+
+def test_message_list_set_language_updates_loading_text():
+    """setLanguage must be able to refresh the loading indicator text."""
+    source = _read_text("src/message-list.ts")
+    assert "setLanguage" in source
+    assert "loadingIndicator.textContent" in source
+
+
+def test_message_list_set_loading_true_syncs_text_before_append_and_rotation():
+    """setLoading(true) must reset rotationIndex and sync indicator text from getLoadingText before appending/starting rotation."""
+    source = _read_text("src/message-list.ts")
+    body = _extract_function_body(source, "setLoading")
+
+    assert "rotationIndex = 0" in body, "rotationIndex must be reset when loading starts"
+    assert "loadingIndicator.textContent = getLoadingText()" in body, "indicator text must be refreshed from current language"
+
+    reset_pos = body.find("rotationIndex = 0")
+    sync_pos = body.find("loadingIndicator.textContent = getLoadingText()")
+    append_pos = body.find("element.appendChild(loadingIndicator)")
+    rotate_pos = body.find("startRotation()")
+
+    assert reset_pos < sync_pos, "rotationIndex reset must happen before text sync"
+    assert sync_pos < append_pos, "text sync must happen before the indicator is appended"
+    assert sync_pos < rotate_pos, "text sync must happen before rotation starts"
+
+    # The sync must not be hidden inside the indicator-creation guard; it must run
+    # every time loading is shown, including when an existing indicator is reused.
+    inner_guard_open = body.find("if (!loadingIndicator)")
+    inner_brace = body.find("{", inner_guard_open)
+    inner_close = -1
+    depth = 0
+    for i in range(inner_brace, len(body)):
+        if body[i] == "{":
+            depth += 1
+        elif body[i] == "}":
+            depth -= 1
+            if depth == 0:
+                inner_close = i
+                break
+    assert inner_close != -1, "could not locate indicator-creation guard"
+    assert sync_pos > inner_close, "text sync must be outside the indicator-creation guard"
 
 
 # ───────────────────────── Phase 8.8: Integration / accessibility ─────────────────────────
