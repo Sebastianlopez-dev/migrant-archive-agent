@@ -69,6 +69,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: none;
+  transform-origin: center;
   transition: background var(--transition-fast), transform var(--transition-fast),
     box-shadow var(--transition-fast);
 }
@@ -80,12 +81,19 @@
   object-fit: cover;
   filter: invert(1);
   transform: translateX(-8%) translateY(-7%);
+  transform-origin: center;
+  transition: transform var(--transition-fast);
+  backface-visibility: hidden;
 }
 
 .chat-fab:hover {
-  background: var(--blue-dark);
+  background: var(--blue);
   transform: scale(1.08);
   box-shadow: 0 0 24px var(--blue-glow);
+}
+
+.chat-fab:hover img {
+  transform: translateX(-8%) translateY(-7%) rotate(-12deg) scale(1.06);
 }
 
 .chat-fab:active {
