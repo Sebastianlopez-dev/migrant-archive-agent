@@ -1,0 +1,1816 @@
+<!--
+  SAFE DEMO SNAPSHOT
+  This is a local copy of the Plataforma Cero index page used only to test
+  the embeddable Cero chat widget inside the migrant-archive repository.
+  It is NOT the source of truth for the Plataforma website.
+  Resources have been copied and paths rewritten so the page renders locally.
+  External links, embedded videos, and forms remain unchanged and point to
+  their original third-party services.
+-->
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plataforma Cero — Narrativas migrantes, literatura y cultura</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --yellow: #f2c500;
+        --red: #c84c30;
+        --blue: #019ee3;
+        --black: #000;
+        --white: #fff;
+        --gray-50: #fafaf9;
+        --gray-100: #f5f5f4;
+        --gray-200: #e7e5e4;
+        --gray-300: #d6d3d1;
+        --gray-500: #78716c;
+        --gray-700: #44403c;
+        --gray-900: #1c1917;
+        --font:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        --max-w: 1200px;
+        --pad: clamp(1.25rem, 4vw, 4rem);
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font);
+        color: var(--gray-900);
+        background: var(--white);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        scrollbar-color: var(--blue) var(--gray-100);
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--gray-100);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--blue);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #0185c4;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      img {
+        max-width: 100%;
+        display: block;
+      }
+
+      .container {
+        max-width: var(--max-w);
+        margin: 0 auto;
+        padding: 0 var(--pad);
+      }
+
+      /* ── Navbar ── */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--black);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+        max-width: var(--max-w);
+        margin: 0 auto;
+        padding: 0 var(--pad);
+      }
+      .logo {
+        font-size: 1.125rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--white);
+      }
+      .logo span {
+        color: var(--blue);
+      }
+      .nav-list {
+        display: flex;
+        list-style: none;
+        gap: 2rem;
+        align-items: center;
+      }
+      .nav-list a {
+        font-size: 0.825rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.65);
+        transition: color 0.2s;
+      }
+      .nav-list a:hover {
+        color: var(--white);
+      }
+
+      /* ── Mobile nav toggle ── */
+      .nav-toggle {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+      }
+      .nav-toggle span {
+        display: block;
+        width: 24px;
+        height: 2px;
+        background: var(--white);
+        border-radius: 2px;
+        transition: 0.2s;
+      }
+
+      /* ═══════════════════════════ HERO ═══════════════════════════ */
+      .hero {
+        background: var(--white);
+        color: var(--gray-900);
+        position: relative;
+        overflow: hidden;
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        max-width: var(--max-w);
+        margin: 0 auto;
+        padding: calc(64px + 2rem) var(--pad) 3rem;
+        width: 100%;
+      }
+
+      /* ── Hero Titles ── */
+      .hero-titles {
+        text-align: center;
+        margin-bottom: 4rem;
+      }
+      .hero-title-main {
+        font-size: clamp(2.5rem, 6.5vw, 5.5rem);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: var(--black);
+        text-transform: uppercase;
+      }
+      .hero-title-sub {
+        font-size: clamp(2.5rem, 6.5vw, 5.5rem);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: var(--blue);
+        text-transform: uppercase;
+      }
+      .hero-values {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        justify-content: center;
+        gap: 0 1.5rem;
+        margin-top: 1.5rem;
+      }
+      .hero-values span {
+        font-size: clamp(0.9rem, 1.5vw, 1.15rem);
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--red);
+      }
+      .hero-values span:not(:last-child)::after {
+        content: "·";
+        margin-left: 1.5rem;
+        color: rgba(0, 0, 0, 0.2);
+      }
+
+      /* ── Hero Books Carousel ── */
+      .hero-books {
+        padding-bottom: 2rem;
+      }
+      .books-row-wrapper {
+        position: relative;
+      }
+      .hero-books .arrow-btn {
+        top: 35%;
+      }
+      .books-row {
+        display: flex;
+        gap: 1.25rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 0.5rem;
+        scroll-behavior: smooth;
+      }
+      .book-card {
+        flex: 0 0 calc((100% - 6.25rem) / 6);
+        scroll-snap-align: start;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.3s ease;
+      }
+      .book-card:hover {
+        transform: translateY(-3px);
+      }
+      .book-card:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
+      .book-img {
+        width: 100%;
+        aspect-ratio: 2 / 3;
+        object-fit: cover;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        display: block;
+      }
+      .book-info {
+        padding-top: 0.5rem;
+      }
+      .book-name {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--black);
+        line-height: 1.3;
+        margin-bottom: 0.15rem;
+      }
+      .book-author {
+        font-size: 0.7rem;
+        font-weight: 400;
+        color: var(--gray-500);
+        line-height: 1.3;
+        margin-bottom: 0.1rem;
+      }
+      .book-edition {
+        font-size: 0.68rem;
+        font-weight: 400;
+        color: var(--gray-500);
+        line-height: 1.3;
+        font-style: italic;
+      }
+      /* ── Multimedia ── */
+      .multimedia {
+        min-height: 100svh;
+        background: var(--yellow);
+        padding: calc(64px + 2rem) 0 2rem;
+      }
+      .multimedia .container {
+        width: 100%;
+      }
+
+      .multimedia-featured {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+      .multimedia-section-title {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 3rem;
+      }
+      .multimedia-intro {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .multimedia-intro .video-featured-title {
+        font-size: clamp(2rem, 4.5vw, 3.5rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        margin-bottom: 1rem;
+        color: var(--black);
+      }
+      .multimedia-intro .video-featured-desc {
+        font-size: 1rem;
+        line-height: 1.5;
+        color: var(--gray-700);
+      }
+      .video-card {
+        display: flex;
+        flex-direction: column;
+      }
+      .video-thumb {
+        aspect-ratio: 16 / 9;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+        background: #000;
+      }
+      .video-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition:
+          transform 0.3s,
+          opacity 0.3s;
+      }
+      .video-thumb:hover img {
+        transform: scale(1.04);
+        opacity: 0.75;
+      }
+      .video-thumb iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+      .video-thumb::after {
+        content: "▶";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #fff;
+        z-index: 1;
+        pointer-events: none;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+        transition: opacity 0.2s;
+      }
+      .video-thumb.active::after {
+        opacity: 0;
+      }
+      .video-title {
+        font-size: 0.9rem;
+        margin-top: 0.75rem;
+        color: var(--gray-700);
+      }
+
+      .multimedia-row-wrapper {
+        position: relative;
+      }
+      .multimedia-row {
+        display: flex;
+        gap: 2rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 0.5rem;
+      }
+      .multimedia-row .video-card {
+        flex: 0 0 calc((100% - 4rem) / 3);
+        scroll-snap-align: start;
+      }
+      .arrow-btn {
+        position: absolute;
+        top: 40%;
+        transform: translateY(-50%);
+        z-index: 2;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 4px;
+      }
+      .arrow-btn--left  { left: 0.5rem; }
+      .arrow-btn--right { right: 0.5rem; }
+      .arrow-hidden { opacity: 0; pointer-events: none; }
+
+      @media (max-width: 1024px) {
+        .book-card {
+          flex: 0 0 calc((100% - 5rem) / 5);
+        }
+      }
+      @media (max-width: 768px) {
+        .multimedia-featured { grid-template-columns: 1fr; }
+        .multimedia-row .video-card {
+          flex: 0 0 calc((100% - 2rem) / 2);
+        }
+        .book-card {
+          flex: 0 0 calc((100% - 3.75rem) / 4);
+        }
+      }
+      @media (max-width: 480px) {
+        .multimedia-row .video-card {
+          flex: 0 0 85%;
+        }
+        .book-card {
+          flex: 0 0 60%;
+        }
+        .hero-values {
+          grid-template-columns: 1fr;
+          gap: 0.5rem 0;
+        }
+        .hero-values span:not(:last-child)::after {
+          content: none;
+        }
+      }
+      @media (min-width: 769px) {
+        .arrow-btn { display: none; }
+      }
+
+      /* ── Accessibility ── */
+      .arrow-btn:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .books-row,
+        .multimedia-row {
+          scroll-behavior: auto;
+        }
+      }
+
+      /* ── Collaborators marquee ── */
+      .collab-bar {
+        padding: 2.5rem 0;
+        background: var(--white);
+        overflow: hidden;
+      }
+      .collab-track {
+        display: flex;
+        align-items: center;
+        gap: 3rem;
+        width: max-content;
+        animation: collabScroll 115s linear infinite;
+      }
+      .collab-track img {
+        height: 64px;
+        width: auto;
+      }
+      @keyframes collabScroll {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-50%);
+        }
+      }
+
+      /* ── Newsletter ── */
+      .newsletter {
+        background: var(--white);
+        padding: 3rem 0;
+      }
+      .newsletter-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+      }
+      .newsletter-desc h2 {
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        color: var(--black);
+        margin-bottom: 0.75rem;
+      }
+      .newsletter-desc p {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: var(--gray-700);
+        max-width: 36ch;
+      }
+      .newsletter-form-wrap {
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        border-radius: 8px;
+        padding: 2rem;
+      }
+      .newsletter-form-wrap h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--gray-900);
+        margin-bottom: 1.25rem;
+      }
+      .newsletter-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+      .newsletter-form label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--gray-700);
+        display: block;
+        margin-bottom: 0.3rem;
+      }
+      .newsletter-form input {
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.9rem;
+        font-family: inherit;
+        border: 1px solid var(--gray-300);
+        border-radius: 6px;
+        background: var(--white);
+        color: var(--gray-900);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .newsletter-form input:focus {
+        outline: none;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(5, 153, 233, 0.15);
+      }
+      .newsletter-form input::placeholder {
+        color: var(--gray-500);
+      }
+      .newsletter-btn {
+        padding: 0.7rem 1.5rem;
+        background: var(--blue);
+        color: var(--white);
+        border: none;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 0.35rem;
+        align-self: flex-start;
+      }
+      .newsletter-btn:hover {
+        background: #0488d4;
+      }
+      .newsletter-btn:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+      @media (max-width: 768px) {
+        .newsletter-inner {
+          grid-template-columns: 1fr;
+          gap: 1.75rem;
+        }
+      }
+
+      /* ── Footer ── */
+      .site-footer {
+        background: var(--black);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 4rem 0 1.5rem;
+      }
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 2fr 1.6fr 0.7fr 1.5fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+      .footer-col h3 {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--white);
+        margin-bottom: 1rem;
+        position: relative;
+        padding-bottom: 0.75rem;
+      }
+      .footer-col h3 span {
+        color: var(--blue);
+      }
+      .footer-col h3::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 24px;
+        height: 2px;
+        background: var(--blue);
+        border-radius: 1px;
+      }
+      .footer-col p {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .footer-col .footer-tagline {
+        display: inline-block;
+        color: var(--blue);
+        font-weight: 700;
+        margin: 1rem 0;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        text-decoration: none;
+      }
+      .footer-col ul {
+        list-style: none;
+      }
+      .footer-col li {
+        margin-bottom: 0.5rem;
+      }
+      .footer-col a {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.55);
+        transition: color 0.2s;
+        line-height: 1.45;
+        display: inline-block;
+      }
+      .footer-col a:hover {
+        color: var(--white);
+      }
+
+      /* Social & contact icons */
+      .footer-social {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+      .footer-social-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .footer-icon {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .footer-icon svg {
+        width: 18px;
+        height: 18px;
+        fill: rgba(255, 255, 255, 0.45);
+        transition: fill 0.2s;
+      }
+      /* Brand icon hover colors */
+      .footer-social-row a:hover .footer-icon--linkedin svg {
+        fill: #0a66c2;
+      }
+      .footer-social-row a:hover .footer-icon--instagram svg {
+        fill: #e4405f;
+      }
+      .footer-social-row a:hover .footer-icon--youtube svg {
+        fill: #ff0000;
+      }
+      .footer-social-row a:hover .footer-icon--linktree svg {
+        fill: #39e09b;
+      }
+      .footer-email-link:hover .footer-icon--email svg {
+        fill: var(--blue);
+      }
+      .footer-social-row a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.85rem;
+        transition: color 0.2s;
+      }
+      .footer-social-row a:hover {
+        color: var(--white);
+      }
+
+      /* Email copy block */
+      .footer-email-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .footer-email-reveal {
+        max-height: 0;
+        overflow: hidden;
+        transition:
+          max-height 0.35s ease,
+          opacity 0.25s ease;
+        opacity: 0;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        user-select: all;
+      }
+      .footer-email-wrap.revealed .footer-email-reveal {
+        max-height: 24px;
+        opacity: 1;
+      }
+      .footer-email-tooltip {
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.4);
+        white-space: nowrap;
+        transition: opacity 0.25s;
+        opacity: 0;
+      }
+      .footer-email-wrap.revealed .footer-email-tooltip {
+        opacity: 1;
+      }
+      .footer-email-tooltip.copied {
+        color: var(--blue);
+      }
+      /* Email link */
+      .footer-email-link {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.85rem;
+        font-family: inherit;
+        transition: color 0.2s;
+      }
+      .footer-email-link:hover {
+        color: var(--white);
+      }
+
+      /* Footer bottom */
+      .footer-bottom {
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.35);
+      }
+      .footer-bottom a {
+        color: rgba(255, 255, 255, 0.4);
+        transition: color 0.2s;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .footer-bottom a:hover {
+        color: var(--white);
+      }
+
+      /* ── Cookie Consent ── */
+      .cookie-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: var(--white);
+        border-top: 1px solid var(--gray-200);
+        padding: 1rem 0;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .cookie-banner.show {
+        transform: translateY(0);
+      }
+      .cookie-inner {
+        max-width: var(--max-w);
+        margin: 0 auto;
+        padding: 0 var(--pad);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        flex-wrap: wrap;
+      }
+      .cookie-text {
+        flex: 1;
+        min-width: 240px;
+        font-size: 0.8rem;
+        color: var(--gray-700);
+        line-height: 1.5;
+      }
+      .cookie-text a {
+        color: var(--blue);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        font-weight: 600;
+      }
+      .cookie-text a:hover {
+        color: var(--red);
+      }
+      .cookie-buttons {
+        display: flex;
+        gap: 0.6rem;
+        flex-shrink: 0;
+      }
+      .cookie-btn {
+        padding: 0.55rem 1.35rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+      }
+      .cookie-btn-accept {
+        background: var(--blue);
+        color: var(--white);
+      }
+      .cookie-btn-accept:hover {
+        background: #0488d4;
+      }
+      .cookie-btn-reject {
+        background: var(--gray-100);
+        color: var(--gray-700);
+        border: 1px solid var(--gray-300);
+      }
+      .cookie-btn-reject:hover {
+        background: var(--gray-200);
+      }
+      @media (max-width: 480px) {
+        .cookie-inner {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.85rem;
+        }
+        .cookie-buttons {
+          width: 100%;
+        }
+        .cookie-btn {
+          flex: 1;
+          text-align: center;
+        }
+      }
+      @media (max-width: 768px) {
+        .nav-list {
+          display: none;
+        }
+        .nav-list.open {
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          top: 64px;
+          left: 0;
+          right: 0;
+          background: var(--black);
+          padding: 2rem var(--pad);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          align-items: flex-start;
+          gap: 1.25rem;
+        }
+        .nav-toggle {
+          display: flex;
+        }
+
+        .footer-grid {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 2rem;
+        }
+        .footer-col:nth-child(1) {
+          grid-column: span 3;
+        }
+        .footer-bottom {
+          flex-direction: column;
+          text-align: center;
+        }
+      }
+      @media (max-width: 480px) {
+        .footer-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 1.75rem;
+        }
+        .footer-col:nth-child(1) {
+          grid-column: span 2;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <a href="#" class="logo">Plataforma<span>Cero</span></a>
+        <button
+          class="nav-toggle"
+          onclick="document.querySelector('.nav-list').classList.toggle('open')"
+          aria-label="Menú"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <nav>
+          <ul class="nav-list">
+            <li><a href="#somos">Somos</a></li>
+            <li><a href="https://plataformacero.org/seleccion-libros/">Libros</a></li>
+            <li><a href="#proyectos">Proyectos</a></li>
+            <li><a href="#filmig">FILMIG</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="https://plataformacero.org/contacto/">Contacto</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+      <section class="hero" id="hero">
+        <div class="hero-inner">
+          <!-- ── Titles ── -->
+          <div class="hero-titles">
+            <h1 class="hero-title-main">Narrativas Migrantes</h1>
+            <h2 class="hero-title-sub">Literatura y Cultura</h2>
+            <div class="hero-values">
+              <span>Antiracista</span>
+              <span>Transfeminista</span>
+              <span>Comunitaria</span>
+            </div>
+          </div>
+
+          <!-- ── Books Carousel ── -->
+          <div class="hero-books">
+            <div class="books-row-wrapper">
+              <button class="arrow-btn arrow-btn--left" aria-label="Libro anterior">‹</button>
+              <div class="books-row" role="region" aria-label="Libros destacados" aria-roledescription="carousel">
+                <a href="https://plataformacero.org/asi-respira-mi-verbo/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 1: Así respira mi verbo">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de Así respira mi verbo" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">Así respira mi verbo</p>
+                    <p class="book-author">Hilda Virginia Pérez Rodríguez</p>
+                    <p class="book-edition">2022</p>
+                  </div>
+                </a>
+                <a href="https://plataformacero.org/por-que-no-se-me-sonrojan-las-mejillas/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 2: ¿Por qué no se me sonrojan las mejillas?">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de ¿Por qué no se me sonrojan las mejillas?" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">¿Por qué no se me sonrojan las mejillas?</p>
+                    <p class="book-author">Isabel María Lozano Orenes</p>
+                    <p class="book-edition">2ª Edición, 2024</p>
+                  </div>
+                </a>
+                <a href="https://plataformacero.org/mujeres-del-maiz/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 3: Mujeres del Maíz">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de Mujeres del Maíz" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">Mujeres del Maíz</p>
+                    <p class="book-author">12 autoras</p>
+                    <p class="book-edition">2023</p>
+                  </div>
+                </a>
+                <a href="https://plataformacero.org/migrantas-en-diaspora/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 4: Migrantas en diáspora">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de Migrantas en diáspora" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">Migrantas en diáspora</p>
+                    <p class="book-author">8 autoras</p>
+                    <p class="book-edition">2024</p>
+                  </div>
+                </a>
+                <a href="https://plataformacero.org/manglar-nocturno/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 5: Manglar Nocturno">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de Manglar Nocturno" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">Manglar Nocturno</p>
+                    <p class="book-author">Herney Mosquera Garcés</p>
+                    <p class="book-edition">2024</p>
+                  </div>
+                </a>
+                <a href="https://plataformacero.org/grimorio-de-los-amores-imposibles/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 6: Grimorio de los amores imposibles">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de Grimorio de los amores imposibles" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">Grimorio de los amores imposibles</p>
+                    <p class="book-author">Alejandro Rabelo García</p>
+                    <p class="book-edition">2024</p>
+                  </div>
+                </a>
+                <a href="https://plataformacero.org/cuando-me-llaman-intensa/" target="_blank" rel="noopener noreferrer" class="book-card" role="group" aria-roledescription="slide" aria-label="Libro 7: Cuando me llaman intensa">
+                  <img class="book-img" src="assets/images/Books/placeholder.svg" alt="Portada de Cuando me llaman intensa" loading="lazy">
+                  <div class="book-info">
+                    <p class="book-name">Cuando me llaman intensa</p>
+                    <p class="book-author">Vicky Campoamor</p>
+                    <p class="book-edition">2024</p>
+                  </div>
+                </a>
+              </div>
+              <button class="arrow-btn arrow-btn--right" aria-label="Libro siguiente">›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <!-- ══════════════════i═ COLLABORATORS MARQUEE ═══════════════════ -->
+    <section class="collab-bar">
+      <div class="collab-track">
+        <img
+          src="assets/images/Colaborators/17maigLogo.webp"
+          alt="17maigLogo"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/274100764_920679081977861_6622895034315289335_n.webp"
+          alt="274100764 920679081977861 6622895034315289335 n"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/AJBCN_Sign_Com_Negre_Transparent-scaled.webp"
+          alt="AJBCN Sign Com Negre Transparent"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Andy-oh-04-scaled.webp"
+          alt="Andy oh 04"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Ateneu-del-Raval.webp"
+          alt="Ateneu del Raval"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Catira3.webp"
+          alt="Catira3"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Impuls-Cooperatiu-Negro.webp"
+          alt="Impuls Cooperatiu Negro"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Logo_Biblioteca_Sant_Pau_Santa_Creu_Blau_Negre-1-1-scaled.webp"
+          alt="Logo Biblioteca Sant Pau Santa Creu Blau Negre"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Logo_La-Lleialtat-Santsenca_color-scaled.webp"
+          alt="Logo La Lleialtat Santsenca"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Logo_YSEO_png.webp"
+          alt="Logo YSEO"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/logo-abarka.webp"
+          alt="logo abarka"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-AFRO-MURCIA-Logo-AfroMurcia-transparente-2.webp"
+          alt="LOGO AFRO MURCIA"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/logo-bcomu-2048x706-1.webp"
+          alt="logo bcomu"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/logo-color-coopolis-1.webp"
+          alt="logo color coopolis"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-CONCIENCIA-AFRO-01.webp"
+          alt="LOGO CONCIENCIA AFRO"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-COTXERES-CASINET.webp"
+          alt="LOGO COTXERES CASINET"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-EDICIONES-SIN-FIN-Sin-fin-logo-N.webp"
+          alt="LOGO EDICIONES SIN FIN"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-EDITORIAL-DESCONTROL-Descontrol_SCCL_logo-scaled.webp"
+          alt="LOGO EDITORIAL DESCONTROL"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-GENERALITAT.webp"
+          alt="LOGO GENERALITAT"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Logo-Jiser-2020.webp"
+          alt="Logo Jiser 2020"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-LA-PARCERIA-EDITA.webp"
+          alt="LOGO LA PARCERIA EDITA"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-LINDEPENDENT-DEL-RAVAL2image00004.webp"
+          alt="LOGO LINDEPENDENT DEL RAVAL"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-LOCCULTA.webp"
+          alt="LOGO LOCCULTA"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-POTOPOTO-AFRO-logo-potopoto-transparente.webp"
+          alt="LOGO POTOPOTO AFRO"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/logo-RMGD.webp"
+          alt="logo RMGD"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Logo-Top-Manta-NEgro-1.webp"
+          alt="Logo Top Manta NEgro"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/logo1-1.webp"
+          alt="logo Plataforma Cero"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/LOGOTIP_CASM-scaled.webp"
+          alt="LOGOTIP CASM"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/migressnegro-1.webp"
+          alt="migressnegro"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/Saberes-Migrantes-Negro-1.webp"
+          alt="Saberes Migrantes Negro"
+          height="64"
+        />
+        <img
+          src="assets/images/Colaborators/SECRETARIAT-LOGO-1.webp"
+          alt="SECRETARIAT LOGO"
+          height="64"
+        />
+        <!-- duplicado para loop infinito -->
+        <img
+          src="assets/images/Colaborators/17maigLogo.webp"
+          alt="17maigLogo"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/274100764_920679081977861_6622895034315289335_n.webp"
+          alt="274100764 920679081977861 6622895034315289335 n"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/AJBCN_Sign_Com_Negre_Transparent-scaled.webp"
+          alt="AJBCN Sign Com Negre Transparent"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Andy-oh-04-scaled.webp"
+          alt="Andy oh 04"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Ateneu-del-Raval.webp"
+          alt="Ateneu del Raval"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Catira3.webp"
+          alt="Catira3"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Impuls-Cooperatiu-Negro.webp"
+          alt="Impuls Cooperatiu Negro"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Logo_Biblioteca_Sant_Pau_Santa_Creu_Blau_Negre-1-1-scaled.webp"
+          alt="Logo Biblioteca Sant Pau Santa Creu Blau Negre"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Logo_La-Lleialtat-Santsenca_color-scaled.webp"
+          alt="Logo La Lleialtat Santsenca"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Logo_YSEO_png.webp"
+          alt="Logo YSEO"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/logo-abarka.webp"
+          alt="logo abarka"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-AFRO-MURCIA-Logo-AfroMurcia-transparente-2.webp"
+          alt="LOGO AFRO MURCIA"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/logo-bcomu-2048x706-1.webp"
+          alt="logo bcomu"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/logo-color-coopolis-1.webp"
+          alt="logo color coopolis"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-CONCIENCIA-AFRO-01.webp"
+          alt="LOGO CONCIENCIA AFRO"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-COTXERES-CASINET.webp"
+          alt="LOGO COTXERES CASINET"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-EDICIONES-SIN-FIN-Sin-fin-logo-N.webp"
+          alt="LOGO EDICIONES SIN FIN"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-EDITORIAL-DESCONTROL-Descontrol_SCCL_logo-scaled.webp"
+          alt="LOGO EDITORIAL DESCONTROL"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-GENERALITAT.webp"
+          alt="LOGO GENERALITAT"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Logo-Jiser-2020.webp"
+          alt="Logo Jiser 2020"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-LA-PARCERIA-EDITA.webp"
+          alt="LOGO LA PARCERIA EDITA"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-LINDEPENDENT-DEL-RAVAL2image00004.webp"
+          alt="LOGO LINDEPENDENT DEL RAVAL"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-LOCCULTA.webp"
+          alt="LOGO LOCCULTA"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGO-POTOPOTO-AFRO-logo-potopoto-transparente.webp"
+          alt="LOGO POTOPOTO AFRO"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/logo-RMGD.webp"
+          alt="logo RMGD"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Logo-Top-Manta-NEgro-1.webp"
+          alt="Logo Top Manta NEgro"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/logo1-1.webp"
+          alt="logo Plataforma Cero"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/LOGOTIP_CASM-scaled.webp"
+          alt="LOGOTIP CASM"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/migressnegro-1.webp"
+          alt="migressnegro"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/Saberes-Migrantes-Negro-1.webp"
+          alt="Saberes Migrantes Negro"
+          height="64"
+          loading="lazy"
+        />
+        <img
+          src="assets/images/Colaborators/SECRETARIAT-LOGO-1.webp"
+          alt="SECRETARIAT LOGO"
+          height="64"
+          loading="lazy"
+        />
+      </div>
+    </section>
+
+    <!-- ════════════════════════ MULTIMEDIA ════════════════════════ -->
+    <section class="multimedia">
+      <div class="container">
+        <h2 class="multimedia-section-title">Multimedia</h2>
+        <div class="multimedia-featured">
+          <div class="multimedia-intro">
+            <p class="video-featured-title">
+              Mujeres del Maíz: relatos migrantes escritos por 12 mujeres
+              latinoamericanas
+            </p>
+          </div>
+          <div class="video-card video-card--featured">
+            <div class="video-thumb" data-video-id="mY1hw79ydY0">
+              <img
+                src="https://img.youtube.com/vi/mY1hw79ydY0/maxresdefault.jpg"
+                alt=""
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="multimedia-row-wrapper">
+          <button class="arrow-btn arrow-btn--left" aria-label="Anterior">‹</button>
+          <div class="multimedia-row">
+            <div class="video-card">
+              <div class="video-thumb" data-video-id="8NTuq7aT2nE">
+                <img
+                  src="https://img.youtube.com/vi/8NTuq7aT2nE/maxresdefault.jpg"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <p class="video-title">FILMIG 2025 · Escribir es para valientes</p>
+            </div>
+            <div class="video-card">
+              <div class="video-thumb" data-video-id="APgxfNssxGQ">
+                <img
+                  src="https://img.youtube.com/vi/APgxfNssxGQ/maxresdefault.jpg"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <p class="video-title">
+                Presentación FILMIG 2024 (Feria Itinerante del Libro Migrante)
+              </p>
+            </div>
+            <div class="video-card">
+              <div class="video-thumb" data-video-id="CTmWjuQcvHY">
+                <img
+                  src="https://img.youtube.com/vi/CTmWjuQcvHY/maxresdefault.jpg"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <p class="video-title">
+                Conversatorio: ¿Hacia dónde va la producción cultural migrante en
+                el Estado Español? | FILMIG 2024
+              </p>
+            </div>
+            <div class="video-card">
+              <div class="video-thumb" data-video-id="FKymj4_fn3g">
+                <img
+                  src="https://img.youtube.com/vi/FKymj4_fn3g/maxresdefault.jpg"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <p class="video-title">
+                Presentación Ultramarina Editorial: Perros habitados por las voces
+                del desierto | FILMIG 2025
+              </p>
+            </div>
+            <div class="video-card">
+              <div class="video-thumb" data-video-id="Jc1xJ4V4xU4">
+                <img
+                  src="https://img.youtube.com/vi/Jc1xJ4V4xU4/maxresdefault.jpg"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <p class="video-title">
+                Talk show La Cara B: Narrarnos es resistir | FILMIG 2025
+              </p>
+            </div>
+          </div>
+          <button class="arrow-btn arrow-btn--right" aria-label="Siguiente">›</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ NEWSLETTER ═══════════════════ -->
+    <section class="newsletter">
+      <div class="container">
+        <div class="newsletter-inner">
+          <div class="newsletter-desc">
+            <h2>Nuestras escrituras no adornan el mundo, lo sostienen.</h2>
+          </div>
+          <div class="newsletter-form-wrap">
+            <h3>Únete a nuestra Newsletter</h3>
+            <form
+              class="newsletter-form"
+              action="https://formspree.io/f/{FORM_ID}"
+              method="POST"
+            >
+              <div>
+                <label for="nl-name">Nombre</label>
+                <input
+                  id="nl-name"
+                  name="name"
+                  type="text"
+                  placeholder="Tu nombre"
+                  required
+                />
+              </div>
+              <div>
+                <label for="nl-email">Correo electrónico</label>
+                <input
+                  id="nl-email"
+                  name="email"
+                  type="email"
+                  placeholder="tu@correo.com"
+                  required
+                />
+              </div>
+              <button type="submit" class="newsletter-btn">Suscribirme</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <!-- Col 1: PLATAFORMACERO -->
+          <div class="footer-col">
+            <h3>Plataforma<span>Cero</span></h3>
+            <p>
+              Proyecto editorial independiente,<br />
+              antirracista, transfeminista y comunitario<br />
+              que pone en el centro las voces<br />
+              desplazadas por la industria hegemónica.
+            </p>
+            <a class="footer-tagline" href="https://www.instagram.com/explore/search/keyword/?q=%23escribiresparavalientes" target="_blank" rel="noopener noreferrer">#ESCRIBIRESPARAVALIENTES</a>
+            <p>Barcelona, España</p>
+          </div>
+
+          <!-- Col 2: PROYECTOS -->
+          <div class="footer-col">
+            <h3>PROYECTOS</h3>
+            <ul>
+              <li><a href="#">Editorial Independiente</a></li>
+              <li><a href="#">Mujeres del Maíz - Taller de escritura</a></li>
+              <li><a href="#">Otros Sures - Grupo de Investigación</a></li>
+              <li><a href="#">Encuentros, talleres y presentaciones</a></li>
+              <li><a href="#">Blog</a></li>
+            </ul>
+          </div>
+
+          <!-- Col 3: FILMIG -->
+          <div class="footer-col">
+            <h3>FILMIG</h3>
+            <ul>
+              <li>
+                <a
+                  href="https://www.youtube.com/watch?v=CTmWjuQcvHY&list=PLP7R1uXpPFG-e-8ur19iiWNTy7-zzaxyZ"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >2024</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.youtube.com/watch?v=8NTuq7aT2nE&list=PLP7R1uXpPFG8kYkc3XvFXqUhgdd9KCWxA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >2025</a
+                >
+              </li>
+              <li><a href="#">2026</a></li>
+            </ul>
+          </div>
+
+          <!-- Col 4: CONTACTO -->
+          <div class="footer-col">
+            <h3>CONTACTO</h3>
+            <div class="footer-social">
+              <!-- Email con copiado -->
+              <div class="footer-social-row">
+                <div class="footer-email-wrap" id="footerEmail">
+                  <button
+                    class="footer-email-link"
+                    id="footerEmailBtn"
+                    aria-label="Copiar correo electrónico"
+                  >
+                    <span class="footer-icon footer-icon--email">
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
+                        />
+                      </svg>
+                    </span>
+                    Email
+                  </button>
+                  <span class="footer-email-reveal" id="footerEmailText"
+                    >contacto@plataformacero.org</span
+                  >
+                  <span
+                    class="footer-email-tooltip"
+                    id="footerEmailTooltip"
+                  ></span>
+                </div>
+              </div>
+              <!-- LinkedIn -->
+              <div class="footer-social-row">
+                <a
+                  href="https://www.linkedin.com/company/plataforma-cero/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn"
+                >
+                  <span class="footer-icon footer-icon--linkedin">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+                      />
+                    </svg>
+                  </span>
+                  LinkedIn
+                </a>
+              </div>
+              <!-- Instagram -->
+              <div class="footer-social-row">
+                <a
+                  href="https://www.instagram.com/plataformacero/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                >
+                  <span class="footer-icon footer-icon--instagram">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"
+                      />
+                    </svg>
+                  </span>
+                  Instagram
+                </a>
+              </div>
+              <!-- YouTube -->
+              <div class="footer-social-row">
+                <a
+                  href="https://www.youtube.com/@PlataformaCero"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="YouTube"
+                >
+                  <span class="footer-icon footer-icon--youtube">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                      />
+                    </svg>
+                  </span>
+                  YouTube
+                </a>
+              </div>
+              <!-- Linktree -->
+              <div class="footer-social-row">
+                <a
+                  href="https://linktr.ee/PlataformaCero?ltsid=1ed3082a-9cac-4c9e-b19a-af49457a8570"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Linktree"
+                >
+                  <span class="footer-icon footer-icon--linktree">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="m13.73635 5.85251 4.00467-4.11665 2.3248 2.3808-4.20064 4.00466h5.9085v3.30473h-5.9365l4.22865 4.10766-2.3248 2.3338L12.0005 12.099l-5.74052 5.76852-2.3248-2.3248 4.22864-4.10766h-5.9375V8.12132h5.9085L3.93417 4.11666l2.3248-2.3808 4.00468 4.11665V0h3.4727zm-3.4727 10.30614h3.4727V24h-3.4727z"
+                      />
+                    </svg>
+                  </span>
+                  Linktree
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <span
+            >&copy; 2026 PlataformaCero &mdash; Proyecto editorial antirracista,
+            cultural, académico y transfeminista.</span
+          >
+          <a href="https://plataformacero.org/politica-privacidad/">Política de privacidad</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var wrap = document.getElementById("footerEmail");
+        var btn = document.getElementById("footerEmailBtn");
+        var text = document.getElementById("footerEmailText");
+        var tip = document.getElementById("footerEmailTooltip");
+        var revealed = false;
+        var copiedTimer = null;
+
+        function showTip(msg, cls) {
+          tip.textContent = msg;
+          tip.className = "footer-email-tooltip";
+          if (cls) tip.classList.add(cls);
+        }
+
+        function resetAfterCopy() {
+          clearTimeout(copiedTimer);
+          copiedTimer = setTimeout(function () {
+            showTip("click para copiar");
+          }, 2200);
+        }
+
+        function handleEmailClick() {
+          if (!revealed) {
+            wrap.classList.add("revealed");
+            showTip("click para copiar");
+            revealed = true;
+          } else {
+            navigator.clipboard
+              .writeText("contacto@plataformacero.org")
+              .then(function () {
+                showTip("✓ Copiado", "copied");
+                resetAfterCopy();
+              })
+              .catch(function () {
+                showTip("click para copiar");
+              });
+          }
+        }
+
+        btn.addEventListener("click", handleEmailClick);
+
+        text.addEventListener("click", function (e) {
+          e.stopPropagation();
+          navigator.clipboard
+            .writeText("contacto@plataformacero.org")
+            .then(function () {
+              showTip("✓ Copiado", "copied");
+              resetAfterCopy();
+            })
+            .catch(function () {
+              showTip("click para copiar");
+            });
+        });
+      })();
+    </script>
+
+    <div class="cookie-banner" id="cookieBanner">
+      <div class="cookie-inner">
+        <p class="cookie-text">
+          Utilizamos cookies propias y de terceros para analizar el tráfico y
+          mejorar la experiencia. Consulta nuestra
+          <a href="https://plataformacero.org/politica-privacidad/">política de privacidad</a>.
+        </p>
+        <div class="cookie-buttons">
+          <button class="cookie-btn cookie-btn-reject" id="cookieReject">
+            Rechazar
+          </button>
+          <button class="cookie-btn cookie-btn-accept" id="cookieAccept">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var banner = document.getElementById("cookieBanner");
+        if (!localStorage.getItem("cookieConsent")) {
+          setTimeout(function () {
+            banner.classList.add("show");
+          }, 400);
+        }
+        document
+          .getElementById("cookieAccept")
+          .addEventListener("click", function () {
+            localStorage.setItem("cookieConsent", "accepted");
+            banner.classList.remove("show");
+          });
+        document
+          .getElementById("cookieReject")
+          .addEventListener("click", function () {
+            localStorage.setItem("cookieConsent", "rejected");
+            banner.classList.remove("show");
+          });
+      })();
+    </script>
+
+    <script>
+      (function () {
+        document.querySelectorAll(".video-thumb").forEach(function (thumb) {
+          thumb.addEventListener("click", function () {
+            if (thumb.classList.contains("active")) return;
+            var videoId = thumb.getAttribute("data-video-id");
+            var iframe = document.createElement("iframe");
+            iframe.src = "https://www.youtube-nocookie.com/embed/" + videoId;
+            iframe.setAttribute(
+              "allow",
+              "fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+            );
+            iframe.setAttribute(
+              "referrerpolicy",
+              "strict-origin-when-cross-origin",
+            );
+            thumb.innerHTML = "";
+            thumb.appendChild(iframe);
+            thumb.classList.add("active");
+          });
+        });
+      })();
+    </script>
+
+    <script>
+      (function () {
+        function createCarousel(rowSelector, gap) {
+          var row = document.querySelector(rowSelector);
+          var wrapper = row.closest('.books-row-wrapper') || row.closest('.multimedia-row-wrapper') || row.parentElement;
+          var leftBtn = wrapper.querySelector('.arrow-btn--left');
+          var rightBtn = wrapper.querySelector('.arrow-btn--right');
+          if (!row || !leftBtn || !rightBtn) return;
+
+          function updateArrows() {
+            var atStart = row.scrollLeft <= 2;
+            var atEnd = row.scrollLeft >= row.scrollWidth - row.clientWidth - 2;
+            leftBtn.classList.toggle('arrow-hidden', atStart);
+            rightBtn.classList.toggle('arrow-hidden', atEnd);
+          }
+
+          leftBtn.addEventListener('click', function () {
+            var card = row.children[0];
+            var cardWidth = card ? card.offsetWidth + gap : 320;
+            row.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+          });
+          rightBtn.addEventListener('click', function () {
+            var card = row.children[0];
+            var cardWidth = card ? card.offsetWidth + gap : 320;
+            row.scrollBy({ left: cardWidth, behavior: 'smooth' });
+          });
+
+          row.addEventListener('scroll', updateArrows);
+          window.addEventListener('resize', updateArrows);
+          updateArrows();
+        }
+
+        createCarousel('.multimedia-row', 32);
+        createCarousel('.books-row', 24);
+      })();
+    </script>
+
+    <!-- Local Cero chat widget demo (built with pnpm build:widget) -->
+    <script src="../../dist-widget/cero-widget.iife.js"></script>
+    <cero-chat-widget api-base-url="http://localhost:8000" asset-base-url="../../dist-widget"></cero-chat-widget>
+  </body>
+</html>

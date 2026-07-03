@@ -1023,3 +1023,86 @@ def test_styles_css_scopes_light_theme_to_widget_root():
         start = match.start()
         prefix = css[max(0, start - 12) : start]
         assert prefix.endswith(".chat-widget"), "light theme selector must be scoped to .chat-widget"
+
+
+# ───────────────────────── Plataforma index demo snapshot ─────────────────────────
+
+
+_DEMO_DIR = _FRONTEND_DIR / "examples" / "plataforma-index-demo"
+_DEMO_INDEX = _DEMO_DIR / "index.html"
+
+
+def test_plataforma_demo_index_exists():
+    """The demo snapshot directory must contain a copied index.html."""
+    assert _DEMO_DIR.exists(), "plataforma-index-demo directory must exist"
+    assert _DEMO_INDEX.exists(), "plataforma-index-demo/index.html must exist"
+
+
+def test_plataforma_demo_has_snapshot_warning():
+    """The copied index must contain a clear snapshot warning comment."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+    assert "SAFE DEMO SNAPSHOT" in html, "demo index must include a snapshot warning"
+    assert "NOT the source of truth" in html, "warning must clarify this is not the source of truth"
+    assert "embeddable cero chat widget" in html.lower(), "warning must mention the Cero widget"
+
+
+def test_plataforma_demo_uses_local_widget_snippet():
+    """The demo must load the locally built IIFE widget and configure it."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+    assert "../../dist-widget/cero-widget.iife.js" in html, "must reference local widget build"
+    assert "<cero-chat-widget" in html, "must include the cero-chat-widget custom element"
+    assert 'api-base-url="http://localhost:8000"' in html, "must point widget API to local backend"
+    assert "asset-base-url=" in html, "must set an asset base URL for embedded assets"
+
+
+def test_plataforma_demo_does_not_copy_other_html_pages():
+    """Only index.html should be copied from the Plataforma site."""
+    html_files = list(_DEMO_DIR.rglob("*.html"))
+    assert html_files == [_DEMO_INDEX], f"demo must contain only index.html, found {html_files}"
+
+
+def test_plataforma_demo_rewrites_local_image_paths():
+    """Local image references must point inside the demo assets directory."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+    assert 'src="assets/images/Books/placeholder.svg"' in html
+    assert 'src="assets/images/Colaborators/' in html
+    # Paths must not still reference the original source layout.
+    assert 'src="images/Books/placeholder.svg"' not in html
+    assert 'src="images/Colaborators/' not in html
+
+
+def test_plataforma_demo_preserves_external_links():
+    """External links in the copied index must remain absolute / external."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+    assert "https://plataformacero.org/" in html, "book links should remain external"
+    assert "https://www.youtube.com/" in html, "YouTube links should remain external"
+    assert "https://www.instagram.com/plataformacero/" in html, "Instagram link should remain external"
+
+
+def test_plataforma_demo_rewrites_missing_local_pages_to_absolute():
+    """Links to pages that were intentionally not copied must point to the live site."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+    for page in ("seleccion-libros", "contacto", "politica-privacidad"):
+        assert f'{page}.html' not in html, f"demo must not reference local {page}.html"
+        assert f"https://plataformacero.org/{page}/" in html, f"demo must link {page} to live site"
+
+
+def test_plataforma_demo_readme_documents_build_prerequisite():
+    """The demo README must explain how to build and run the widget locally."""
+    readme_path = _DEMO_DIR / "README.md"
+    assert readme_path.exists(), "demo README must exist"
+    readme = readme_path.read_text(encoding="utf-8")
+    assert "dist-widget/cero-widget.iife.js" in readme, "README must mention the generated widget bundle"
+    assert "pnpm run build:widget" in readme, "README must document the widget build step"
+    assert "pnpm dev" in readme, "README must document running the Vite dev server"
+    assert "http://localhost:8000" in readme, "README must mention the backend URL"
+
+
+def test_plataforma_demo_resources_exist():
+    """Every locally referenced image asset must exist inside the demo directory."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+    for match in re.finditer(r'src="(assets/[^"]+)"', html):
+        rel_path = match.group(1)
+        assert (_DEMO_DIR / rel_path).exists(), f"missing demo resource: {rel_path}"
+
+
