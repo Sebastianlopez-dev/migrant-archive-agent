@@ -24,7 +24,12 @@ const FAB_I18N: Record<string, string> = {
 /**
  * Create a Floating Action Button that opens the chat panel.
  */
-export function createFab(language = 'en', onClick: () => void): FabApi {
+function buildAssetUrl(path: string, assetBaseUrl = ''): string {
+  const base = assetBaseUrl.replace(/\/+$/, '');
+  return base ? `${base}${path}` : path;
+}
+
+export function createFab(language = 'en', onClick: () => void, assetBaseUrl = ''): FabApi {
   let currentLanguage = language;
 
   const button = document.createElement('button');
@@ -40,7 +45,7 @@ export function createFab(language = 'en', onClick: () => void): FabApi {
   refreshLabel();
 
   const avatar = document.createElement('img');
-  avatar.src = '/cero-agent-icon.png';
+  avatar.src = buildAssetUrl('/cero-agent-icon.png', assetBaseUrl);
   avatar.alt = 'Cero';
   avatar.width = 63;
   avatar.height = 63;

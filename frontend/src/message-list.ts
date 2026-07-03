@@ -26,6 +26,8 @@ export interface MessageListApi {
   clear: () => void;
   /** Update display language for the loading indicator. */
   setLanguage: (lang: string) => void;
+  /** Clear timers and DOM owned by the message list. */
+  destroy: () => void;
 }
 
 const LOADING_I18N: Record<string, string[]> = {
@@ -180,5 +182,12 @@ export function createMessageList(language = 'en'): MessageListApi {
     }
   }
 
-  return { element, addUserMessage, addAgentResponse, setLoading, addErrorMessage, clear, setLanguage };
+  function destroy(): void {
+    stopRotation();
+    element.innerHTML = '';
+    loadingIndicator = null;
+    rotationIndex = 0;
+  }
+
+  return { element, addUserMessage, addAgentResponse, setLoading, addErrorMessage, clear, setLanguage, destroy };
 }

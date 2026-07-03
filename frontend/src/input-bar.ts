@@ -7,6 +7,8 @@
  * not a fallback.
  */
 
+import { buildApiUrl } from './api-client.ts';
+
 export interface InputBarApi {
   /** The root input bar element. */
   element: HTMLElement;
@@ -20,6 +22,8 @@ export interface InputBarApi {
   setLoading: (isLoading: boolean) => void;
   /** Set display language and refresh visible labels. */
   setLanguage: (lang: string) => void;
+  /** Clear timers, media streams, and in-flight transcription. */
+  destroy: () => void;
 }
 
 const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
@@ -30,18 +34,31 @@ const MIC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" wi
 // Voice transcription: MediaRecorder → POST /api/transcribe → Groq Whisper
 // ---------------------------------------------------------------------------
 
-async function transcribeAudio(blob: Blob, filename: string, language: string): Promise<string> {
+async function transcribeAudio(blob: Blob, filename: string, language: string, apiBaseUrl = '', signal?: AbortSignal): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+  function onExternalAbort(): void {
+    controller.abort();
+  }
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+  }
 
   const form = new FormData();
   form.append('audio', blob, filename);
 
+  const baseUrl = buildApiUrl('/api/transcribe', apiBaseUrl);
   const url = language
-    ? `/api/transcribe?language=${encodeURIComponent(language)}`
-    : '/api/transcribe';
+    ? `${baseUrl}?language=${encodeURIComponent(language)}`
+    : baseUrl;
 
-  console.log('[mic:backend] POST /api/transcribe — blob:', blob.size, 'bytes');
+  console.log('[mic:backend] POST', url, '— blob:', blob.size, 'bytes');
 
   try {
     const response = await fetch(url, {
@@ -59,6 +76,9 @@ async function transcribeAudio(blob: Blob, filename: string, language: string): 
     return data.text;
   } finally {
     clearTimeout(timeoutId);
+    if (signal && !signal.aborted) {
+      signal.removeEventListener('abort', onExternalAbort);
+    }
   }
 }
 
@@ -205,7 +225,11 @@ const INPUT_BAR_I18N: Record<string, Record<string, string>> = {
 // Input bar factory
 // ---------------------------------------------------------------------------
 
-export function createInputBar(language = 'en', onSend: (question: string) => void): InputBarApi {
+export function createInputBar(
+  language = 'en',
+  onSend: (question: string) => void,
+  apiBaseUrl = '',
+): InputBarApi {
   let currentLanguage = language;
   const t = (key: string): string => (INPUT_BAR_I18N[currentLanguage] || INPUT_BAR_I18N.en)[key] || key;
 
@@ -229,6 +253,8 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
   let countdownStartTimer: ReturnType<typeof setTimeout> | null = null;
   let countdownInterval: ReturnType<typeof setInterval> | null = null;
   let hintTimer: ReturnType<typeof setTimeout> | null = null;
+  let activeTranscriptionController: AbortController | null = null;
+  let destroyed = false;
   const MAX_RECORD_SECONDS = 30;
 
   function clearVoiceTimers(): void {
@@ -295,12 +321,14 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
   function finishVoice(success: boolean): void {
     clearVoiceTimers();
     isProcessing = false;
+    if (destroyed) return;
     voiceButton.classList.remove('chat-input-tool--processing', 'chat-input-tool--recording');
 
     if (success && hadFinalResult && input.value.trim()) {
       voiceButton.classList.add('chat-input-tool--success');
       voiceButton.setAttribute('aria-label', t('transcribedLabel'));
       setTimeout(() => {
+        if (destroyed) return;
         voiceButton.classList.remove('chat-input-tool--success');
         voiceButton.setAttribute('aria-label', t('voiceLabel'));
       }, 2000);
@@ -311,7 +339,8 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
 
   // ── Voice recording ─────────────────────────────────────────────
 
-  voiceButton.addEventListener('click', () => {
+  function handleVoiceButtonClick(): void {
+    if (destroyed) return;
     if (isProcessing) {
       showHint(t('processing'));
       return;
@@ -319,9 +348,11 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
     if (isListening) {
       stopBackendRecording();
     } else {
-      startBackendRecording();
+      void startBackendRecording();
     }
-  });
+  }
+
+  voiceButton.addEventListener('click', handleVoiceButtonClick);
 
   async function startBackendRecording(): Promise<void> {
     if (isListening || isProcessing) return;
@@ -386,17 +417,23 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
           micStream = null;
         }
 
-        if (audioChunks.length === 0) {
-          showHint(t('noAudio'));
-          finishVoice(false);
+        if (destroyed || audioChunks.length === 0) {
+          if (!destroyed) {
+            showHint(t('noAudio'));
+            finishVoice(false);
+          }
           return;
         }
 
         const blob = new Blob(audioChunks, { type: mime });
         const filename = mime === 'audio/mp4' ? 'recording.mp4' : 'recording.webm';
 
+        activeTranscriptionController = new AbortController();
+        const transcriptionSignal = activeTranscriptionController.signal;
+
         try {
-          const text = await transcribeAudio(blob, filename, capturedLanguage);
+          const text = await transcribeAudio(blob, filename, capturedLanguage, apiBaseUrl, transcriptionSignal);
+          if (destroyed || transcriptionSignal.aborted) return;
           input.value = text;
           input.rows = Math.min(5, text.split('\n').length);
           hadFinalResult = true;
@@ -404,9 +441,12 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
           input.focus();
           input.placeholder = t('pressEnter');
           setTimeout(() => {
-            input.placeholder = t('placeholder');
+            if (!destroyed) {
+              input.placeholder = t('placeholder');
+            }
           }, 3000);
         } catch (err) {
+          if (destroyed || transcriptionSignal.aborted) return;
           console.log('[mic:backend] transcription failed:', err);
           hadFinalResult = false;
           const msg = err instanceof Error ? err.message : String(err);
@@ -422,6 +462,8 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
             showHint(t('connectionError'));
           }
           finishVoice(false);
+        } finally {
+          activeTranscriptionController = null;
         }
       };
 
@@ -546,19 +588,60 @@ export function createInputBar(language = 'en', onSend: (question: string) => vo
     sendButton.setAttribute('aria-label', t('sendLabel'));
   }
 
-  sendButton.addEventListener('click', submit);
-
-  input.addEventListener('keydown', (event: KeyboardEvent) => {
+  function handleInputKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       submit();
     }
-  });
+  }
 
-  input.addEventListener('input', () => {
+  function handleInput(): void {
     const lines = input.value.split('\n').length;
     input.rows = Math.min(5, Math.max(1, lines));
-  });
+  }
 
-  return { element: root, setQuestion, clear, focus, setLoading, setLanguage };
+  sendButton.addEventListener('click', submit);
+  input.addEventListener('keydown', handleInputKeydown);
+  input.addEventListener('input', handleInput);
+
+  function destroy(): void {
+    if (destroyed) return;
+    destroyed = true;
+
+    activeTranscriptionController?.abort();
+    activeTranscriptionController = null;
+
+    clearVoiceTimers();
+
+    if (isListening && !mediaRecorder) {
+      startAborted = true;
+      isListening = false;
+    }
+
+    if (mediaRecorder) {
+      mediaRecorder.ondataavailable = null;
+      mediaRecorder.onstop = null;
+      mediaRecorder.onerror = null;
+      if (mediaRecorder.state !== 'inactive') {
+        try {
+          mediaRecorder.stop();
+        } catch {
+          // Ignore stop errors during cleanup.
+        }
+      }
+      mediaRecorder = null;
+    }
+
+    if (micStream) {
+      micStream.getTracks().forEach((tr) => tr.stop());
+      micStream = null;
+    }
+
+    voiceButton.removeEventListener('click', handleVoiceButtonClick);
+    sendButton.removeEventListener('click', submit);
+    input.removeEventListener('keydown', handleInputKeydown);
+    input.removeEventListener('input', handleInput);
+  }
+
+  return { element: root, setQuestion, clear, focus, setLoading, setLanguage, destroy };
 }

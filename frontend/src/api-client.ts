@@ -44,17 +44,47 @@ export class ApiClientError extends Error {
 const ASK_TIMEOUT_MS = 60_000;
 
 /**
+ * Build a full API URL from an optional base URL and a path.
+ *
+ * An empty base preserves the existing relative-path behavior, while a
+ * remote base is normalized so the path never starts with a double slash.
+ */
+export function buildApiUrl(path: string, apiBaseUrl: string): string {
+  const base = apiBaseUrl.replace(/\/+$/, '');
+  return base ? `${base}${path}` : path;
+}
+
+/**
  * Send a question to `/api/ask` and return the typed response.
  *
- * The request is aborted automatically after 60 seconds. Non-200 responses,
- * network failures, and aborts are normalized into `ApiClientError`.
+ * The request is aborted automatically after 60 seconds. An optional external
+ * `signal` can also abort the request. Non-200 responses, network failures,
+ * and aborts are normalized into `ApiClientError`.
  */
-export async function ask(sessionId: string, question: string, language = 'en'): Promise<AskResponse> {
+export async function ask(
+  sessionId: string,
+  question: string,
+  language = 'en',
+  apiBaseUrl = '',
+  signal?: AbortSignal,
+): Promise<AskResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ASK_TIMEOUT_MS);
 
+  function onExternalAbort(): void {
+    controller.abort();
+  }
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+  }
+
   try {
-    const response = await fetch('/api/ask', {
+    const response = await fetch(buildApiUrl('/api/ask', apiBaseUrl), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, session_id: sessionId, language }),
@@ -86,6 +116,9 @@ export async function ask(sessionId: string, question: string, language = 'en'):
     );
   } finally {
     clearTimeout(timeoutId);
+    if (signal && !signal.aborted) {
+      signal.removeEventListener('abort', onExternalAbort);
+    }
   }
 }
 
@@ -96,11 +129,14 @@ export async function ask(sessionId: string, question: string, language = 'en'):
  * will be generated regardless. The backend cleans up orphaned sessions
  * when the server restarts.
  */
-export async function clearSession(sessionId: string): Promise<void> {
+export async function clearSession(sessionId: string, apiBaseUrl = ''): Promise<void> {
   try {
-    await fetch(`/api/session/${encodeURIComponent(sessionId)}`, {
-      method: 'DELETE',
-    });
+    await fetch(
+      buildApiUrl(`/api/session/${encodeURIComponent(sessionId)}`, apiBaseUrl),
+      {
+        method: 'DELETE',
+      },
+    );
   } catch {
     // Best-effort cleanup — ignore network errors.
   }

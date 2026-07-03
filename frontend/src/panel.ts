@@ -85,19 +85,35 @@ const SUN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" wi
 
 const MOON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
 
+function buildAssetUrl(path: string, assetBaseUrl = ''): string {
+  const base = assetBaseUrl.replace(/\/+$/, '');
+  return base ? `${base}${path}` : path;
+}
+
+const THEME_STORAGE_KEY = 'cero-widget-theme';
+const LEGACY_THEME_STORAGE_KEY = 'migrant-archive-theme';
+
+function getSavedTheme(): 'light' | 'dark' | null {
+  const current = localStorage.getItem(THEME_STORAGE_KEY);
+  if (current === 'light' || current === 'dark') return current;
+  const legacy = localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+  if (legacy === 'light' || legacy === 'dark') return legacy;
+  return null;
+}
+
 function getInitialTheme(): 'light' | 'dark' {
-  const saved = localStorage.getItem('migrant-archive-theme');
-  if (saved === 'light' || saved === 'dark') return saved;
+  const saved = getSavedTheme();
+  if (saved) return saved;
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-function applyTheme(theme: 'light' | 'dark'): void {
+function applyTheme(theme: 'light' | 'dark', target: HTMLElement): void {
   if (theme === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
+    target.setAttribute('data-theme', 'light');
   } else {
-    document.documentElement.removeAttribute('data-theme');
+    target.removeAttribute('data-theme');
   }
-  localStorage.setItem('migrant-archive-theme', theme);
+  localStorage.setItem(THEME_STORAGE_KEY, theme);
 }
 
 /** References to the panel and its two placeholder regions. */
@@ -110,6 +126,8 @@ export interface PanelSlots {
   footerSlot: HTMLElement;
   /** Set the language select value programmatically. */
   setLanguage: (lang: string) => void;
+  /** Remove global listeners registered by the panel. */
+  destroy: () => void;
 }
 
 /**
@@ -127,6 +145,8 @@ export function createPanel(
   onRefresh: () => void,
   onLanguageChange: (lang: string) => void,
   initialLanguage = 'en',
+  assetBaseUrl = '',
+  themeTarget: HTMLElement,
 ): PanelSlots {
   const initialI18n = PANEL_I18N[initialLanguage] || PANEL_I18N.en;
 
@@ -143,7 +163,7 @@ export function createPanel(
   title.className = 'chat-panel-title';
 
   const titleAvatar = document.createElement('img');
-  titleAvatar.src = '/cero-agent-icon.png';
+  titleAvatar.src = buildAssetUrl('/cero-agent-icon.png', assetBaseUrl);
   titleAvatar.alt = '';
 titleAvatar.width = 42;
 titleAvatar.height = 42;
@@ -220,7 +240,7 @@ titleAvatar.height = 42;
 
   // ── Theme toggle ──
   let currentTheme = getInitialTheme();
-  applyTheme(currentTheme);
+  applyTheme(currentTheme, themeTarget);
 
   const themeBtn = document.createElement('button');
   themeBtn.className = 'chat-panel-refresh';
@@ -233,7 +253,7 @@ titleAvatar.height = 42;
 
   themeBtn.addEventListener('click', () => {
     currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    applyTheme(currentTheme);
+    applyTheme(currentTheme, themeTarget);
     themeBtn.innerHTML = currentTheme === 'light' ? MOON_ICON : SUN_ICON;
     themeBtn.setAttribute(
       'aria-label',
@@ -473,7 +493,11 @@ titleAvatar.height = 42;
     titleText.textContent = i18n.ceroName;
   }
 
+  function destroy(): void {
+    closeDropdown();
+  }
+
   setLanguage(initialLanguage);
 
-  return { element: panel, contentSlot, footerSlot, setLanguage };
+  return { element: panel, contentSlot, footerSlot, setLanguage, destroy };
 }
