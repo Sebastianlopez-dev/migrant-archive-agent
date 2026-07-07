@@ -3,6 +3,7 @@
 import json
 import re
 import subprocess
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -309,7 +310,7 @@ def test_fab_creates_button_with_avatar_and_aria():
     assert "chat-panel" in source
     assert "aria-expanded" in source
     assert "aria-label" in source
-    assert "/cero-agent-icon.png" in source
+    assert "/cero-fab.png" in source
     assert "addEventListener('click'" in source or 'addEventListener("click"' in source
 
 
@@ -890,7 +891,7 @@ def test_fab_avatar_src_uses_asset_base_url():
     source = _read_text("src/fab.ts")
     assert "assetBaseUrl" in source, "createFab must accept an assetBaseUrl"
     assert "buildAssetUrl" in source, "FAB must build the avatar URL with a helper"
-    assert "/cero-agent-icon.png" in source
+    assert "/cero-fab.png" in source
 
 
 def test_panel_avatar_and_theme_target_use_widget_root():
@@ -899,8 +900,17 @@ def test_panel_avatar_and_theme_target_use_widget_root():
     assert "assetBaseUrl" in source, "createPanel must accept an assetBaseUrl"
     assert "themeTarget" in source, "createPanel must accept a theme target element"
     assert "buildAssetUrl" in source
+    assert "/cero-fab.png" in source, "panel header must use the selected Cero image"
     assert "document.documentElement" not in source, "theme must not mutate the host document root"
     assert "setAttribute('data-theme'" in source or 'setAttribute("data-theme"' in source
+
+
+def test_cero_fab_image_asset_exists():
+    """The FAB avatar image must be present in the public asset directory."""
+    asset_path = _FRONTEND_DIR / "public" / "cero-fab.png"
+    assert asset_path.exists(), "public/cero-fab.png must exist"
+    data = asset_path.read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "cero-fab.png must be a valid PNG"
 
 
 def test_widget_custom_element_guards_redefinition_and_reconnect():
@@ -1028,14 +1038,14 @@ def test_styles_css_scopes_light_theme_to_widget_root():
 # ───────────────────────── Plataforma index demo snapshot ─────────────────────────
 
 
-_DEMO_DIR = _FRONTEND_DIR / "examples" / "plataforma-index-demo"
+_DEMO_DIR = _FRONTEND_DIR / "index-demo"
 _DEMO_INDEX = _DEMO_DIR / "index.html"
 
 
 def test_plataforma_demo_index_exists():
     """The demo snapshot directory must contain a copied index.html."""
-    assert _DEMO_DIR.exists(), "plataforma-index-demo directory must exist"
-    assert _DEMO_INDEX.exists(), "plataforma-index-demo/index.html must exist"
+    assert _DEMO_DIR.exists(), "frontend/index-demo directory must exist"
+    assert _DEMO_INDEX.exists(), "frontend/index-demo/index.html must exist"
 
 
 def test_plataforma_demo_has_snapshot_warning():
@@ -1049,10 +1059,42 @@ def test_plataforma_demo_has_snapshot_warning():
 def test_plataforma_demo_uses_local_widget_snippet():
     """The demo must load the locally built IIFE widget and configure it."""
     html = _DEMO_INDEX.read_text(encoding="utf-8")
-    assert "../../dist-widget/cero-widget.iife.js" in html, "must reference local widget build"
+    assert "../dist-widget/cero-widget.iife.js" in html, "must reference local widget build"
     assert "<cero-chat-widget" in html, "must include the cero-chat-widget custom element"
     assert 'api-base-url="http://localhost:8000"' in html, "must point widget API to local backend"
-    assert "asset-base-url=" in html, "must set an asset base URL for embedded assets"
+    assert 'asset-base-url="../dist-widget"' in html, "must set asset base URL to the local widget build directory"
+
+
+def test_plataforma_demo_widget_assets_resolve_from_index_demo():
+    """Relative widget URLs from /index-demo/ must resolve to /dist-widget/... and assets must exist."""
+    html = _DEMO_INDEX.read_text(encoding="utf-8")
+
+    script_match = re.search(r'<script[^>]+src="([^"]+)"', html)
+    assert script_match is not None, "demo must reference the widget script"
+    script_src = script_match.group(1)
+    assert script_src == "../dist-widget/cero-widget.iife.js"
+
+    asset_base_match = re.search(r'asset-base-url="([^"]+)"', html)
+    assert asset_base_match is not None, "demo must set asset-base-url"
+    asset_base = asset_base_match.group(1)
+    assert asset_base == "../dist-widget"
+
+    base_url = "http://localhost/index-demo/"
+    resolved_script = urllib.parse.urljoin(base_url, script_src)
+    resolved_fab = urllib.parse.urljoin(base_url, f"{asset_base}/cero-fab.png")
+
+    assert urllib.parse.urlparse(resolved_script).path == "/dist-widget/cero-widget.iife.js"
+    assert urllib.parse.urlparse(resolved_fab).path == "/dist-widget/cero-fab.png"
+
+    # Source image assets must exist in public/.
+    assert (_FRONTEND_DIR / "public" / "cero-fab.png").exists(), "public/cero-fab.png must exist"
+
+    # Build artifact must exist once the widget has been generated.
+    iife_path = _FRONTEND_DIR / "dist-widget" / "cero-widget.iife.js"
+    if iife_path.exists():
+        assert iife_path.stat().st_size > 0, "cero-widget.iife.js must not be empty"
+    else:
+        pytest.skip("widget build output not present; run pnpm build:widget")
 
 
 def test_plataforma_demo_does_not_copy_other_html_pages():
@@ -1096,6 +1138,7 @@ def test_plataforma_demo_readme_documents_build_prerequisite():
     assert "pnpm run build:widget" in readme, "README must document the widget build step"
     assert "pnpm dev" in readme, "README must document running the Vite dev server"
     assert "http://localhost:8000" in readme, "README must mention the backend URL"
+    assert "http://localhost:5173/index-demo/" in readme, "README must document the new demo URL"
 
 
 def test_plataforma_demo_resources_exist():

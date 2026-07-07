@@ -17,6 +17,6 @@ The demo loads the widget from `frontend/dist-widget/cero-widget.iife.js`, which
    ```bash
    pnpm dev
    ```
-4. Open `http://localhost:5173/examples/plataforma-index-demo/` (or the equivalent dev-server URL).
+4. Open `http://localhost:5173/index-demo/` (or the equivalent dev-server URL).
 
 The widget will connect to `http://localhost:8000` via the `api-base-url` attribute configured in `index.html`.

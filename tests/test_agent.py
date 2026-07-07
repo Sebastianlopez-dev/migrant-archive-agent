@@ -715,7 +715,15 @@ class TestCreateAgent:
     def test_system_prompt_requires_plain_text_formatting(self, provider, store):
         from agent import SYSTEM_PROMPT
 
-        assert "plain text" in SYSTEM_PROMPT.lower() or "Do NOT use markdown" in SYSTEM_PROMPT
+        assert "plain text" in SYSTEM_PROMPT.lower()
+        assert "Do NOT use markdown" in SYSTEM_PROMPT
+
+    def test_system_prompt_lists_format_does_not_contradict_tools(self, provider, store):
+        from agent import SYSTEM_PROMPT
+
+        # Default formatting must allow numbers, because list_videos and
+        # search_transcripts tool-specific formats explicitly require numbered lists.
+        assert "dashes or numbers" in SYSTEM_PROMPT.lower()
 
     def test_system_prompt_mentions_search_filters(self, provider, store):
         from agent import SYSTEM_PROMPT
@@ -724,6 +732,39 @@ class TestCreateAgent:
         assert "channel" in SYSTEM_PROMPT.lower()
         assert "video_id" in SYSTEM_PROMPT.lower()
         assert "search_transcripts" in SYSTEM_PROMPT
+
+    def test_system_prompt_has_list_videos_breathable_format(self, provider, store):
+        from agent import SYSTEM_PROMPT
+
+        assert "list_videos" in SYSTEM_PROMPT
+        assert "one-line intro" in SYSTEM_PROMPT
+        assert "numbered list" in SYSTEM_PROMPT
+        assert "max 10 items" in SYSTEM_PROMPT
+        assert "chunk counts" in SYSTEM_PROMPT
+        assert "specific next step" in SYSTEM_PROMPT
+
+    def test_system_prompt_has_search_transcripts_breathable_format(self, provider, store):
+        from agent import SYSTEM_PROMPT
+
+        assert "search_transcripts" in SYSTEM_PROMPT
+        assert "Short answer" in SYSTEM_PROMPT
+        assert "Key points" in SYSTEM_PROMPT
+        assert "Source" in SYSTEM_PROMPT
+        assert "2-4 sentences" in SYSTEM_PROMPT
+        assert "3-5 numbered key points" in SYSTEM_PROMPT
+        assert "timestamp range" in SYSTEM_PROMPT
+        assert "genuinely useful and specific" in SYSTEM_PROMPT
+
+    def test_system_prompt_does_not_assign_breathable_format_to_get_video_info(self, provider, store):
+        from agent import SYSTEM_PROMPT
+
+        section_start = SYSTEM_PROMPT.find("Tool-specific response formats")
+        assert section_start != -1
+        tool_section = SYSTEM_PROMPT[section_start:]
+
+        assert "list_videos" in tool_section
+        assert "search_transcripts" in tool_section
+        assert "get_video_info" not in tool_section
 
     def test_create_agent_can_invoke_with_fake_llm(self, provider, store):
         from agent import create_agent

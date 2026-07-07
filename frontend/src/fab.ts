@@ -45,7 +45,7 @@ export function createFab(language = 'en', onClick: () => void, assetBaseUrl = '
   refreshLabel();
 
   const avatar = document.createElement('img');
-  avatar.src = buildAssetUrl('/cero-agent-icon.png', assetBaseUrl);
+  avatar.src = buildAssetUrl('/cero-fab.png', assetBaseUrl);
   avatar.alt = 'Cero';
   avatar.width = 63;
   avatar.height = 63;

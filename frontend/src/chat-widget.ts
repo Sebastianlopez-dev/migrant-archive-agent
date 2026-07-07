@@ -93,6 +93,7 @@ export class ChatWidget {
     this.apiBaseUrl = options?.apiBaseUrl ?? '';
     this.assetBaseUrl = options?.assetBaseUrl ?? '';
     this.root.classList.add('chat-widget');
+    this.root.setAttribute('data-theme', 'light');
     this.sessionId = generateSessionId();
 
     const savedLang = getSavedLanguage();
@@ -107,7 +108,6 @@ export class ChatWidget {
       (lang) => this.setLanguage(lang),
       this.language,
       this.assetBaseUrl,
-      this.root,
     );
     this.zeroState = createZeroState(this.language, (question) => this.selectSuggestion(question));
     this.inputBar = createInputBar(
