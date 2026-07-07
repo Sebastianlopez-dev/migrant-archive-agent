@@ -125,8 +125,8 @@ export function createPanel(
   const titleAvatar = document.createElement('img');
   titleAvatar.src = buildAssetUrl('/cero-fab.png', assetBaseUrl);
   titleAvatar.alt = '';
-titleAvatar.width = 42;
-titleAvatar.height = 42;
+  titleAvatar.width = 48;
+  titleAvatar.height = 48;
 
   const titleText = document.createElement('h2');
   titleText.textContent = initialI18n.ceroName;
@@ -287,8 +287,8 @@ titleAvatar.height = 42;
   }
 
   function handleClickOutside(event: MouseEvent): void {
-    const target = event.target as Node;
-    if (!langWrapper.contains(target)) {
+    const path = event.composedPath();
+    if (!path.includes(langWrapper)) {
       closeDropdown();
     }
   }
