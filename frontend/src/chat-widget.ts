@@ -14,6 +14,37 @@ import { createZeroState, SUPPORTED_LANGUAGES, type ZeroStateElement } from './z
 import { createInputBar, type InputBarApi } from './input-bar.ts';
 import { createMessageList, type MessageListApi } from './message-list.ts';
 
+function generateSessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  const fallback = (): string => {
+    const s4 = (): string => {
+      const value = typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function'
+        ? crypto.getRandomValues(new Uint8Array(1))[0] % 16
+        : Math.floor(Math.random() * 16);
+      return value.toString(16);
+    };
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = s4();
+      const v = c === 'x' ? r : ((parseInt(r, 16) & 0x3) | 0x8).toString(16);
+      return v;
+    });
+  };
+
+  return fallback();
+}
+
+const LANG_STORAGE_KEY = 'cero-widget-lang';
+const LEGACY_LANG_STORAGE_KEY = 'migrant-archive-lang';
+
+function getSavedLanguage(): string | null {
+  const current = localStorage.getItem(LANG_STORAGE_KEY);
+  if (current) return current;
+  return localStorage.getItem(LEGACY_LANG_STORAGE_KEY);
+}
+
 const CONFIRM_RESET: Record<string, string> = {
   en: 'Delete this conversation and start over?',
   es: '¿Querés borrar la conversación y empezar de cero?',
@@ -32,38 +63,58 @@ const ERROR_MESSAGES: Record<string, string> = {
   de: 'Der Assistent konnte nicht erreicht werden.',
 };
 
+export interface ChatWidgetOptions {
+  apiBaseUrl?: string;
+  assetBaseUrl?: string;
+}
+
 export class ChatWidget {
   private readonly root: HTMLElement;
+  private readonly apiBaseUrl: string;
+  private readonly assetBaseUrl: string;
   private sessionId: string;
   private readonly fab: FabApi;
   private readonly panelSlots: PanelSlots;
   private readonly inputBar: InputBarApi;
   private readonly messageList: MessageListApi;
   private readonly zeroState: ZeroStateElement;
+  private readonly keydownHandler: (event: KeyboardEvent) => void;
   private isOpen = false;
   private hasStarted = false;
   private isLoading = false;
   private language = 'en';
+  private destroyed = false;
+  private activeAskController: AbortController | null = null;
 
-  constructor(root: HTMLElement) {
+  constructor(root: HTMLElement);
+  constructor(root: HTMLElement, options?: ChatWidgetOptions);
+  constructor(root: HTMLElement, options?: ChatWidgetOptions) {
     this.root = root;
+    this.apiBaseUrl = options?.apiBaseUrl ?? '';
+    this.assetBaseUrl = options?.assetBaseUrl ?? '';
     this.root.classList.add('chat-widget');
-    this.sessionId = crypto.randomUUID();
+    this.root.setAttribute('data-theme', 'light');
+    this.sessionId = generateSessionId();
 
-    const savedLang = localStorage.getItem('migrant-archive-lang');
+    const savedLang = getSavedLanguage();
     if (savedLang && (SUPPORTED_LANGUAGES as readonly string[]).includes(savedLang)) {
       this.language = savedLang;
     }
 
-    this.fab = createFab(this.language, () => this.openPanel());
+    this.fab = createFab(this.language, () => this.openPanel(), this.assetBaseUrl);
     this.panelSlots = createPanel(
       () => this.closePanel(),
       () => this.resetConversation(),
       (lang) => this.setLanguage(lang),
       this.language,
+      this.assetBaseUrl,
     );
     this.zeroState = createZeroState(this.language, (question) => this.selectSuggestion(question));
-    this.inputBar = createInputBar(this.language, (question) => this.sendMessage(question));
+    this.inputBar = createInputBar(
+      this.language,
+      (question) => this.sendMessage(question),
+      this.apiBaseUrl,
+    );
     this.messageList = createMessageList(this.language);
 
     this.panelSlots.contentSlot.appendChild(this.zeroState);
@@ -74,11 +125,12 @@ export class ChatWidget {
 
     this.updateVisibility();
 
-    document.addEventListener('keydown', (event: KeyboardEvent) => {
+    this.keydownHandler = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && this.isOpen) {
         this.closePanel();
       }
-    });
+    };
+    document.addEventListener('keydown', this.keydownHandler);
   }
 
   openPanel(): void {
@@ -107,7 +159,7 @@ export class ChatWidget {
     if (!(SUPPORTED_LANGUAGES as readonly string[]).includes(lang)) return;
     if (this.language === lang) return;
     this.language = lang;
-    localStorage.setItem('migrant-archive-lang', lang);
+    localStorage.setItem(LANG_STORAGE_KEY, lang);
     this.fab.setLanguage(lang);
     this.inputBar.setLanguage(lang);
     this.messageList.setLanguage(lang);
@@ -132,13 +184,13 @@ export class ChatWidget {
   }
 
   private _doReset(): void {
-    void clearSession(this.sessionId);
+    void clearSession(this.sessionId, this.apiBaseUrl);
 
     this.isLoading = false;
     this.inputBar.setLoading(false);
     this.messageList.clear();
     this.hasStarted = false;
-    this.sessionId = crypto.randomUUID();
+    this.sessionId = generateSessionId();
 
     if (this.panelSlots.contentSlot.contains(this.messageList.element)) {
       this.panelSlots.contentSlot.removeChild(this.messageList.element);
@@ -163,7 +215,7 @@ export class ChatWidget {
   }
 
   async sendMessage(question: string): Promise<void> {
-    if (this.isLoading) return;
+    if (this.isLoading || this.destroyed) return;
 
     const text = question.trim();
     if (!text) return;
@@ -178,16 +230,24 @@ export class ChatWidget {
     this.inputBar.clear();
     this.setLoading(true);
 
+    const controller = new AbortController();
+    this.activeAskController = controller;
+
     try {
-      const response = await ask(this.sessionId, text, this.language);
+      const response = await ask(this.sessionId, text, this.language, this.apiBaseUrl, controller.signal);
+      if (this.destroyed || controller.signal.aborted) return;
       this.messageList.addAgentResponse(response);
     } catch (error) {
+      if (this.destroyed || controller.signal.aborted) return;
       void error; // ApiClientError details are logged but not shown to the user.
       const message = ERROR_MESSAGES[this.language] || ERROR_MESSAGES.en;
       this.messageList.addErrorMessage(message);
     } finally {
-      this.setLoading(false);
-      this.inputBar.focus();
+      this.activeAskController = null;
+      if (!this.destroyed) {
+        this.setLoading(false);
+        this.inputBar.focus();
+      }
     }
   }
 
@@ -195,5 +255,16 @@ export class ChatWidget {
     this.isLoading = isLoading;
     this.inputBar.setLoading(isLoading);
     this.messageList.setLoading(isLoading);
+  }
+
+  destroy(): void {
+    this.destroyed = true;
+    this.activeAskController?.abort();
+    this.activeAskController = null;
+    document.removeEventListener('keydown', this.keydownHandler);
+    this.inputBar.destroy();
+    this.messageList.destroy();
+    this.panelSlots.destroy();
+    this.root.innerHTML = '';
   }
 }

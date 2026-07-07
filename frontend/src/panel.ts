@@ -72,32 +72,9 @@ const PANEL_I18N: Record<string, Record<string, string>> = {
   },
 };
 
-const THEME_LABELS: Record<string, { light: string; dark: string }> = {
-  en: { light: 'Switch to light mode', dark: 'Switch to dark mode' },
-  es: { light: 'Cambiar a modo claro', dark: 'Cambiar a modo oscuro' },
-  ca: { light: 'Canviar a mode clar', dark: 'Canviar a mode fosc' },
-  fr: { light: 'Passer en mode clair', dark: 'Passer en mode sombre' },
-  pt: { light: 'Mudar para modo claro', dark: 'Mudar para modo escuro' },
-  de: { light: 'Zum hellen Modus wechseln', dark: 'Zum dunklen Modus wechseln' },
-};
-
-const SUN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
-
-const MOON_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
-
-function getInitialTheme(): 'light' | 'dark' {
-  const saved = localStorage.getItem('migrant-archive-theme');
-  if (saved === 'light' || saved === 'dark') return saved;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme: 'light' | 'dark'): void {
-  if (theme === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-  }
-  localStorage.setItem('migrant-archive-theme', theme);
+function buildAssetUrl(path: string, assetBaseUrl = ''): string {
+  const base = assetBaseUrl.replace(/\/+$/, '');
+  return base ? `${base}${path}` : path;
 }
 
 /** References to the panel and its two placeholder regions. */
@@ -110,6 +87,8 @@ export interface PanelSlots {
   footerSlot: HTMLElement;
   /** Set the language select value programmatically. */
   setLanguage: (lang: string) => void;
+  /** Remove global listeners registered by the panel. */
+  destroy: () => void;
 }
 
 /**
@@ -127,6 +106,7 @@ export function createPanel(
   onRefresh: () => void,
   onLanguageChange: (lang: string) => void,
   initialLanguage = 'en',
+  assetBaseUrl = '',
 ): PanelSlots {
   const initialI18n = PANEL_I18N[initialLanguage] || PANEL_I18N.en;
 
@@ -143,10 +123,10 @@ export function createPanel(
   title.className = 'chat-panel-title';
 
   const titleAvatar = document.createElement('img');
-  titleAvatar.src = '/cero-agent-icon.png';
+  titleAvatar.src = buildAssetUrl('/cero-fab.png', assetBaseUrl);
   titleAvatar.alt = '';
-titleAvatar.width = 42;
-titleAvatar.height = 42;
+  titleAvatar.width = 48;
+  titleAvatar.height = 48;
 
   const titleText = document.createElement('h2');
   titleText.textContent = initialI18n.ceroName;
@@ -218,29 +198,6 @@ titleAvatar.height = 42;
   langWrapper.appendChild(langArrow);
   langWrapper.appendChild(langDropdown);
 
-  // ── Theme toggle ──
-  let currentTheme = getInitialTheme();
-  applyTheme(currentTheme);
-
-  const themeBtn = document.createElement('button');
-  themeBtn.className = 'chat-panel-refresh';
-  themeBtn.type = 'button';
-  themeBtn.innerHTML = currentTheme === 'light' ? MOON_ICON : SUN_ICON;
-  themeBtn.setAttribute(
-    'aria-label',
-    currentTheme === 'light' ? THEME_LABELS[initialLanguage].dark : THEME_LABELS[initialLanguage].light,
-  );
-
-  themeBtn.addEventListener('click', () => {
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    applyTheme(currentTheme);
-    themeBtn.innerHTML = currentTheme === 'light' ? MOON_ICON : SUN_ICON;
-    themeBtn.setAttribute(
-      'aria-label',
-      currentTheme === 'light' ? THEME_LABELS[currentLanguage].dark : THEME_LABELS[currentLanguage].light,
-    );
-  });
-
   const refreshButton = document.createElement('button');
   refreshButton.className = 'chat-panel-refresh';
   refreshButton.type = 'button';
@@ -256,7 +213,6 @@ titleAvatar.height = 42;
   closeButton.addEventListener('click', onClose);
 
   headerActions.appendChild(langWrapper);
-  headerActions.appendChild(themeBtn);
   headerActions.appendChild(refreshButton);
   headerActions.appendChild(closeButton);
 
@@ -331,8 +287,8 @@ titleAvatar.height = 42;
   }
 
   function handleClickOutside(event: MouseEvent): void {
-    const target = event.target as Node;
-    if (!langWrapper.contains(target)) {
+    const path = event.composedPath();
+    if (!path.includes(langWrapper)) {
       closeDropdown();
     }
   }
@@ -466,14 +422,14 @@ titleAvatar.height = 42;
     langDropdown.setAttribute('aria-label', i18n.langLabel);
     refreshButton.setAttribute('aria-label', i18n.refreshLabel);
     closeButton.setAttribute('aria-label', i18n.closeLabel);
-    themeBtn.setAttribute(
-      'aria-label',
-      currentTheme === 'light' ? THEME_LABELS[lang].dark : THEME_LABELS[lang].light,
-    );
     titleText.textContent = i18n.ceroName;
+  }
+
+  function destroy(): void {
+    closeDropdown();
   }
 
   setLanguage(initialLanguage);
 
-  return { element: panel, contentSlot, footerSlot, setLanguage };
+  return { element: panel, contentSlot, footerSlot, setLanguage, destroy };
 }

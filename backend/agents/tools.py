@@ -169,7 +169,7 @@ def make_list_videos(store):
             line += f" - {count} chunk(s)"
             if durations.get(vid):
                 line += f" - {durations[vid]}s"
-            line += f" ({vid})"
+            line += f" - https://www.youtube.com/watch?v={vid} ({vid})"
             lines.append(line)
 
         if not lines:
@@ -248,6 +248,7 @@ def make_get_video_info(store):
                     lines.append(f"Transcript: {snippet}...")
 
         lines.append(f"ID: {video_id}")
+        lines.append(f"URL: https://www.youtube.com/watch?v={video_id}")
         return "\n".join(lines)
 
     return get_video_info

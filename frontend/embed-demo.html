@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cero Embed Demo</title>
+  </head>
+  <body>
+    <h1>Cero Embed Demo</h1>
+    <p>
+      This page demonstrates the two-line installation snippet. On a production
+      site, replace the script source with the hosted widget URL and set the
+      asset base URL explicitly:
+    </p>
+    <pre>
+&lt;script src="https://chatbot.plataformacero.org/cero-widget.iife.js"&gt;&lt;/script&gt;
+&lt;cero-chat-widget api-base-url="https://chatbot.plataformacero.org" asset-base-url="https://chatbot.plataformacero.org"&gt;&lt;/cero-chat-widget&gt;
+    </pre>
+    <p>
+      Keep the script synchronous when relying on automatic asset origin detection.
+      If you must load it with <code>async</code> or <code>defer</code>, always provide
+      <code>asset-base-url</code> so the widget knows where to fetch icons.
+    </p>
+
+    <!-- Local build demo (use ./dist-widget/cero-widget.iife.js after running pnpm build:widget) -->
+    <script src="./dist-widget/cero-widget.iife.js"></script>
+    <cero-chat-widget api-base-url="http://localhost:8000" asset-base-url="."></cero-chat-widget>
+  </body>
+</html>

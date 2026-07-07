@@ -167,7 +167,7 @@ FILMIG / Plataforma Cero (YouTube)
 - Multilingual support: 6 languages (EN/ES/CA/FR/PT/DE) with language selector in panel header
 - I18N across all modules: zero-state, input-bar, message-list, FAB, panel
 - Custom circular UI: all buttons (send, mic, language, refresh, close) are circular
-- New Cero avatar icon (`cero-agent-icon.png`)
+- New Cero identity image (`cero-fab.png`) for both the FAB and panel header
 
 **Pending:** deploy to production
 
@@ -418,7 +418,7 @@ migrant-archive/
 │   ├── package.json            ← pnpm dependencies
 │   ├── vite.config.ts          ← Vite + API proxy config
 │   ├── public/
-│   │   ├── cero-agent-icon.png     ← Cero avatar (FAB, panel header, zero-state)
+│   │   ├── cero-fab.png            ← Cero avatar for the FAB and panel header
 │   │   └── cerito-avatar.svg       ← Original vector avatar (legacy)
 │   └── src/
 │       ├── main.ts             ← Widget bootstrap
@@ -1193,7 +1193,7 @@ cd frontend && pnpm install && pnpm dev
 
 Open `http://localhost:5173`. Cero avatar floating bottom-right — click to open the side panel. Zero-state shows a greeting and three clickable suggestion cards. Type a question or click a suggestion. Agent responses include clickable YouTube links inline. Dark theme, responsive (full-width below 640px). Keyboard accessible (Escape to close, Enter to send, Tab navigation).
 
-The widget uses `/cero-agent-icon.png` as the Cero avatar across all states: FAB button, panel header, and zero-state greeting.
+The widget uses `/cero-fab.png` for both the FAB button and the panel header. The zero-state greeting is text-only.
 
 #### Frontend Architecture
 
