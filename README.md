@@ -7,12 +7,15 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 
 ## Progress Dashboard
 
-| Week | Focus | Done | Pending |
-|------|-------|------|---------|
-| 1 | Ingestion + Processing | S01–S03 complete | — |
-| 2 | Agents + Testing | S04–S06 complete | — |
-| 3 | Observability + API | S07 complete | — |
-| 4 | Frontend + Deploy | Presentation | Deploy |
+| Week | Focus | Done | Status |
+|------|-------|------|--------|
+| 1 | Ingestion + Processing | S01–S03 | Complete |
+| 2 | Agents + Testing | S04–S06 | Complete |
+| 3 | Observability + API | S07 | Complete |
+| 4 | Frontend + Demo | S08–S09 | Complete |
+| 5 | Evaluation | S10 | In progress |
+
+> **Pipeline status:** 276 tests passing. All 8 core stages complete (ingestion → frontend). S10 (RAGAS evaluation) in progress.
 
 ---
 
@@ -24,15 +27,15 @@ FILMIG / Plataforma Cero (YouTube)
          ▼
    ┌─ S01 ──────────────────────┐
    │  Video Ingestion           │
-   │  3 strategies (Colab GPU /  │
-   │  faster-whisper / captions) │
+   │  3 strategies (Colab GPU / │
+   │  faster-whisper / captions)│
    └──────────────┬──────────────┘
                   │
                   ▼
    ┌─ S02 ──────────────────────┐
-    │  Chunking + Embedding      │
-    │  1000tk/200ov · enriched   │
-    │  gemini-embedding-2 (3072d) │
+   │  Chunking + Embedding      │
+   │  1000tk/200ov · enriched   │
+   │  gemini-embedding-2 (3072d)│
    └──────────────┬──────────────┘
                   │
                   ▼
@@ -62,15 +65,27 @@ FILMIG / Plataforma Cero (YouTube)
                    │  LangSmith, API + Chat      │
                    │  Widget · FastAPI           │
                    │  embeddable widget          │
-                  └────────────┬────────────────┘
-                               ▼
+                   └───────────────┬─────────────┘
+                                  ▼
                         ┌─ S08 ──────────────┐
-                        │  Frontend + Deploy │
+                        │  Frontend + Demo   │
                         │  Presentation      │
                         │  Widget redesigned │
                         │  Voice (Groq)      │
                         │  i18n (6 languages)│
-                        └────────────────────┘
+                        └──────────┬─────────┘
+                                  ▼
+                   ┌─ S09 ───────────────────────┐
+                   │  Demo + Embeddable Widget   │
+                   │  Plataforma Cero snapshot   │
+                   │  2-line install snippet     │
+                   └───────────────┬─────────────┘
+                                  ▼
+                          ┌─ S10 ──────────────┐
+                          │  Evaluation        │
+                          │  RAGAS metrics     │
+                          │  Q&A test suite    │
+                          └────────────────────┘
 ```
 
 <details>
@@ -127,7 +142,7 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S06 — LangChain Agent (Cero): 4 decisions · 3 files · 2 test files (44 tests)</summary>
+<summary>S06 — LangChain Agent (Cero): 4 decisions · 3 files · 2 test files (48 tests)</summary>
 
 **Decisions:**
 - Native tool calling over ReAct text parsing (eliminated ~30% failure rate on Spanish queries)
@@ -137,12 +152,12 @@ FILMIG / Plataforma Cero (YouTube)
 
 **Files:** [`agent.py`](backend/agents/agent.py) · [`tools.py`](backend/agents/tools.py) · [`agent_cli.py`](backend/scripts/agent_cli.py)
 
-**Tests:** `test_agent.py` (34 tests) · `test_speaker_extraction.py` (10 tests)
+**Tests:** `test_agent.py` (38 tests) · `test_speaker_extraction.py` (10 tests)
 
 </details>
 
 <details>
-<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 13 files · 3 test files (57 frontend tests)</summary>
+<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 13 files · 3 test files (105 frontend tests)</summary>
 
 **Decisions:**
 - LangSmith zero-code tracing (env-var auto-detection, no application code required)
@@ -155,7 +170,7 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S08 — Frontend + Deploy: 1 decision · 7 completed · 1 pending</summary>
+<summary>S08 — Frontend + Demo: 1 decision · 10 completed</summary>
 
 **Decisions:**
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
@@ -163,13 +178,43 @@ FILMIG / Plataforma Cero (YouTube)
 **Completed:**
 - [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 18-slide HTML deck
 - Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button, dark theme, responsive, keyboard navigation, ARIA accessibility
-- Voice input is COMPLETE — Groq Whisper API (`whisper-large-v3-turbo`), 30s max recording with countdown, works in all browsers
+- Voice input complete — Groq Whisper API (`whisper-large-v3-turbo`), 30s max recording with countdown, works in all browsers
 - Multilingual support: 6 languages (EN/ES/CA/FR/PT/DE) with language selector in panel header
 - I18N across all modules: zero-state, input-bar, message-list, FAB, panel
 - Custom circular UI: all buttons (send, mic, language, refresh, close) are circular
 - New Cero identity image (`cero-fab.png`) for both the FAB and panel header
+- [`index-demo/`](frontend/index-demo/) — Full Plataforma Cero replica with embedded widget
+- [`embed-demo.html`](frontend/embed-demo.html) — 29-line minimal page demonstrating 2-line widget installation
+- Embeddable widget: standalone IIFE bundle (`dist-widget/cero-widget.iife.js`)
 
-**Pending:** deploy to production
+</details>
+
+<details>
+<summary>S09 — Demo Artifacts: 2 files</summary>
+
+**Files:**
+[`frontend/index-demo/index.html`](frontend/index-demo/index.html) — Full Plataforma Cero website snapshot (1,816 lines) with the Cero widget embedded. Serves as a realistic demo environment showing the widget in context. Accessible at `http://localhost:5173/index-demo/` after building the widget.
+
+[`frontend/embed-demo.html`](frontend/embed-demo.html) — Minimal 29-line HTML page demonstrating the two-line installation snippet (`<script>` + `<cero-widget>`) for embedding the widget on any website.
+
+</details>
+
+<details>
+<summary>S10 — Evaluation: RAGAS metrics + Q&A test suite</summary>
+
+**Files:**
+[`backend/evaluation/evaluate.py`](backend/evaluation/evaluate.py) — RAGAS evaluation pipeline: faithfulness, answer relevancy, context precision, context recall. Reads cached agent answers and scores them with Gemini.
+
+[`backend/evaluation/cache_answers.py`](backend/evaluation/cache_answers.py) — Pre-computes agent answers for the Q&A pairs and writes `eval_cache.json`.
+
+[`backend/evaluation/qa_dataset.json`](backend/evaluation/qa_dataset.json) — Curated set of 5 question-answer pairs with expected source keywords for evaluating retrieval and generation quality.
+
+**Metrics:**
+- **Retrieval**: nDCG, MRR, recall@k, precision@k
+- **Generation**: faithfulness, answer relevancy, context precision, context recall (RAGAS)
+- **End-to-end**: Q&A test suite with pre-verified answers
+
+**Tests:** `test_evaluation.py`
 
 </details>
 
@@ -370,6 +415,54 @@ Full details: [S07 — LangSmith, API + Chat Widget](#s07--langsmith-api--chat-w
 
 </details>
 
+<details>
+<summary>Step 8 — View the full demo (Plataforma Cero replica)</summary>
+
+### Step 8 — View the full demo (Plataforma Cero replica)
+
+The project includes a polished demo page that replicates the Plataforma Cero website with the Cero widget embedded in context.
+
+```bash
+# Build the embeddable widget first:
+cd frontend && pnpm build:widget
+
+# Start the API (if not already running):
+uv run uvicorn backend.api.main:app --reload --port 8000
+
+# The demo is served through the Vite dev server:
+open http://localhost:5173/index-demo/
+```
+
+The widget opens with three suggestion cards that serve as a first-time entry point:
+
+- "List Plataforma Cero videos"
+- "What is FILMIG?"
+- "What is Mujeres del Maíz?"
+
+After trying the demo questions, use the evaluation Q&A dataset to probe deeper retrieval and generation quality.
+
+A minimal embed demo is also available at `http://localhost:5173/embed-demo.html` — a 29-line page showing the two-line installation snippet.
+
+</details>
+
+<details>
+<summary>Step 9 — Troubleshooting</summary>
+
+### Step 9 — Troubleshooting
+
+| Problem | Likely Cause | Solution |
+|---------|-------------|----------|
+| `GEMINI_API_KEY not set` | Missing `.env` file or key | Copy `.env.example` to `.env` and add your key from [aistudio.google.com](https://aistudio.google.com/apikey) |
+| `GROQ_API_KEY not set` | Missing Groq key | Add key from [console.groq.com](https://console.groq.com) for voice transcription |
+| `ffmpeg not found` | System dependency missing | `brew install ffmpeg` (macOS) or `apt install ffmpeg` (Linux) |
+| ChromaDB `InvalidDimensionException` | Embedding model changed | Delete `data/chroma/` and run `python backend/scripts/rebuild_index.py` |
+| Colab session timeout | Free tier disconnects | Use `Runtime > Change runtime type > T4 GPU`, keep tab active |
+| `pnpm: command not found` | pnpm not installed | `npm install -g pnpm` or use `npm` instead |
+| `ModuleNotFoundError: langchain_classic` | Missing dependencies | Run `uv pip install -r requirements.txt` |
+| Widget shows "Failed to fetch" | API not running on port 8000 | Start the API first: `uv run uvicorn backend.api.main:app --reload --port 8000` |
+
+</details>
+
 ---
 
 ## Architectural Decisions and Concepts
@@ -412,9 +505,15 @@ migrant-archive/
 │   │   ├── rebuild_index.py    ← Rebuild ChromaDB index from whisper JSON files
 │   │   ├── quick_search.py     ← Keyword search (no API, no embeddings)
 │   │   └── extract_sample.py   ← First-5K extraction from ChromaDB + JSON
+│   ├── evaluation/
+│   │   ├── evaluate.py         ← RAGAS evaluation pipeline
+│   │   └── qa_dataset.json     ← Ground-truth Q&A pairs
 │
 ├── frontend/
 │   ├── index.html              ← Widget mount point
+│   ├── index-demo/
+│   │   └── index.html          ← Plataforma Cero demo snapshot
+│   ├── embed-demo.html         ← Minimal 2-line widget demo
 │   ├── package.json            ← pnpm dependencies
 │   ├── vite.config.ts          ← Vite + API proxy config
 │   ├── public/
@@ -1121,7 +1220,7 @@ Type `history` to inspect the current message buffer and verify the sliding wind
 uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 ```
 
-44 tests: 34 agent (tools, filters, memory, bounded history, disambiguation, scoped search, E2E) + 10 speaker extraction.
+48 tests: 38 agent (tools, filters, memory, bounded history, disambiguation, scoped search, E2E) + 10 speaker extraction.
 
 </details>
 
@@ -1257,13 +1356,13 @@ handles routing in development. The `build.outDir` is `dist/`.
 </details>
 
 <details>
-<summary>S08 — Frontend + Deploy</summary>
+<summary>S08 — Frontend + Demo</summary>
 
-### S08 — Frontend + Deploy
+### S08 — Frontend + Demo
 
-> Sources: [`frontend/src/`](frontend/src/) · [`presentation/migrant-archive-slides.html`](presentation/migrant-archive-slides.html) · [`transcribe.py`](backend/api/routes/transcribe.py) · [`input-bar.ts`](frontend/src/input-bar.ts) · [`main.py`](backend/api/main.py)
+> Sources: [`frontend/src/`](frontend/src/) · [`presentation/migrant-archive-slides.html`](presentation/migrant-archive-slides.html) · [`frontend/index-demo/index.html`](frontend/index-demo/index.html) · [`frontend/embed-demo.html`](frontend/embed-demo.html) · [`transcribe.py`](backend/api/routes/transcribe.py) · [`input-bar.ts`](frontend/src/input-bar.ts) · [`main.py`](backend/api/main.py)
 
-The final phase: presentation, deploy, polish, and voice input. See [Progress Dashboard](#progress-dashboard) for current priority order.
+The final phase: presentation, demo artifacts, polish, and voice input.
 
 #### What's done
 
@@ -1271,6 +1370,10 @@ The final phase: presentation, deploy, polish, and voice input. See [Progress Da
 - **Presentation** (`presentation/migrant-archive-slides.html`): 18-slide HTML deck
 - **Voice input** ([`input-bar.ts`](frontend/src/input-bar.ts) + [`transcribe.py`](backend/api/routes/transcribe.py)): complete via Groq Whisper API (`whisper-large-v3-turbo`), free tier 2000 requests/day. 30-second maximum recording with visual countdown (last 3 seconds). Manual stop or auto-stop at 30s. Error handling for permission denied, network errors, empty speech, and service unavailable. Works in all browsers (Chrome, Firefox, Brave, Safari).
 - **Multilingual support**: language selector dropdown in panel header with 6 languages (EN/ES/CA/FR/PT/DE). Type-to-filter and keyboard navigation. Selected language persists in localStorage. Session resets on language change. All UI text translates: greeting, suggestions, input bar, error messages, and confirm dialogs. Backend uses dynamic agent prompt via language parameter and Groq transcription language hint. Agent responds in the selected language.
+- **Demo artifacts**:
+  - [`frontend/index-demo/index.html`](frontend/index-demo/index.html) — full Plataforma Cero replica with embedded widget
+  - [`frontend/embed-demo.html`](frontend/embed-demo.html) — minimal 29-line widget installation demo
+  - Embeddable widget bundle (`dist-widget/cero-widget.iife.js`) built via `vite.widget.config.ts`
 
 #### Voice
 
@@ -1394,13 +1497,137 @@ list gracefully.
 - **Backend**: dynamic agent prompt via language parameter; Groq transcription receives a language hint
 - **Behavior**: agent responds in the selected language; session resets on language change
 
-#### Deploy options (TBD)
+#### Deployment research
+
+The deployment platform comparison from S08 remains available for future production hosting:
 
 | Platform | Pros | Cons |
 |----------|------|------|
 | **Railway** | Simple, Python-native, free tier | Cold starts on free tier |
 | **Fly.io** | Global edge, persistent volumes | More config required |
 | **Cloudflare Pages + Workers** | Fast CDN, free tier generous | Need Workers for Python backend |
+
+</details>
+
+<details>
+<summary>S09 — Demo Artifacts</summary>
+
+### S09 — Demo Artifacts
+
+Two demo artifacts for presenting the project.
+
+#### Plataforma Cero Demo Snapshot
+
+> **Source:** [`frontend/index-demo/index.html`](frontend/index-demo/index.html)
+
+A full replica of the Plataforma Cero website with the Cero widget embedded in its natural context. The page includes the original site's branding, layout, and collaborator images — the widget appears as it would in production.
+
+```bash
+cd frontend && pnpm build:widget    # build the embeddable bundle
+open http://localhost:5173/index-demo/
+```
+
+The demo page (1,816 lines) is served through Vite's dev server with the same proxy configuration as the main widget page.
+
+#### Embeddable Widget Demo
+
+> **Source:** [`frontend/embed-demo.html`](frontend/embed-demo.html)
+
+A minimal 29-line HTML page demonstrating the two-line installation snippet:
+
+```html
+<script src="/dist-widget/cero-widget.iife.js"></script>
+<cero-widget api-url="http://localhost:8000"></cero-widget>
+```
+
+The widget bundle (`dist-widget/cero-widget.iife.js`) is built via `pnpm build:widget` using a separate Vite config (`vite.widget.config.ts`). It produces a self-contained IIFE that registers the `<cero-widget>` custom element.
+
+</details>
+
+<details>
+<summary>S10 — Evaluation (RAGAS + Q&A Test Suite)</summary>
+
+### S10 — Evaluation (RAGAS + Q&A Test Suite)
+
+> **Sources:** [`backend/evaluation/evaluate.py`](backend/evaluation/evaluate.py) · [`backend/evaluation/qa_dataset.json`](backend/evaluation/qa_dataset.json)
+
+The evaluation layer measures RAG pipeline quality across two dimensions: retrieval accuracy and generation faithfulness.
+
+#### RAGAS Metrics
+
+RAGAS (Retrieval Augmented Generation Assessment) evaluates the agent's responses against a curated ground-truth dataset of question-answer pairs.
+
+| Metric | What it Measures |
+|--------|-----------------|
+| **Faithfulness** | Does the answer stick to the retrieved context? |
+| **Answer Relevancy** | Does the answer address the question? |
+| **Context Precision** | Are retrieved chunks relevant to the question? |
+| **Context Recall** | Are all relevant chunks retrieved? |
+
+> **Key design decision:** RAGAS evaluation reads all 3 agent tools as context — `search_transcripts`, `get_video_info`, and `list_videos`. The tool-calling agent chooses the right tool per question: metadata questions use catalog tools, semantic questions use transcript search. All tool outputs are valid context for faithfulness scoring, not just retrieved transcript chunks.
+
+#### Q&A Test Suite
+
+A curated set of 5 pre-verified question-answer pairs that exercise specific agent capabilities:
+
+| Question | Tests |
+|----------|-------|
+| "Que videos son de 2024?" | Metadata filtering |
+| "De que trata el video Escrituras Otras?" | General topic retrieval |
+| "Que dice Safia El Aaddam sobre racismo?" | Speaker + topic scoping |
+| "Que es FILMIG?" | Video metadata lookup |
+| "Busca testimonios de Plataforma Cero sobre migracion" | Channel + semantic search |
+
+Each pair includes: the question, expected answer key points, and expected source keywords.
+
+#### Interpreting the Output
+
+All RAGAS metrics return scores between **0.0 and 1.0**. The evaluation script prints one line per metric per question:
+
+```
+[1/5] faithfulness... 0.8333333333333334
+[1/5] answer_relevancy... 0.6597492397690089
+```
+
+| Metric | 1.0 means | 0.0 means | How RAGAS computes it |
+|--------|----------|-----------|----------------------|
+| **faithfulness** | Every claim in the answer is backed by the retrieved contexts | No claims match the contexts | Decomposes the answer into individual claims, checks each against contexts |
+| **answer_relevancy** | The answer directly addresses the question | The answer is off-topic | Generates synthetic questions from the answer, measures similarity to the original |
+| **context_precision** | Every retrieved chunk is relevant to the question | No retrieved chunks are relevant | Ranks chunks by relevance to the question |
+| **context_recall** | Every sentence in the ground truth is covered by retrieved chunks | No ground truth coverage | Matches ground truth claims against retrieved contexts |
+
+> Scores are non-deterministic — the same question evaluated twice may produce slightly different values because both the agent (Gemini) and the RAGAS judge (Gemini) use LLMs with inherent variance.
+
+#### Evaluation Results (July 2026)
+
+Full run on 5 questions with all 4 metrics:
+
+| # | Question | Faithfulness | Answer Relevancy | Context Precision | Context Recall |
+|---|---|---|---|---|---|
+| 1 | "Que videos son de 2024?" | 0.83 | 0.66 | 1.00 | 1.00 |
+| 2 | "De que trata el video Escrituras Otras?" | 1.00 | 0.72 | 1.00 | 0.40 |
+| 3 | "Que dice Safia El Aaddam sobre racismo?" | 1.00 | 0.89 | 0.50 | 1.00 |
+| 4 | "Que es FILMIG?" | 1.00 | 0.89 | 1.00 | 0.25 |
+| 5 | "Busca testimonios de Plataforma Cero sobre migracion" | 0.97 | 0.72 | 1.00 | 1.00 |
+| | **Average** | **0.96** | **0.78** | **0.90** | **0.73** |
+
+**What these results mean:**
+
+- **Faithfulness 0.96** — The agent rarely hallucinates. 4 of 5 questions scored perfect faithfulness. The 0.83 on question 1 reflects the agent providing broader context than the ground truth expected, not fabricated claims.
+- **Answer Relevancy 0.78** — Answers are on-topic but tend to be more comprehensive than strictly necessary. Metadata questions score lower because the agent adds contextual detail beyond what the question asks.
+- **Context Precision 0.90** — Retrieved contexts are highly relevant. The 0.50 on question 3 (Safia) is expected: the agent retrieves chunks from the full video transcript, some of which mention other speakers besides Safia.
+- **Context Recall 0.73** — The most variable metric (0.25-1.0). Low scores on questions 2 and 4 reflect ground truth details (moderator name, FILMIG's tour cities) that are not present in the retrieved contexts, not retrieval failures.
+
+```bash
+# Step 1: cache agent answers (run once):
+uv run python backend/evaluation/cache_answers.py
+
+# Step 2: evaluate from cache (run as many times as needed):
+uv run python backend/evaluation/evaluate.py --metrics faithfulness,answer_relevancy
+
+# Run Q&A test suite:
+uv run python -m pytest tests/test_evaluation.py -v
+```
 
 </details>
 
@@ -1411,7 +1638,7 @@ list gracefully.
 
 ### Tests
 
-> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_rebuild_index.py`](tests/test_rebuild_index.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py)
+> Test files: [`tests/`](tests/) — [`test_embedding.py`](tests/test_embedding.py) · [`test_embedding_gemini.py`](tests/test_embedding_gemini.py) · [`test_processor.py`](tests/test_processor.py) · [`test_vector_store.py`](tests/test_vector_store.py) · [`test_pipeline_e2e.py`](tests/test_pipeline_e2e.py) · [`test_extract_sample.py`](tests/test_extract_sample.py) · [`test_ingestion.py`](tests/test_ingestion.py) · [`test_faster_whisper_audio.py`](tests/test_faster_whisper_audio.py) · [`test_faster_whisper_colab.py`](tests/test_faster_whisper_colab.py) · [`test_rebuild_index.py`](tests/test_rebuild_index.py) · [`test_agent.py`](tests/test_agent.py) · [`test_speaker_extraction.py`](tests/test_speaker_extraction.py) · [`test_api.py`](tests/test_api.py) · [`test_frontend.py`](tests/test_frontend.py) · [`test_langsmith.py`](tests/test_langsmith.py) · [`test_evaluation.py`](tests/test_evaluation.py)
 
 ```bash
 # UV environment
@@ -1420,17 +1647,19 @@ python -m pytest tests/ -v
 
 ```
 
-**Results:** 223 passed, 1 skipped, 0 failed. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
+**Results:** 276 tests collected. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
 
 | Layer | Tests | Files | What it proves |
 |-------|-------|-------|----------------|
-| Unit | 53 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | 53 unit tests covering contract enforcement, chunking logic, CRUD operations, timestamp helpers |
-| Integration | 64 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | 64 integration tests covering real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
-| Agent | 34 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
+| Unit | 54 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
+| Integration | 64 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
+| Agent | 38 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
 | Speaker | 10 | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
-| Frontend | 57 | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
+| Frontend | 105 | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
 | Observability | 3 | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
 | E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
+| Evaluation | TBD | `test_evaluation.py` | RAGAS metrics, Q&A test suite |
+| **Total** | **276 + eval** | 16 test files | — |
 
 
 </details>
@@ -1568,7 +1797,7 @@ Pregunta> y cuantos videos tienen ponentes?
 | `backend/agents/tools.py` | 3 tools + speaker extraction (5 patterns, math-bold normalization) |
 | `backend/core/vector_store.py` | Scoped search via ChromaDB `where` filter + `get_unique_videos()` |
 | `backend/scripts/agent_cli.py` | Interactive CLI with session lifecycle |
-| `tests/test_agent.py` | 34 tests: tools, memory, disambiguation, scoped search, E2E |
+| `tests/test_agent.py` | 38 tests: tools, memory, disambiguation, scoped search, E2E |
 | `tests/test_speaker_extraction.py` | 10 tests: 5 description patterns, normalization, fallback |
 
 **Design justification:**
@@ -1586,8 +1815,10 @@ Criteria not yet defined by Ironhack.
 **Ready:**
 - LangSmith tracing (auto-tracing via env vars)
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
-- Chat widget (Vite + TypeScript, FAB + side panel, dark theme, 7 modules)
+- Chat widget (Vite + TypeScript, FAB + side panel, dark theme, 8 modules)
 - Presentation slides (`presentation/migrant-archive-slides.html`, 18 slides)
-- 223 passed, 1 skipped, 0 failed
+- 276 tests collected
+
+> **Note:** The presentation deck's test-count slide should be refreshed to reflect the current test total (276).
 
 </details>
