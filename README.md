@@ -1,7 +1,13 @@
 # Migrant Archive — Narratives That Resist
 
-Multimodal RAG chatbot that answers questions about YouTube video content.
-Built on the FILMIG / Plataforma Cero channel (Spanish).
+Multimodal RAG chatbot that helps people find specific moments, retrieve context, and surface migrant narratives hidden inside long-form YouTube videos.
+Built on the FILMIG / Plataforma Cero channel.
+
+## Why it exists
+
+- Long videos make specific context hard to find quickly.
+- Weak YouTube captions make Spanish and Catalan access unreliable.
+- Important migrant narratives should be easier to retrieve, cite, and reuse.
 
 ---
 
@@ -13,9 +19,9 @@ Built on the FILMIG / Plataforma Cero channel (Spanish).
 | 2 | Agents + Testing | S04–S06 | Complete |
 | 3 | Observability + API | S07 | Complete |
 | 4 | Frontend + Demo | S08–S09 | Complete |
-| 5 | Evaluation | S10 | In progress |
+| 5 | Evaluation | S10 | Implemented |
 
-> **Pipeline status:** 276 tests passing. All 8 core stages complete (ingestion → frontend). S10 (RAGAS evaluation) in progress.
+> **Pipeline status:** S01-S09 are complete. S10 is implemented, with RAGAS evaluation tuning ongoing.
 
 ---
 
@@ -126,7 +132,7 @@ FILMIG / Plataforma Cero (YouTube)
 </details>
 
 <details>
-<summary>S04–S05 — Sample Extraction + RAG Test: 5 files · 1 test file</summary>
+<summary>S04-S05 — Sample Extraction + RAG Test: 5 files · 2 test files</summary>
 
 **Files:**
 [`quick_search.py`](backend/scripts/quick_search.py) — fast keyword search (no API)
@@ -135,14 +141,14 @@ FILMIG / Plataforma Cero (YouTube)
 [`extract_sample.py`](backend/scripts/extract_sample.py) — first-5K extraction from ChromaDB + JSON
 [`rebuild_index.py`](backend/scripts/rebuild_index.py) — rebuild ChromaDB index from whisper JSONs
 
-**Tests:** `test_extract_sample.py`
+**Tests:** `test_extract_sample.py` · `test_rebuild_index.py`
 
 **Memory progression:** `quick_search.py` (no API, no memory) → `rag_test.py` (semantic, no memory) → `backend/scripts/cero-01.py` (buffer window, LLM answers) → `agent_cli.py` (buffer, LLM + tools). Same sliding-window idea, different consumer and capabilities.
 
 </details>
 
 <details>
-<summary>S06 — LangChain Agent (Cero): 4 decisions · 3 files · 2 test files (48 tests)</summary>
+<summary>S06 — LangChain Agent (Cero): 4 decisions · 3 files · 2 test files</summary>
 
 **Decisions:**
 - Native tool calling over ReAct text parsing (eliminated ~30% failure rate on Spanish queries)
@@ -152,12 +158,12 @@ FILMIG / Plataforma Cero (YouTube)
 
 **Files:** [`agent.py`](backend/agents/agent.py) · [`tools.py`](backend/agents/tools.py) · [`agent_cli.py`](backend/scripts/agent_cli.py)
 
-**Tests:** `test_agent.py` (38 tests) · `test_speaker_extraction.py` (10 tests)
+**Tests:** `test_agent.py` · `test_speaker_extraction.py`
 
 </details>
 
 <details>
-<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 13 files · 3 test files (105 frontend tests)</summary>
+<summary>S07 — LangSmith, API + Chat Widget: 2 decisions · 13 files · 3 test files</summary>
 
 **Decisions:**
 - LangSmith zero-code tracing (env-var auto-detection, no application code required)
@@ -176,8 +182,8 @@ FILMIG / Plataforma Cero (YouTube)
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
 
 **Completed:**
-- [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 18-slide HTML deck
-- Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button, dark theme, responsive, keyboard navigation, ARIA accessibility
+- [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 19-slide HTML deck
+- Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button, light theme, responsive, keyboard navigation, ARIA accessibility
 - Voice input complete — Groq Whisper API (`whisper-large-v3-turbo`), 30s max recording with countdown, works in all browsers
 - Multilingual support: 6 languages (EN/ES/CA/FR/PT/DE) with language selector in panel header
 - I18N across all modules: zero-state, input-bar, message-list, FAB, panel
@@ -210,9 +216,8 @@ FILMIG / Plataforma Cero (YouTube)
 [`backend/evaluation/qa_dataset.json`](backend/evaluation/qa_dataset.json) — Curated set of 5 question-answer pairs with expected source keywords for evaluating retrieval and generation quality.
 
 **Metrics:**
-- **Retrieval**: nDCG, MRR, recall@k, precision@k
-- **Generation**: faithfulness, answer relevancy, context precision, context recall (RAGAS)
-- **End-to-end**: Q&A test suite with pre-verified answers
+- **RAGAS**: faithfulness, answer relevancy, context precision, context recall
+- **End-to-end**: Q&A dataset with cached agent answers
 
 **Tests:** `test_evaluation.py`
 
@@ -528,7 +533,7 @@ migrant-archive/
 │       ├── input-bar.ts        ← Bottom input toolbar with send/mic/model
 │       ├── message-list.ts     ← Conversation rendering + source citations
 │       ├── chat-widget.ts      ← Orchestrator wiring all modules together
-│       └── styles.css          ← Dark theme CSS custom properties
+│       └── styles.css          ← Light theme CSS custom properties
 │
 ├── tests/
 │   ├── conftest.py             ← Shared pytest fixtures + LangSmith guard
@@ -1220,7 +1225,7 @@ Type `history` to inspect the current message buffer and verify the sliding wind
 uv run python -m pytest tests/test_agent.py tests/test_speaker_extraction.py -v
 ```
 
-48 tests: 38 agent (tools, filters, memory, bounded history, disambiguation, scoped search, E2E) + 10 speaker extraction.
+Documented coverage: agent tools, filters, memory, bounded history, disambiguation, scoped search, E2E, and speaker extraction.
 
 </details>
 
@@ -1290,7 +1295,7 @@ Tests cover API models, routes, session lifecycle, CORS, error handling, source 
 cd frontend && pnpm install && pnpm dev
 ```
 
-Open `http://localhost:5173`. Cero avatar floating bottom-right — click to open the side panel. Zero-state shows a greeting and three clickable suggestion cards. Type a question or click a suggestion. Agent responses include clickable YouTube links inline. Dark theme, responsive (full-width below 640px). Keyboard accessible (Escape to close, Enter to send, Tab navigation).
+Open `http://localhost:5173`. Cero avatar floating bottom-right — click to open the side panel. Zero-state shows a greeting and three clickable suggestion cards. Type a question or click a suggestion. Agent responses include clickable YouTube links inline. Light theme, responsive (full-width below 640px). Keyboard accessible (Escape to close, Enter to send, Tab navigation).
 
 The widget uses `/cero-fab.png` for both the FAB button and the panel header. The zero-state greeting is text-only.
 
@@ -1366,8 +1371,8 @@ The final phase: presentation, demo artifacts, polish, and voice input.
 
 #### What's done
 
-- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button, dark theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
-- **Presentation** (`presentation/migrant-archive-slides.html`): 18-slide HTML deck
+- **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button, light theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
+- **Presentation** (`presentation/migrant-archive-slides.html`): 19-slide HTML deck
 - **Voice input** ([`input-bar.ts`](frontend/src/input-bar.ts) + [`transcribe.py`](backend/api/routes/transcribe.py)): complete via Groq Whisper API (`whisper-large-v3-turbo`), free tier 2000 requests/day. 30-second maximum recording with visual countdown (last 3 seconds). Manual stop or auto-stop at 30s. Error handling for permission denied, network errors, empty speech, and service unavailable. Works in all browsers (Chrome, Firefox, Brave, Safari).
 - **Multilingual support**: language selector dropdown in panel header with 6 languages (EN/ES/CA/FR/PT/DE). Type-to-filter and keyboard navigation. Selected language persists in localStorage. Session resets on language change. All UI text translates: greeting, suggestions, input bar, error messages, and confirm dialogs. Backend uses dynamic agent prompt via language parameter and Groq transcription language hint. Agent responds in the selected language.
 - **Demo artifacts**:
@@ -1647,19 +1652,18 @@ python -m pytest tests/ -v
 
 ```
 
-**Results:** 276 tests collected. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; the E2E layer is skipped without an API key.
+**Results:** The documented suite spans backend, frontend, agent, API, and evaluation coverage. Conditional skips apply when `GEMINI_API_KEY` is not set or a GPU is unavailable; exact pass counts should be confirmed in the local environment before publishing.
 
-| Layer | Tests | Files | What it proves |
-|-------|-------|-------|----------------|
-| Unit | 54 | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
-| Integration | 64 | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
-| Agent | 38 | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
-| Speaker | 10 | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
-| Frontend | 105 | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
-| Observability | 3 | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
-| E2E | 2 | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
-| Evaluation | TBD | `test_evaluation.py` | RAGAS metrics, Q&A test suite |
-| **Total** | **276 + eval** | 16 test files | — |
+| Layer | Files | What it proves |
+|-------|-------|----------------|
+| Unit | `test_embedding.py`, `test_processor.py`, `test_vector_store.py`, `test_ingestion.py` | Contract enforcement, chunking logic, CRUD operations, timestamp helpers |
+| Integration | `test_embedding_gemini.py`, `test_extract_sample.py`, `test_faster_whisper_audio.py`, `test_faster_whisper_colab.py`, `test_api.py`, `test_rebuild_index.py` | Real providers, extraction from real JSON, audio/colab strategies, API routes, index rebuild |
+| Agent | `test_agent.py` | 3-tool calling agent, disambiguation, scoped search, session memory, prompt assertions, E2E |
+| Speaker | `test_speaker_extraction.py` | Description pattern extraction, math-bold unicode normalization, channel fallback |
+| Frontend | `test_frontend.py` | Vite build, widget modules, API client, FAB, panel, zero-state, input bar, message list, integration, accessibility |
+| Observability | `test_langsmith.py` | Tracing guard fixture, env-var isolation, integration test with fake key |
+| E2E | `test_pipeline_e2e.py` | Full pipeline with Gemini API (needs key) |
+| Evaluation | `test_evaluation.py` | RAGAS metrics, Q&A dataset |
 
 
 </details>
@@ -1797,8 +1801,8 @@ Pregunta> y cuantos videos tienen ponentes?
 | `backend/agents/tools.py` | 3 tools + speaker extraction (5 patterns, math-bold normalization) |
 | `backend/core/vector_store.py` | Scoped search via ChromaDB `where` filter + `get_unique_videos()` |
 | `backend/scripts/agent_cli.py` | Interactive CLI with session lifecycle |
-| `tests/test_agent.py` | 38 tests: tools, memory, disambiguation, scoped search, E2E |
-| `tests/test_speaker_extraction.py` | 10 tests: 5 description patterns, normalization, fallback |
+| `tests/test_agent.py` | Tools, memory, disambiguation, scoped search, E2E |
+| `tests/test_speaker_extraction.py` | Description patterns, normalization, fallback |
 
 **Design justification:**
 - [Native Tool Calling](#s06--conversational-agent-with-memory) — Gemini 2.5 Flash structured `tool_call` objects, zero parsing failures
@@ -1806,19 +1810,17 @@ Pregunta> y cuantos videos tienen ponentes?
 - [ChromaDB metadata filtering](https://docs.trychroma.com/usage-guide#filtering-by-metadata) — native `where` filter, no post-processing
 - [Strategy Pattern](#s01--video-ingestion) — JSON metadata uses same `VideoData` contract as ingestion
 
-#### Checkpoint 4 — Sat 4 Jul: TBD
+#### Checkpoint 4 — Sat 4 Jul: Frontend, Demo, and Evaluation
 
-**Status:** Pending
-
-Criteria not yet defined by Ironhack.
+**Status:** Delivered
 
 **Ready:**
 - LangSmith tracing (auto-tracing via env vars)
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
-- Chat widget (Vite + TypeScript, FAB + side panel, dark theme, 8 modules)
-- Presentation slides (`presentation/migrant-archive-slides.html`, 18 slides)
-- 276 tests collected
-
-> **Note:** The presentation deck's test-count slide should be refreshed to reflect the current test total (276).
+- Chat widget (Vite + TypeScript, FAB + side panel, light theme, 8 modules)
+- Presentation slides (`presentation/migrant-archive-slides.html`, 19 slides)
+- Plataforma Cero demo snapshot and embeddable widget demo
+- S10 RAGAS evaluation pipeline and Q&A dataset
+- Test coverage documented across 16 test files
 
 </details>
