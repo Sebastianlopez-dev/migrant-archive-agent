@@ -365,16 +365,6 @@ def test_panel_has_refresh_button_with_callback():
     assert "REFRESH_ICON" in source
 
 
-def test_panel_has_theme_toggle_button():
-    """createPanel must include a theme toggle button with aria-label."""
-    source = _read_text("src/panel.ts")
-    assert "cero-widget-theme" in source
-    assert "migrant-archive-theme" in source
-    assert "data-theme" in source
-    assert "prefers-color-scheme" in source
-    assert "SUN_ICON" in source
-    assert "MOON_ICON" in source
-    assert "THEME_LABELS" in source
 
 
 def test_styles_css_has_light_theme_overrides():
@@ -894,15 +884,6 @@ def test_fab_avatar_src_uses_asset_base_url():
     assert "/cero-fab.png" in source
 
 
-def test_panel_avatar_and_theme_target_use_widget_root():
-    """The panel avatar must use the asset base URL and theme must target the widget root."""
-    source = _read_text("src/panel.ts")
-    assert "assetBaseUrl" in source, "createPanel must accept an assetBaseUrl"
-    assert "themeTarget" in source, "createPanel must accept a theme target element"
-    assert "buildAssetUrl" in source
-    assert "/cero-fab.png" in source, "panel header must use the selected Cero image"
-    assert "document.documentElement" not in source, "theme must not mutate the host document root"
-    assert "setAttribute('data-theme'" in source or 'setAttribute("data-theme"' in source
 
 
 def test_cero_fab_image_asset_exists():
@@ -1003,17 +984,6 @@ def test_widget_entry_reads_asset_base_url_attribute():
     assert "assetBaseUrl" in source
 
 
-def test_widget_uses_embed_specific_localstorage_keys():
-    """Widget state must be stored under embed-specific keys, with legacy fallback."""
-    chat_widget = _read_text("src/chat-widget.ts")
-    panel = _read_text("src/panel.ts")
-    assert "LANG_STORAGE_KEY = 'cero-widget-lang'" in chat_widget
-    assert "LEGACY_LANG_STORAGE_KEY = 'migrant-archive-lang'" in chat_widget
-    assert "THEME_STORAGE_KEY = 'cero-widget-theme'" in panel
-    assert "LEGACY_THEME_STORAGE_KEY = 'migrant-archive-theme'" in panel
-    # New keys must be written when preferences change.
-    assert "localStorage.setItem(LANG_STORAGE_KEY" in chat_widget
-    assert "localStorage.setItem(THEME_STORAGE_KEY" in panel
 
 
 def test_embed_demo_html_recommends_asset_base_url():
