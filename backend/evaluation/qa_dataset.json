@@ -1,0 +1,27 @@
+[
+  {
+    "question": "Que videos son de 2024?",
+    "ground_truth": "Hay un video de 2024: Presentacion FILMIG 2024.",
+    "contexts_keywords": ["2024", "FILMIG"]
+  },
+  {
+    "question": "De que trata el video Escrituras Otras?",
+    "ground_truth": "El video Escrituras Otras es un conversatorio sobre literatura migrante y racismo en Espana. Participan Lucia Mbomio, Safia El Aaddam y Desiree Bela-Lobedde, moderado por Silvia Agüero. Discuten como las narrativas dominantes excluyen las voces migrantes y racializadas, y la importancia de escribir desde la propia experiencia. Se presentan los libros de las autoras y se debate sobre el rol de las editoriales independientes. El video pertenece al canal Plataforma Cero y es de 2024.",
+    "contexts_keywords": ["Escrituras Otras", "literatura", "migrante", "racismo"]
+  },
+  {
+    "question": "Que dice Safia El Aaddam sobre racismo?",
+    "ground_truth": "Safia El Aaddam habla sobre el racismo estructural que enfrentan las personas migrantes y racializadas en Espana. Menciona como el racismo afecta a los ninos en las escuelas, como su primer libro fue rechazado por editoriales debido a su tematica antirracista, y como la industria editorial espanola no estaba preparada para voces racializadas. Tambien habla sobre la importancia de contar con referentes y la necesidad de crear espacios propios para narrar sus historias.",
+    "contexts_keywords": ["Safia", "racismo", "racializadas", "editoriales"]
+  },
+  {
+    "question": "Que es FILMIG?",
+    "ground_truth": "FILMIG es la Feria Itinerante del Libro Migrante, un proyecto que busca visibilizar las narrativas migrantes y racializadas a traves de la literatura. Organiza eventos, presentaciones de libros y conversatorios con autores y autoras migrantes. La feria viaja por diferentes ciudades de Espana. Es un espacio de encuentro entre escritores, editoriales independientes y lectores interesados en literaturas migrantes y antirracistas.",
+    "contexts_keywords": ["FILMIG", "Feria", "Libro", "Migrante"]
+  },
+  {
+    "question": "Busca testimonios de Plataforma Cero sobre migracion",
+    "ground_truth": "Los testimonios del canal Plataforma Cero sobre migracion incluyen experiencias personales de migrantes, discusiones sobre racismo estructural, duelo migratorio, identidad cultural, y resistencia. Los participantes comparten sus vivencias como personas migrantes y racializadas en Espana.",
+    "contexts_keywords": ["Plataforma Cero", "testimonios", "migracion"]
+  }
+]
