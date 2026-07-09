@@ -147,12 +147,16 @@
 
       /* ── Slide elements ── */
       .slide-label {
+        position: absolute;
+        top: var(--safe-top);
+        left: var(--safe);
         font-size: var(--fs-cap);
         font-weight: 600;
         color: var(--accent);
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        margin-bottom: 16px;
+        margin-bottom: 0;
+        z-index: 2;
       }
       .big-number {
         font-size: 8rem;
@@ -285,16 +289,106 @@
       }
 
       .demo-stage {
-        flex: 1;
+        flex: 0 0 auto;
         display: flex;
         align-items: center;
         justify-content: center;
         min-height: 0;
-        margin-top: 16px;
+        margin-top: 24px;
+      }
+      .demo-layout {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        width: 100%;
+      }
+      .demo-terminal {
+        width: 360px;
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .demo-terminal-box {
+        padding: 4px 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .demo-terminal-chrome {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+        opacity: 0.88;
+      }
+      .demo-terminal-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .demo-terminal-dot.red {
+        background: #ff5f57;
+      }
+      .demo-terminal-dot.yellow {
+        background: #ffbd2e;
+      }
+      .demo-terminal-dot.green {
+        background: #28c840;
+      }
+      .demo-terminal-title {
+        margin-bottom: 10px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .demo-terminal-path {
+        margin-bottom: 8px;
+        font-size: 0.56rem;
+        line-height: 1.2;
+        color: rgba(1, 158, 227, 0.72);
+      }
+      .demo-terminal-command {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .demo-terminal-arrow {
+        flex: 0 0 auto;
+        font-size: 0.72rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #28c840;
+      }
+      .demo-terminal-line {
+        font-size: 0.58rem;
+        line-height: 1.45;
+        color: var(--text);
+        overflow-wrap: anywhere;
+      }
+      .demo-command-main {
+        color: var(--text);
+      }
+      .demo-command-path {
+        color: #8bd5ff;
+      }
+      .demo-command-flag {
+        color: var(--accent);
+      }
+      .demo-command-muted {
+        color: var(--muted);
+      }
+      .demo-preview {
+        width: 100%;
+        max-width: 840px;
       }
       .demo-placeholder {
         width: 100%;
-        max-width: 1040px;
+        max-width: 840px;
         aspect-ratio: 16/9;
         max-height: 100%;
         border: 2px dashed rgba(1, 158, 227, 0.28);
@@ -305,22 +399,14 @@
         background: rgba(255, 255, 255, 0.02);
       }
       .demo-footer {
-        margin-top: 16px;
+        width: 100%;
+        max-width: 840px;
+        margin: 16px auto 0;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
+        justify-content: center;
         gap: 24px;
         opacity: 0.72;
-      }
-      .demo-command {
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.82rem;
-        color: var(--muted);
-        line-height: 1.35;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
       .demo-url {
         font-size: 0.9rem;
@@ -453,6 +539,26 @@
         object-position: left center;
         background: #0f0f0f;
       }
+      .problem-media {
+        position: absolute;
+        right: var(--safe);
+        bottom: var(--safe-top);
+        width: min(42vw, 680px);
+        aspect-ratio: 16 / 9;
+        border: 1px solid rgba(250, 250, 249, 0.08);
+        border-radius: 16px;
+        overflow: hidden;
+        background: #0f0f0f;
+        box-shadow: -8px 12px 40px rgba(0, 0, 0, 0.36);
+        pointer-events: none;
+      }
+      .problem-media video {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        background: #0f0f0f;
+      }
 
       /* ── Day list (roadmap) ── */
       .day-list {
@@ -560,6 +666,21 @@
         .process-line {
           width: 32px;
         }
+        .demo-layout {
+          flex-direction: column;
+          gap: 20px;
+        }
+        .demo-terminal {
+          width: min(100%, 420px);
+        }
+        .problem-media {
+          position: relative;
+          right: auto;
+          bottom: auto;
+          width: min(100%, 420px);
+          margin-top: 24px;
+          align-self: flex-end;
+        }
       }
     </style>
   </head>
@@ -593,6 +714,17 @@
           <span class="tag">Spanish + Catalan access</span>
           <span class="tag">weak YouTube captions</span>
         </div>
+        <div class="problem-media" aria-hidden="true">
+          <video
+            autoplay
+            muted
+            loop
+            playsinline
+            preload="auto"
+            tabindex="-1"
+            src="media/slide-2-the%20problem.mov"
+          ></video>
+        </div>
       </section>
 
       <!-- ═══════ SLIDE 03 · SOLUTION ═══════ -->
@@ -614,19 +746,59 @@
 
       <!-- ═══════ SLIDE 04 · LIVE DEMO ═══════ -->
       <section class="slide slide-content">
-        <p class="slide-label">Demo first</p>
-        <h2 class="t-title">Start with what the audience sees.</h2>
+        <p class="slide-label">Implementation</p>
+        <h2 class="t-title">What the user sees.</h2>
         <div class="divider"></div>
         <!-- Replace this placeholder with the final-app screenshot or a <video> -->
         <div class="demo-stage">
-          <div class="demo-placeholder">
-            <span class="t-small">App screenshot / video</span>
+          <div class="demo-layout">
+            <div class="demo-terminal" aria-label="Demo startup commands">
+              <div class="demo-terminal-box">
+                <div class="demo-terminal-chrome" aria-hidden="true">
+                  <span class="demo-terminal-dot red"></span>
+                  <span class="demo-terminal-dot yellow"></span>
+                  <span class="demo-terminal-dot green"></span>
+                </div>
+                <div class="demo-terminal-title">Back End</div>
+                <div class="demo-terminal-path">~/migrant-archive</div>
+                <div class="demo-terminal-command">
+                  <span class="demo-terminal-arrow">❯</span>
+                  <span class="demo-terminal-line">
+                    <span class="demo-command-main">uv run uvicorn</span>
+                    <span class="demo-command-path">backend.api.main:app</span>
+                    <span class="demo-command-flag">--reload</span>
+                    <span class="demo-command-flag">--port</span>
+                    <span class="demo-command-muted">8000</span>
+                  </span>
+                </div>
+              </div>
+              <div class="demo-terminal-box">
+                <div class="demo-terminal-title">Front End</div>
+                <div class="demo-terminal-path">~/migrant-archive</div>
+                <div class="demo-terminal-command">
+                  <span class="demo-terminal-arrow">❯</span>
+                  <span class="demo-terminal-line">
+                    <span class="demo-command-main">cd</span>
+                    <span class="demo-command-path">frontend</span>
+                    <span class="demo-command-muted">&&</span>
+                    <span class="demo-command-main">pnpm install</span>
+                    <span class="demo-command-muted">&&</span>
+                    <span class="demo-command-main">pnpm dev</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="demo-preview">
+              <div class="demo-placeholder">
+                <span class="t-small">App screenshot / video</span>
+              </div>
+              <div class="demo-footer">
+                <span class="demo-url">Start API</span>
+                <span class="demo-url">Start frontend</span>
+                <span class="demo-url">Open localhost:5173</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="demo-footer">
-          <span class="demo-url">Start API</span>
-          <span class="demo-url">Start frontend</span>
-          <span class="demo-url">Open localhost:5173</span>
         </div>
       </section>
 
