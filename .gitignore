@@ -16,7 +16,7 @@ data/audio/
 data/chroma/
 data/chroma_backup/
 
-presentation/media/Screen Recording*.mov
+presentation/media/*.mov
 
 frontend/node_modules/
 frontend/dist/
