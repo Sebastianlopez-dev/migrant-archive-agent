@@ -19,9 +19,9 @@ Built on the FILMIG / Plataforma Cero channel.
 | 2 | Agents + Testing | S04–S06 | Complete |
 | 3 | Observability + API | S07 | Complete |
 | 4 | Frontend + Demo | S08–S09 | Complete |
-| 5 | Evaluation | S10 | Implemented |
+| 5 | Evaluation | S10 | Done |
 
-> **Pipeline status:** S01-S09 are complete. S10 is implemented, with RAGAS evaluation tuning ongoing.
+> **Pipeline status:** S01-S09 are complete. S10 is done, with final RAGAS evaluation results.
 
 ---
 
@@ -182,7 +182,7 @@ FILMIG / Plataforma Cero (YouTube)
 - Deploy platform research: Railway, Fly.io, Cloudflare Pages + Workers
 
 **Completed:**
-- [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 19-slide HTML deck
+- [`migrant-archive-slides.html`](presentation/migrant-archive-slides.html) — 13-slide HTML deck
 - Chat widget redesigned: FAB toggle, side panel (30%), zero-state with 3 clickable suggestions, bottom-anchored input bar with voice button, light theme, responsive, keyboard navigation, ARIA accessibility
 - Voice input complete — Groq Whisper API (`whisper-large-v3-turbo`), 30s max recording with countdown, works in all browsers
 - Multilingual support: 6 languages (EN/ES/CA/FR/PT/DE) with language selector in panel header
@@ -447,6 +447,19 @@ The widget opens with three suggestion cards that serve as a first-time entry po
 After trying the demo questions, use the evaluation Q&A dataset to probe deeper retrieval and generation quality.
 
 A minimal embed demo is also available at `http://localhost:5173/embed-demo.html` — a 29-line page showing the two-line installation snippet.
+
+### Verify quality (optional)
+
+The agent's answers have been evaluated with RAGAS across 5 curated questions:
+
+| Metric | Score |
+|--------|-------|
+| Faithfulness | 0.96 |
+| Answer Relevancy | 0.78 |
+| Context Precision | 0.90 |
+| Context Recall | 0.73 |
+
+These scores provide evidence that Cero produces mostly faithful, relevant answers while also showing where retrieval quality can keep improving. Full results and methodology in [S10 — Evaluation](#s10--evaluation-ragas--qa-test-suite).
 
 </details>
 
@@ -990,7 +1003,7 @@ for r in results:
     print()
 ```
 
-**What `store.search()` returns:** a list of dicts with keys `id`, `document`, `metadata` (video_id, title, chunk_index, start_time, end_time), and `distance` (cosine distance — lower = more similar).
+**What `store.search()` returns:** a list of dicts with keys `id`, `document`, `metadata` (video_id, title, chunk_index, start_time, end_time), and `distance` (squared-L2 distance — lower = more similar).
 
 </details>
 
@@ -1019,7 +1032,7 @@ ChromaDB was chosen because it requires no API keys, no external services, and n
 **How it works:**
 
 - Collection `migrant_archive` stores documents with 3072d `gemini-embedding-2` vectors and metadata (video_id, title, chunk_index, start_time, end_time, channel, year)
-- `store.search(query_embedding, top_k=3)` returns nearest neighbors by cosine distance
+- `store.search(query_embedding, top_k=3)` returns nearest neighbors by squared-L2 distance (ChromaDB default; on L2-normalized embeddings it ranks identically to cosine)
 - `store.search(query_embedding, top_k=5, video_id="VJqe2h0U1Fs")` scopes results to a single video
 - `store.search(query_embedding, top_k=5, year=2024, channel="Plataforma Cero")` combines semantic search with compound metadata filters via ChromaDB's `$and` / `$or` operators
 - `store.get_video_metadata("video_id")` returns catalog fields (title, year, channel, chunk_count) from the first chunk, enabling tools to read video metadata without touching JSON files
@@ -1372,7 +1385,7 @@ The final phase: presentation, demo artifacts, polish, and voice input.
 #### What's done
 
 - **Chat widget** (`frontend/src/`): FAB toggle, side panel (30%), zero-state with 3 suggestion cards, bottom-anchored input bar with voice button, light theme, responsive, keyboard/ARIA accessible. YouTube links generated in backend.
-- **Presentation** (`presentation/migrant-archive-slides.html`): 19-slide HTML deck
+- **Presentation** (`presentation/migrant-archive-slides.html`): 13-slide HTML deck
 - **Voice input** ([`input-bar.ts`](frontend/src/input-bar.ts) + [`transcribe.py`](backend/api/routes/transcribe.py)): complete via Groq Whisper API (`whisper-large-v3-turbo`), free tier 2000 requests/day. 30-second maximum recording with visual countdown (last 3 seconds). Manual stop or auto-stop at 30s. Error handling for permission denied, network errors, empty speech, and service unavailable. Works in all browsers (Chrome, Firefox, Brave, Safari).
 - **Multilingual support**: language selector dropdown in panel header with 6 languages (EN/ES/CA/FR/PT/DE). Type-to-filter and keyboard navigation. Selected language persists in localStorage. Session resets on language change. All UI text translates: greeting, suggestions, input bar, error messages, and confirm dialogs. Backend uses dynamic agent prompt via language parameter and Groq transcription language hint. Agent responds in the selected language.
 - **Demo artifacts**:
@@ -1818,7 +1831,7 @@ Pregunta> y cuantos videos tienen ponentes?
 - LangSmith tracing (auto-tracing via env vars)
 - FastAPI REST API (`POST /api/ask`, `DELETE /api/session/{id}`)
 - Chat widget (Vite + TypeScript, FAB + side panel, light theme, 8 modules)
-- Presentation slides (`presentation/migrant-archive-slides.html`, 19 slides)
+- Presentation slides (`presentation/migrant-archive-slides.html`, 13 slides)
 - Plataforma Cero demo snapshot and embeddable widget demo
 - S10 RAGAS evaluation pipeline and Q&A dataset
 - Test coverage documented across 16 test files

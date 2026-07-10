@@ -1,0 +1,57 @@
+"""Static checks for the presentation deck."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from urllib.parse import unquote
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PRESENTATION_HTML = PROJECT_ROOT / "presentation" / "migrant-archive-slides.html"
+
+
+def _deck_html() -> str:
+    return PRESENTATION_HTML.read_text(encoding="utf-8")
+
+
+def test_presentation_deck_has_expected_section_count():
+    html = _deck_html()
+
+    assert len(re.findall(r"<section\b", html)) == 13
+
+
+def test_presentation_referenced_media_files_exist():
+    html = _deck_html()
+    media_refs = re.findall(r'src="media/([^"]+)"', html)
+
+    assert media_refs
+    for media_ref in media_refs:
+        media_path = PRESENTATION_HTML.parent / "media" / unquote(media_ref)
+        assert media_path.exists(), f"Missing referenced media file: {media_ref}"
+
+
+def test_presentation_does_not_reference_local_screen_recording():
+    html = _deck_html()
+
+    assert "Screen Recording" not in html
+
+
+def test_numeric_slide_jump_is_cleared_by_other_navigation():
+    html = _deck_html()
+
+    assert "function clearNumberBuffer()" in html
+    assert html.count("clearNumberBuffer();") >= 5
+    assert "numTimer = setTimeout(commitNumber, 700);" in html
+
+
+def test_obvious_slide_copy_regressions_are_absent():
+    html = _deck_html()
+
+    assert "Multilingual</span>" not in html
+    assert "<span class=\"bullet-key\">acces</span>" not in html
+    assert "spanish agent" not in html
+    assert "k3 retrieval" not in html
+    assert "Multilingual access" in html
+    assert "Spanish agent" in html
+    assert "top-3 retrieval" in html

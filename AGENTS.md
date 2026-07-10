@@ -64,4 +64,4 @@ When new packages are added to requirements.txt, update the Stack section above.
 - S07: Complete (FastAPI REST API + LangSmith tracing + Groq voice transcription)
 - S08: Complete (Vite/TypeScript chat widget + i18n + voice input + presentation slides)
 - S09: Complete (Plataforma Cero demo snapshot + embeddable widget)
-- S10: In progress (RAGAS evaluation with Gemini judge LLM, 15-question Q&A dataset, serial single-turn scoring)
+- S10: Complete (RAGAS evaluation with Gemini judge LLM, 5-question Q&A dataset, serial single-turn scoring)

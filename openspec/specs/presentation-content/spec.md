@@ -4,7 +4,7 @@
 
 Define the acceptance criteria for the refreshed `presentation/migrant-archive-slides.html` deck.
 Every requirement is a testable assertion about deck content traceable to README.md (S01–S08).
-Visual design (CSS `:root` tokens, layout classes, `<script>`) is preserved unchanged.
+Visual design (CSS `:root` tokens and layout classes) is preserved unchanged.
 
 ---
 
@@ -37,7 +37,7 @@ These numbers have no source in README.
 
 ### Requirement: REQ-CONTENT-002 OpenAI reference is absent
 
-The deck SHALL NOT contain `OpenAI`. README S02 documents exactly two embedding providers (Gemini and BGE-M3); OpenAI is not one of them.
+The deck SHALL NOT contain `OpenAI`. README S02 documents Gemini as the supported embedding provider; OpenAI is not used.
 
 #### Scenario: Verify no OpenAI mention
 
@@ -119,27 +119,21 @@ Every label that previously read "Week N" or "Step N" SHALL be replaced with S01
 
 ---
 
-### Requirement: REQ-CONTENT-006 S02 embedding providers are Gemini and BGE-M3 only
+### Requirement: REQ-CONTENT-006 S02 embedding provider is Gemini only
 
-The embedding slide SHALL name Gemini (cloud, 3072 dimensions) and BGE-M3 (local, 1024 dimensions) as the two providers. No third provider SHALL appear. The abstract EmbeddingProvider contract and Dependency Inversion framing SHALL be present. Source: README S02 embedding provider comparison.
+The embedding slide SHALL name Gemini (cloud, 3072 dimensions) as the supported provider. The abstract EmbeddingProvider contract and Dependency Inversion framing SHALL be present. Source: README S02 embedding provider section.
 
 #### Scenario: Gemini provider detail
 
 - GIVEN the embedding provider slide
 - WHEN Gemini is described
-- THEN 3072d (or 3072 dimensions) is stated. Source: README S02 provider table.
+- THEN 3072d (or 3072 dimensions) is stated. Source: README S02 provider section.
 
-#### Scenario: BGE-M3 provider detail
-
-- GIVEN the embedding provider slide
-- WHEN BGE-M3 is described
-- THEN 1024d (or 1024 dimensions) is stated. Source: README S02 provider table.
-
-#### Scenario: No third provider
+#### Scenario: No other provider
 
 - GIVEN the embedding provider slide
 - WHEN all providers listed are counted
-- THEN exactly two providers are shown: Gemini and BGE-M3.
+- THEN exactly one provider is shown: Gemini.
 
 ---
 
@@ -209,27 +203,27 @@ The S07 slide SHALL state LangSmith zero-code tracing (env-var auto-detection, n
 
 ---
 
-### Requirement: REQ-CONTENT-011 S08 status is accurate: presentation done, deploy and polish pending
+### Requirement: REQ-CONTENT-011 Product surface status is accurate
 
-The S08 slide SHALL state that the presentation is done and that deploy to production, frontend polish, and voice input are pending. Source: README S08 and Progress Dashboard.
+The product surface slide SHALL state the implemented FastAPI service, typed frontend, and voice transcription support accurately. Source: README S07-S08 and Progress Dashboard.
 
-#### Scenario: Presentation done
+#### Scenario: API and frontend are present
 
-- GIVEN the S08 slide
+- GIVEN the product surface slide
 - WHEN its content is read
-- THEN presentation (slides) is listed as completed. Source: README S08 What's done.
+- THEN the FastAPI backend and typed frontend are both represented. Source: README S07-S08.
 
-#### Scenario: Pending items
+#### Scenario: Voice input implementation is current
 
-- GIVEN the S08 slide
-- WHEN pending items are listed
-- THEN deploy to production, frontend polish, and voice input (Web Speech API) are all present as pending. Source: README S08 and Progress Dashboard.
+- GIVEN the product surface slide
+- WHEN voice input is described
+- THEN it reflects the current Groq Whisper transcription endpoint rather than a pending Web Speech API item. Source: README S08.
 
 ---
 
-### Requirement: REQ-CONTENT-012 Design system is byte-identical to pre-change state
+### Requirement: REQ-CONTENT-012 Design system is preserved
 
-The `<style>` block containing CSS `:root` custom properties, all layout utility classes, and the entire `<script>` block SHALL be identical to their pre-change state. No design token, type size, color, spacing value, or navigation logic SHALL be modified.
+The `<style>` block containing CSS `:root` custom properties and all layout utility classes SHALL preserve the established design system. Navigation logic MAY be modified only to fix verified interaction bugs while keeping existing keyboard, click, touch, and numeric slide-jump behavior.
 
 #### Scenario: CSS root tokens unchanged
 
@@ -243,20 +237,20 @@ The `<style>` block containing CSS `:root` custom properties, all layout utility
 - WHEN layout class definitions are compared
 - THEN `.slide`, `.deck`, `.slide-hero`, `.slide-content`, `.slide-closing`, `.process-flow`, `.process-step`, `.two-col`, `.stat-row`, `.tag-row`, `.tag`, `.day-list`, `.day-item`, `.divider`, `.big-number`, `.slide-label`, `.slide-counter`, `.nav-hint` are byte-identical to pre-change state.
 
-#### Scenario: Navigation script unchanged
+#### Scenario: Navigation behavior preserved
 
 - GIVEN a diff of the HTML file
 - WHEN the `<script>` block is compared
-- THEN keyboard navigation (ArrowLeft/Right/Up/Down), click half-screen logic, touch swipe, and the `total` counter variable are all byte-identical to pre-change state.
+- THEN keyboard navigation (ArrowLeft/Right/Up/Down), click half-screen logic, touch swipe, numeric slide jumps, and the `total` counter variable remain present.
 
 ---
 
-### Requirement: REQ-CONTENT-013 Slide count remains 20
+### Requirement: REQ-CONTENT-013 Slide count is 13
 
-The deck SHALL contain exactly 20 `<section>` elements. Source: Proposal scope — "keep 20 slides + presenter mode."
+The deck SHALL contain exactly 13 `<section>` elements. Source: README Pipeline Architecture and actual `migrant-archive-slides.html`.
 
 #### Scenario: Section count
 
 - GIVEN the refreshed HTML file
 - WHEN all `<section>` tags are counted
-- THEN exactly 20 are found.
+- THEN exactly 13 are found.
