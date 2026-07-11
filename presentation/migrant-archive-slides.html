@@ -101,7 +101,7 @@
       .slide
         > *:not(.problem-media):not(.solution-media):not(.quality-media):not(
           .embeddings-media
-        ):not(.ingestion-media) {
+        ):not(.ingestion-media):not(.product-stage) {
         opacity: 0;
         transform: translateY(8px);
         transition:
@@ -111,7 +111,7 @@
       .slide.active
         > *:not(.problem-media):not(.solution-media):not(.quality-media):not(
           .embeddings-media
-        ):not(.ingestion-media) {
+        ):not(.ingestion-media):not(.product-stage) {
         opacity: 1;
         transform: translateY(0);
       }
@@ -945,18 +945,15 @@
       /* ── Agent architecture · two code terminals + ReAct flow ── */
       .slide-agent {
         justify-content: flex-start;
-        padding-top: calc(var(--safe-top) + 34px);
+        padding-top: calc(var(--safe-top) + 56px);
         overflow: hidden;
-      }
-      .slide-agent .t-title {
-        font-size: clamp(1.8rem, 2.4vw, 2.3rem);
       }
       .agent-stage {
         display: flex;
         gap: 56px;
         align-items: flex-start;
         width: 100%;
-        margin-top: 24px;
+        margin-top: 14px;
       }
       .agent-col {
         flex: 1 1 0;
@@ -1148,21 +1145,45 @@
       /* Landscape media slot for product slides (API / widget).
          Reserved space — drop a <video> or <img> inside; the dashed
          border shows through until real media is added. */
-      .product-media {
+      /* Absolute band that reproduces slide 12's centered terminal+video group:
+         an invisible 360px spacer + the 840px video, centered together. Same
+         flex math as .demo-layout, so the video lands in the exact same spot at
+         any viewport width. */
+      .product-stage {
         position: absolute;
+        left: var(--safe);
         right: var(--safe);
-        top: 50%;
-        width: clamp(480px, 44vw, 840px);
+        /* Mirror slide 12's video top so all three land at the same Y.
+           Tracks the title's real line box (clamp * line-height) instead of a
+           fixed value, so it stays aligned at any viewport width:
+           padding-top (safe-top + 56) + title line + divider block (52)
+           + demo-stage margin (24). */
+        top: calc(
+          var(--safe-top) + 56px +
+            (var(--lh-display) * clamp(2.4rem, 3.7vw, 3.2rem)) + 52px + 24px
+        );
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 32px;
+        pointer-events: none;
+      }
+      .product-stage-spacer {
+        flex: 0 0 auto;
+        width: 360px;
+      }
+      .product-media {
+        flex: 0 1 auto;
+        width: 100%;
+        max-width: 840px;
         aspect-ratio: 16 / 9;
         border: 2px dashed rgba(1, 158, 227, 0.28);
         border-radius: var(--radius);
         overflow: hidden;
         background: rgba(255, 255, 255, 0.02);
-        transform: translateY(-50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        pointer-events: none;
       }
       .product-media video,
       .product-media img {
@@ -1184,15 +1205,48 @@
         height: calc(100% + 10px);
         margin: -5px;
       }
+      /* ── File-tree reveal · slides 10 & 12 (command-tree of the files behind
+         each surface). Absolutely anchored to the lower-left band, above the
+         bottom tag-row, so it sits between the media and the label — and lands
+         at the exact same spot on both slides. Out of flow, so it never pushes
+         the video. ── */
+      .file-tree {
+        position: absolute;
+        left: var(--safe);
+        bottom: calc(var(--safe-top) + 96px);
+        margin: 0;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.62rem;
+        line-height: 1.6;
+        max-width: calc(50vw - 376px);
+        z-index: 2;
+      }
+      .file-tree-title {
+        color: var(--accent);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        margin-bottom: 6px;
+      }
+      .file-tree-item {
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .file-tree-item::before {
+        content: "├─ ";
+        color: rgba(1, 158, 227, 0.55);
+      }
+      .file-tree-item:last-child::before {
+        content: "└─ ";
+      }
       /* Keep copy in a left column so it never runs under the side media.
          Tags are excluded — they live on the full-width bottom line, below
          the media panel, and must never wrap into the left column. */
       .slide-content:has(.product-media) .t-body,
       .slide-content:has(.product-media) .stat-row,
       .slide-content:has(.product-media) .bullet-list {
-        max-width: calc(
-          100vw - var(--safe) * 2 - clamp(480px, 44vw, 840px) - 56px
-        );
+        /* Copy must end left of the shifted video (its left edge − 56px gap). */
+        max-width: calc(50vw - 376px);
       }
 
       /* Keep copy inside a left column so it never runs under the side media */
@@ -1392,16 +1446,21 @@
     <div class="deck" id="deck">
       <!-- ═══════ SLIDE 01 · HERO ═══════ -->
       <section class="slide active slide-hero">
-        <p class="slide-label">Ironhack - AI Engineering Bootcamp</p>
+        <p
+          class="slide-label"
+          style="position: static; text-align: center; margin-bottom: 20px; color: var(--text)"
+        >
+          Migrant Archive
+        </p>
         <h1
           class="t-hero"
           style="
-            font-size: clamp(3.2rem, 6.5vw, 6rem);
+            font-size: clamp(2.7rem, 4.8vw, 4.5rem);
             margin-bottom: 24px;
             white-space: nowrap;
           "
         >
-          MIGRANT ARCHIVE AGENT
+          An access layer for migrant narratives
         </h1>
         <div class="divider" style="margin: 0 auto 24px"></div>
         <p
@@ -1410,17 +1469,23 @@
         >
           Sebastian Lopez Largo
         </p>
+        <p
+          class="slide-label"
+          style="position: static; text-align: center; margin-top: 16px"
+        >
+          Ironhack - AI Engineering Bootcamp
+        </p>
       </section>
 
       <!-- ═══════ SLIDE 02 · PROBLEM ═══════ -->
       <section class="slide slide-content">
         <p class="slide-label">Problem</p>
-        <h2 class="t-title">Long videos bury the knowledge.</h2>
+        <h2 class="t-title">Long videos bury the knowledge</h2>
         <div class="divider"></div>
         <p class="t-body">
-          Specific context is hard to find, translate,<br />
-          and reuse when important migrant narratives are locked<br />
-          inside long talks and weak captions.
+          A person may need one idea, one quote, or one moment,<br />
+          but inside long videos with weak captions,<br />
+          finding it by hand is slow
         </p>
         <ul class="bullet-list">
           <li class="bullet-item">
@@ -1470,11 +1535,11 @@
       <!-- ═══════ SLIDE 03 · SOLUTION ═══════ -->
       <section class="slide slide-content slide-solution">
         <p class="slide-label">Solution</p>
-        <h2 class="t-title">Find specific context in long videos.</h2>
+        <h2 class="t-title">Find specific context in long videos</h2>
         <div class="divider"></div>
         <p class="t-body">
-          Cero helps people find specific moments, surface underrepresented
-          narratives, and get source-backed quotes with exact timestamps.
+          The goal is to make migrant knowledge searchable, reusable, and easy
+          to connect with
         </p>
         <ul class="bullet-list">
           <li class="bullet-item">
@@ -1488,8 +1553,7 @@
             <span class="bullet-key">Memory</span>: Continue follow-up questions
           </li>
           <li class="bullet-item">
-            <span class="bullet-key">Multilingual access</span>: 5 languages
-            supported
+            <span class="bullet-key">Multilingual interface</span>
           </li>
           <li class="bullet-item">
             <span class="bullet-key">Voice input:</span> Accessibility
@@ -1583,7 +1647,7 @@
           class="t-body"
           style="margin-top: 32px; max-width: none; white-space: nowrap"
         >
-          The rest of the system does not care how a transcript was produced.
+          The rest of the system does not care how a transcript was produced
         </p>
         <div class="ingestion-stage">
           <div class="ingestion-media" aria-hidden="true">
@@ -1651,7 +1715,7 @@
           <span class="tag">1000-token chunks · 200 overlap</span>
         </div>
         <p class="t-body" style="margin-top: 32px">
-          This is the decision that made the Spanish agent reliable.
+          This is the decision that made the Spanish agent reliable
         </p>
         <div class="rag-flow" aria-hidden="true">
           <svg viewBox="0 0 1180 172" role="img">
@@ -1987,7 +2051,7 @@
       <!-- ═══════ SLIDE 07 · VALIDATION SCRIPTS ═══════ -->
       <section class="slide slide-content slide-verification">
         <p class="slide-label">Validation scripts</p>
-        <h2 class="t-title">Small scripts to fast-test the pipeline.</h2>
+        <h2 class="t-title">Small scripts to fast-test</h2>
         <div class="divider"></div>
         <div class="tag-row">
           <span class="tag">Retrieval test</span>
@@ -1995,7 +2059,7 @@
           <span class="tag">Reveal embeddings</span>
         </div>
         <p class="t-body" style="margin-top: 32px">
-          Verify top-3 retrieval, similarity, and distance.
+          Verify top-k3 retrieval, similarity, and distance
         </p>
         <div class="verification-stage">
           <div class="verification-media" aria-hidden="true">
@@ -2015,15 +2079,15 @@
               <span>sim<span class="bar"></span>dist</span>
             </div>
             <div class="retrieval-row">
-              <span class="q">Fintech</span>
-              <span class="m"><b>0.82</b><span class="bar"></span>0.18</span>
+              <span class="q">FILMIG</span>
+              <span class="m"><b>0.92</b><span class="bar"></span>0.08</span>
             </div>
             <div class="retrieval-row">
               <span class="q">Who is Santiago Tubio?</span>
               <span class="m"><b>0.66</b><span class="bar"></span>0.34</span>
             </div>
             <div class="retrieval-row">
-              <span class="q">What emotions did the women of corn feel?</span>
+              <span class="q">What emotions did "Mujeres del maiz" feel?</span>
               <span class="m"><b>0.53</b><span class="bar"></span>0.47</span>
             </div>
             <div class="retrieval-row">
@@ -2034,70 +2098,10 @@
         </div>
       </section>
 
-      <!-- ═══════ SLIDE 08 · QUALITY ═══════ -->
-      <section class="slide slide-content slide-quality">
-        <p class="slide-label">Quality scripts</p>
-        <h2 class="t-title">RAGAS evaluation.</h2>
-        <div class="divider"></div>
-        <div class="quality-layout">
-          <div class="quality-table-wrap">
-            <table class="metric-table" aria-label="RAGAS evaluation metrics">
-              <thead>
-                <tr>
-                  <th>Metric</th>
-                  <th>Score</th>
-                  <th>Meaning</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Faithfulness</td>
-                  <td class="metric-score">0.96</td>
-                  <td>Claims backed by context</td>
-                </tr>
-                <tr>
-                  <td>Answer relevancy</td>
-                  <td class="metric-score">0.78</td>
-                  <td>Answers the question</td>
-                </tr>
-                <tr>
-                  <td>Context precision</td>
-                  <td class="metric-score">0.90</td>
-                  <td>Retrieved context is relevant</td>
-                </tr>
-                <tr>
-                  <td>Context recall</td>
-                  <td class="metric-score">0.73</td>
-                  <td>Ground truth is covered</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="quality-media">
-            <video
-              autoplay
-              muted
-              loop
-              playsinline
-              preload="auto"
-              src="media/ragas-evaluation.mov"
-            ></video>
-          </div>
-        </div>
-        <div class="tag-row">
-          <span class="tag"
-            >High faithfulness means Cero rarely invents. Context recall is the
-            next improvement target.</span
-          >
-        </div>
-      </section>
-
-      <!-- ═══════ SLIDE 09 · AGENT ARCHITECTURE ═══════ -->
+      <!-- ═══════ SLIDE 08 · AGENT ARCHITECTURE ═══════ -->
       <section class="slide slide-content slide-agent">
         <p class="slide-label">Agent architecture</p>
-        <h2 class="t-title">
-          Cero: tool-calling agent over the migrant archive
-        </h2>
+        <h2 class="t-title">Cero: tool-calling agent</h2>
         <div class="divider"></div>
         <div class="tag-row">
           <span class="tag">Gemini 2.5 Flash</span>
@@ -2130,7 +2134,9 @@
                   <span class="ss-cmd">python agent.py</span>
                 </div>
               </div>
-<pre class="agent-code"><span class="py-kw">def</span> <span class="py-fn">create_agent</span>():
+              <pre
+                class="agent-code"
+              ><span class="py-kw">def</span> <span class="py-fn">create_agent</span>():
     llm = <span class="py-cls">ChatGoogleGenerativeAI</span>(
         model=<span class="py-str">"gemini-2.5-flash"</span>,
         temperature=<span class="py-num">0.2</span>,
@@ -2193,7 +2199,7 @@
                   <span class="ss-cmd">python tools.py</span>
                 </div>
               </div>
-<pre class="agent-code"><span class="py-dec">@tool</span>
+              <pre class="agent-code"><span class="py-dec">@tool</span>
 <span class="py-kw">def</span> <span class="py-fn">list_videos</span>(year=<span class="py-kw">None</span>, speaker=<span class="py-kw">None</span>, channel=<span class="py-kw">None</span>):
     <span class="py-com">"""
     Browse the indexed video catalog.
@@ -2223,85 +2229,151 @@
         </div>
       </section>
 
-      <!-- ═══════ SLIDE 10 · API + FRONTEND ═══════ -->
-      <section class="slide slide-content">
-        <p class="slide-label">Product surface</p>
-        <h2 class="t-title">FastAPI service, typed frontend.</h2>
+      <!-- ═══════ SLIDE 09 · QUALITY ═══════ -->
+      <section class="slide slide-content slide-quality">
+        <p class="slide-label">Quality scripts</p>
+        <h2 class="t-title">RAGAS evaluation</h2>
         <div class="divider"></div>
-        <ul class="bullet-list">
-          <li class="bullet-item">
-            <span class="bullet-key">Ask</span> — grounded answer with sources
-            <span class="t-cap">POST /api/ask</span>
-          </li>
-          <li class="bullet-item">
-            <span class="bullet-key">Speak</span> — audio to text, Groq Whisper
-            <span class="t-cap">POST /api/transcribe</span>
-          </li>
-          <li class="bullet-item">
-            <span class="bullet-key">Reset</span> — clear conversation memory
-            <span class="t-cap">DELETE /api/session/{id}</span>
-          </li>
-        </ul>
+        <div class="quality-layout">
+          <div class="quality-table-wrap">
+            <table class="metric-table" aria-label="RAGAS evaluation metrics">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Score</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Faithfulness</td>
+                  <td class="metric-score">0.96</td>
+                  <td>Claims backed by context</td>
+                </tr>
+                <tr>
+                  <td>Answer relevancy</td>
+                  <td class="metric-score">0.78</td>
+                  <td>Answers the question</td>
+                </tr>
+                <tr>
+                  <td>Context precision</td>
+                  <td class="metric-score">0.90</td>
+                  <td>Retrieved context is relevant</td>
+                </tr>
+                <tr>
+                  <td>Context recall</td>
+                  <td class="metric-score">0.73</td>
+                  <td>Ground truth is covered</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="quality-media">
+            <video
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="auto"
+              src="media/ragas-evaluation.mov"
+            ></video>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag"
+            >High faithfulness means Cero rarely invents · context recall is the
+            next improvement target</span
+          >
+        </div>
+      </section>
+
+      <!-- ═══════ SLIDE 10 · API + FRONTEND ═══════ -->
+      <section class="slide slide-content slide-demo">
+        <p class="slide-label">Product</p>
+        <h2 class="t-title">FastAPI service</h2>
+        <div class="divider"></div>
+        <div class="file-tree" aria-hidden="true">
+          <div class="file-tree-title">API, widget, and voice input</div>
+          <div class="file-tree-item">backend/api/main.py</div>
+          <div class="file-tree-item">backend/api/routes/chat.py</div>
+          <div class="file-tree-item">backend/api/routes/transcribe.py</div>
+          <div class="file-tree-item">frontend/src/api-client.ts</div>
+          <div class="file-tree-item">frontend/vite.config.ts</div>
+        </div>
         <p class="t-body" style="margin-top: 24px">
-          The browser never runs the AI. It calls the API; a FastAPI service
-          runs the agent on the backend and returns structured JSON.
+          The browser never runs the AI, it calls the API, and the backend
+          runs the agent, keeping keys off the client
         </p>
-        <div
-          class="product-media is-video is-cropped"
-          style="aspect-ratio: 2626 / 1736"
-          aria-hidden="true"
-        >
-          <video
-            autoplay
-            muted
-            loop
-            playsinline
-            preload="auto"
-            tabindex="-1"
-            data-speed="2"
-            src="media/slide-9-fastAPI.mov"
-          ></video>
+        <div class="tag-row tag-row--stacked">
+          <span class="tag">Ask — Grounded answer with sources</span>
+          <span class="tag">Speak — Audio to text, Groq Whisper</span>
+          <span class="tag">Reset — Clear conversation memory</span>
+        </div>
+        <div class="product-stage" aria-hidden="true">
+          <div class="product-stage-spacer"></div>
+          <div
+            class="product-media is-video is-cropped"
+            style="aspect-ratio: 2874 / 1750"
+          >
+            <video
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="auto"
+              tabindex="-1"
+              data-speed="2"
+              style="object-position: center top"
+              src="media/slide-9-fastAPI.mov"
+            ></video>
+          </div>
         </div>
       </section>
 
       <!-- ═══════ SLIDE 11 · OBSERVABILITY ═══════ -->
-      <section class="slide slide-content">
+      <section class="slide slide-content slide-demo">
         <p class="slide-label">Observability</p>
-        <h2 class="t-title">Every agent run, traced.</h2>
+        <h2 class="t-title">LangSmith documents every agent run</h2>
         <div class="divider"></div>
         <div class="tag-row tag-row--stacked">
           <span class="tag">LangSmith</span>
           <span class="tag">Zero-code tracing</span>
-          <span class="tag">Env-var auto-detection</span>
-          <span class="tag">Full run traces</span>
+          <span class="tag">Auto-detection</span>
+          <span class="tag">Run traces</span>
         </div>
         <p class="t-body" style="margin-top: 32px">
-          LangSmith documents every agent run automatically — it hooks into
-          LangChain's callbacks when tracing is enabled, with no changes to the
-          agent code.
+          LangSmith hooks into LangChain's callbacks when tracing is enabled,
+          with no changes to the agent code
         </p>
-        <div
-          class="product-media is-video"
-          style="aspect-ratio: 2880 / 1800"
-          aria-hidden="true"
-        >
-          <video
-            autoplay
-            muted
-            loop
-            playsinline
-            preload="auto"
-            tabindex="-1"
-            src="media/slide-10-langsmith.mov"
-          ></video>
+        <div class="product-stage" aria-hidden="true">
+          <div class="product-stage-spacer"></div>
+          <div class="product-media is-video" style="aspect-ratio: 2880 / 1800">
+            <video
+              autoplay
+              muted
+              loop
+              playsinline
+              preload="auto"
+              tabindex="-1"
+              src="media/slide-10-langsmith.mov"
+            ></video>
+          </div>
         </div>
       </section>
 
       <!-- ═══════ SLIDE 12 · LIVE DEMO ═══════ -->
       <section class="slide slide-content slide-demo">
         <p class="slide-label">Implementation</p>
-        <h2 class="t-title">What the user sees.</h2>
+        <h2 class="t-title">What the users don't see</h2>
         <div class="divider"></div>
+        <div class="file-tree" aria-hidden="true">
+          <div class="file-tree-title">Widget / final product</div>
+          <div class="file-tree-item">frontend/src/chat-widget.ts</div>
+          <div class="file-tree-item">frontend/src/main.ts</div>
+          <div class="file-tree-item">frontend/vite.widget.config.ts</div>
+          <div class="file-tree-item">frontend/index-demo/index.html</div>
+          <div class="file-tree-item">frontend/embed-demo.html</div>
+        </div>
         <!-- Replace this placeholder with the final-app screenshot or a <video> -->
         <div class="demo-stage">
           <div class="demo-layout">
@@ -2362,10 +2434,37 @@
         </div>
       </section>
 
-      <!-- ═══════ SLIDE 13 · CLOSING ═══════ -->
+      <!-- ═══════ SLIDE 13 · FUTURE WORK ═══════ -->
+      <section class="slide slide-content">
+        <p class="slide-label">Future work</p>
+        <h2 class="t-title">Where we'd take this next</h2>
+        <div class="divider"></div>
+        <ul class="bullet-list">
+          <li class="bullet-item">
+            <span class="bullet-key">Evaluation</span> is limited
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-key">Real website testing</span> needs approval
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-key">Frontend polish</span> remains
+          </li>
+          <li class="bullet-item">
+            <span class="bullet-key">Feedback loop</span> as future work
+          </li>
+        </ul>
+      </section>
+
+      <!-- ═══════ SLIDE 14 · CLOSING ═══════ -->
       <section class="slide slide-closing">
+        <p
+          class="slide-label"
+          style="position: static; text-align: center; margin-bottom: 20px; color: var(--text)"
+        >
+          Migrant Archive
+        </p>
         <h2 class="t-hero" style="margin-bottom: 24px">
-          An access layer for migrant narratives.
+          An access layer for migrant narratives
         </h2>
         <div class="divider" style="margin: 0 auto 32px"></div>
         <p class="t-sub" style="color: var(--muted)">Questions?</p>
