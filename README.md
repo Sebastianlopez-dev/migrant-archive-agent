@@ -1837,3 +1837,14 @@ Pregunta> y cuantos videos tienen ponentes?
 - Test coverage documented across 16 test files
 
 </details>
+
+---
+
+## Limitations and Next Steps
+
+The current RAGAS evaluation uses 5 curated questions as a realistic first step, not a final benchmark. A larger dataset with more question types and video genres would give a more complete picture of agent behavior.
+
+With approval from the information owner, the next step is to test Cero inside the real Plataforma Cero website. That requires backend and platform expansion so the widget can run under real usage conditions, with real users and real traffic.
+
+The frontend is functional and covers the core interaction paths; future work can add more polish to animations, transitions, and mobile details. A lightweight feedback flow for weak answers or missing context would also help prioritize future improvements.
+
