@@ -3,6 +3,12 @@
 Multimodal RAG chatbot that helps people find specific moments, retrieve context, and surface migrant narratives hidden inside long-form YouTube videos.
 Built on the FILMIG / Plataforma Cero channel.
 
+## Deliverables
+
+- [Project report PDF](docs/migrant-archive-agent.pdf)
+- [Presentation slides](presentation/migrant-archive-slides.html)
+- [Full demo video](migrant-archive-full-demo.mov)
+
 ## Why it exists
 
 - Long videos make specific context hard to find quickly.
@@ -1847,4 +1853,3 @@ The current RAGAS evaluation uses 5 curated questions as a realistic first step,
 With approval from the information owner, the next step is to test Cero inside the real Plataforma Cero website. That requires backend and platform expansion so the widget can run under real usage conditions, with real users and real traffic.
 
 The frontend is functional and covers the core interaction paths; future work can add more polish to animations, transitions, and mobile details. A lightweight feedback flow for weak answers or missing context would also help prioritize future improvements.
-
